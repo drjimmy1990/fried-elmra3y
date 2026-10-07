@@ -153,6 +153,9 @@ CREATE TABLE post_rules (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     title TEXT NOT NULL,
     facebook_post_id TEXT NOT NULL UNIQUE,
+    post_thumbnail_url TEXT,
+    post_url TEXT,
+    post_caption TEXT,
     match_type rule_match_type NOT NULL DEFAULT 'any',
     trigger_keywords TEXT[] DEFAULT ARRAY[]::TEXT[],
     auto_like_comment BOOLEAN NOT NULL DEFAULT TRUE,
@@ -361,15 +364,33 @@ CREATE TABLE complaints (
 | `/dashboard/complaints` | Admin, Support Agent | Ticket queue with Priority tags, assignment to agents, resolution notes, and one-click chat handoff. |
 | `/dashboard/menu` | Admin | Categories & item management, pricing, photo uploads to Supabase CDN, in-stock switches, and Master Menu PDF upload. |
 | `/dashboard/offers` | Admin | Create/Edit marketing offers, banner image upload, active dates, and preview. |
-| `/dashboard/post-rules` | Admin | Tab 1: Post-specific rules (ID, match criteria, reply variations, DM body). Tab 2: Global comment fallback settings. |
+| `/dashboard/post-rules` | Admin | Tab 1: Visual Post Picker & Rules (Browse live FB page posts with pictures & captions, match criteria, reply variations, DM body). Tab 2: Global comment fallback settings. |
 | `/dashboard/chat` | Admin, Support Agent | Live chat view with customers. Toggle AI on/off, manual replies. |
-| `/dashboard/settings` | Admin | Telegram bot token/chat ID, business hours, AI system prompt, delivery fee. |
+| `/dashboard/settings` | Admin | Telegram bot token/chat ID, business hours, AI system prompt, delivery fee, Facebook Page Token. |
 | `/dashboard/team` | Admin | Invite agents, change roles (`admin`, `order_agent`, `support_agent`), deactivate accounts. |
 
 ### 4.2 Key User Interface Patterns
 * **Audio Alerts for Kitchen/Orders**: Built-in sound player triggered via Supabase Realtime when `INSERT` on `orders` happens.
 * **Badge Indicators**: Unread complaints and pending orders display red numeric counters on the sidebar navigation.
 * **Role Redirection**: If an `order_agent` logs in, they are immediately redirected to `/dashboard/orders` and restricted from settings/menu editing.
+
+### 4.3 Visual Facebook Post Picker (No Manual IDs Needed)
+Instead of forcing the business owner to find and copy Facebook Post IDs manually:
+1. **Live Post Sync (Facebook Graph API)**:
+   - Next.js server route (`/api/facebook/posts`) queries:
+     `GET /{page_id}/published_posts?fields=id,message,created_time,full_picture,permalink_url&limit=25`
+2. **Visual Post Selection Modal**:
+   - The owner clicks **"Select Post from Page"**.
+   - A modal opens displaying a visual grid of recent page posts with:
+     * High-res thumbnail (`full_picture`)
+     * Post caption/text preview
+     * Publication date & time
+     * Direct link to view the post on Facebook
+     * Status indicator: `Rule Configured` (green badge) or `No Rule`
+3. **One-Click Selection**:
+   - Clicking any post card auto-populates the Post ID, thumbnail, post URL, and suggested title in the rule creation form.
+4. **Fallback Option**:
+   - A secondary input allows pasting a direct Facebook Post URL or ID for older archived posts.
 
 ---
 
