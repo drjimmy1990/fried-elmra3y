@@ -3,7 +3,7 @@
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { Utensils, Lock, Mail, AlertCircle, ArrowLeft, Loader2, ShieldAlert } from 'lucide-react';
+import { Drumstick, Lock, Mail, AlertCircle, ArrowLeft, Loader2, ShieldAlert } from 'lucide-react';
 
 function LoginForm() {
   const [email, setEmail] = useState('');
@@ -68,10 +68,10 @@ function LoginForm() {
     <div className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl">
       <div className="bg-gradient-to-r from-amber-600 to-amber-700 p-8 text-center text-white">
         <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
-          <Utensils className="h-7 w-7 text-white" />
+          <Drumstick className="h-7 w-7 text-white" />
         </div>
-        <h1 className="text-2xl font-bold tracking-tight">مطعم الخديوي 👑</h1>
-        <p className="mt-1 text-sm text-amber-100">لوحة تحكم العمليات والبوت الذكي</p>
+        <h1 className="text-2xl font-bold tracking-tight">لوحة تحكم المطعم 🍗</h1>
+        <p className="mt-1 text-sm text-amber-100">الأوردرات والشكاوى والمحادثات والبوت</p>
       </div>
 
       <form onSubmit={handleLogin} className="space-y-5 p-8">

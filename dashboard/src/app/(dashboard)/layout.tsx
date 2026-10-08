@@ -5,6 +5,17 @@ import { RealtimeAudioProvider } from '@/components/providers/RealtimeAudioProvi
 import { DashboardShell } from '@/components/layout/DashboardShell';
 import { UserRole } from '@/types/database.types';
 
+const DEFAULT_RESTAURANT_NAME = 'المطعم';
+
+/** Extracts `restaurant_name` from the get_public_settings() JSON payload. */
+function readRestaurantName(payload: unknown): string {
+  if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
+    const name = (payload as Record<string, unknown>).restaurant_name;
+    if (typeof name === 'string' && name.trim()) return name.trim();
+  }
+  return DEFAULT_RESTAURANT_NAME;
+}
+
 export default async function DashboardLayout({
   children,
 }: {
@@ -32,25 +43,29 @@ export default async function DashboardLayout({
     redirect('/login?error=account_deactivated');
   }
 
-  // Fetch operational badge counts and bot status in parallel
+  // Operational badge counts + restaurant name + bot status, in parallel.
+  // bot_settings is admin-only under RLS, so non-admins get null → default to "enabled".
   const [
-    { count: pendingOrdersCount },
+    { count: issueOrdersCount },
     { count: openComplaintsCount },
+    { count: needsHumanCount },
+    { data: publicSettings },
     { data: botSettings },
   ] = await Promise.all([
     supabase
       .from('orders')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'pending'),
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'issue'),
     supabase
       .from('complaints')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'open'),
+      .select('id', { count: 'exact', head: true })
+      .in('status', ['open', 'in_progress']),
     supabase
-      .from('bot_settings')
-      .select('bot_enabled')
-      .limit(1)
-      .maybeSingle(),
+      .from('contacts')
+      .select('id', { count: 'exact', head: true })
+      .eq('needs_human', true),
+    supabase.rpc('get_public_settings'),
+    supabase.from('bot_settings').select('bot_enabled').limit(1).maybeSingle(),
   ]);
 
   const userProfile = {
@@ -69,9 +84,11 @@ export default async function DashboardLayout({
     <RealtimeAudioProvider role={userProfile.role}>
       <DashboardShell
         user={userProfile}
+        restaurantName={readRestaurantName(publicSettings)}
         botEnabled={botSettings?.bot_enabled ?? true}
-        pendingOrdersCount={pendingOrdersCount || 0}
+        issueOrdersCount={issueOrdersCount || 0}
         openComplaintsCount={openComplaintsCount || 0}
+        needsHumanCount={needsHumanCount || 0}
       >
         {children}
       </DashboardShell>

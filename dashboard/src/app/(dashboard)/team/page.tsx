@@ -8,8 +8,8 @@ import { StaffMember } from '@/components/team/types';
 import { Database } from '@/types/database.types';
 
 export const metadata: Metadata = {
-  title: 'إدارة فريق العمل والصلاحيات | مطعم الخديوي',
-  description: 'إدارة حسابات الوكلاء والمشرفين وأدوار التشغيل في لوحة تحكم مطعم الخديوي',
+  title: 'إدارة فريق العمل والصلاحيات | لوحة التحكم',
+  description: 'إدارة حسابات الوكلاء والمشرفين وأدوار التشغيل في لوحة التحكم',
 };
 
 export const revalidate = 0; // Dynamic server component

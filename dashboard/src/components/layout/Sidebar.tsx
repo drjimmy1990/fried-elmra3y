@@ -8,60 +8,63 @@ import {
   ShoppingBag,
   AlertCircle,
   MessageSquare,
-  UtensilsCrossed,
+  BookOpen,
   Sparkles,
   MessagesSquare,
   Users,
   Settings,
   X,
-  Utensils,
-  Crown,
+  Drumstick,
   Radio,
 } from 'lucide-react';
 import { UserRole } from '@/types/database.types';
 
 interface SidebarProps {
   role: UserRole;
-  pendingOrdersCount?: number;
+  restaurantName?: string;
+  issueOrdersCount?: number;
   openComplaintsCount?: number;
+  needsHumanCount?: number;
   isOpen: boolean;
   onClose: () => void;
 }
+
+type BadgeKind = 'orders' | 'complaints' | 'chat';
 
 interface NavItem {
   title: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   roles: UserRole[];
-  badge?: 'orders' | 'complaints';
+  badge?: BadgeKind;
+  badgeTitle?: string;
 }
 
 const NAV_ITEMS: NavItem[] = [
+  { title: 'الرئيسية', href: '/dashboard', icon: LayoutDashboard, roles: ['admin'] },
   {
-    title: 'نظرة عامة',
-    href: '/dashboard',
-    icon: LayoutDashboard,
-    roles: ['admin'],
-  },
-  {
-    title: 'إدارة الطلبات',
+    title: 'الطلبات',
     href: '/dashboard/orders',
     icon: ShoppingBag,
     roles: ['admin', 'order_agent'],
     badge: 'orders',
+    badgeTitle: 'أوردرات عليها مشكلة',
   },
   {
-    title: 'الشكاوى والبلاغات',
+    title: 'الشكاوى',
     href: '/dashboard/complaints',
     icon: AlertCircle,
     roles: ['admin', 'support_agent'],
     badge: 'complaints',
+    badgeTitle: 'شكاوى مفتوحة',
   },
   {
-    title: 'المحادثات المباشرة',
+    title: 'المحادثات',
     href: '/dashboard/chat',
     icon: MessageSquare,
     roles: ['admin', 'support_agent', 'order_agent'],
+    badge: 'chat',
+    badgeTitle: 'عملاء طالبين موظف',
   },
   {
     title: 'التعليقات',
@@ -69,42 +72,25 @@ const NAV_ITEMS: NavItem[] = [
     icon: MessagesSquare,
     roles: ['admin', 'support_agent'],
   },
-  {
-    title: 'قائمة الطعام (المنيو)',
-    href: '/dashboard/menu',
-    icon: UtensilsCrossed,
-    roles: ['admin'],
-  },
-  {
-    title: 'العروض الترويجية',
-    href: '/dashboard/offers',
-    icon: Sparkles,
-    roles: ['admin'],
-  },
-  {
-    title: 'القنوات وربط الصفحات',
-    href: '/dashboard/channels',
-    icon: Radio,
-    roles: ['admin'],
-  },
-  {
-    title: 'فريق العمل والوكلاء',
-    href: '/dashboard/team',
-    icon: Users,
-    roles: ['admin'],
-  },
-  {
-    title: 'إعدادات البوت والنظام',
-    href: '/dashboard/settings',
-    icon: Settings,
-    roles: ['admin'],
-  },
+  { title: 'المنيو', href: '/dashboard/menu', icon: BookOpen, roles: ['admin'] },
+  { title: 'العروض', href: '/dashboard/offers', icon: Sparkles, roles: ['admin'] },
+  { title: 'القنوات', href: '/dashboard/channels', icon: Radio, roles: ['admin'] },
+  { title: 'الفريق', href: '/dashboard/team', icon: Users, roles: ['admin'] },
+  { title: 'الإعدادات', href: '/dashboard/settings', icon: Settings, roles: ['admin'] },
 ];
+
+const BADGE_STYLES: Record<BadgeKind, string> = {
+  orders: 'bg-orange-500/20 text-orange-300 border border-orange-500/30',
+  complaints: 'bg-rose-500/20 text-rose-300 border border-rose-500/30',
+  chat: 'bg-amber-500/20 text-amber-300 border border-amber-500/30',
+};
 
 export function Sidebar({
   role,
-  pendingOrdersCount = 0,
+  restaurantName = 'المطعم',
+  issueOrdersCount = 0,
   openComplaintsCount = 0,
+  needsHumanCount = 0,
   isOpen,
   onClose,
 }: SidebarProps) {
@@ -126,22 +112,21 @@ export function Sidebar({
 
       {/* Sidebar Drawer */}
       <aside
-        className={`fixed inset-y-0 right-0 z-50 flex w-72 flex-col bg-slate-950 text-slate-100 shadow-2xl transition-transform duration-300 ease-in-out lg:static lg:z-auto lg:translate-x-0 ${
+        className={`fixed inset-y-0 right-0 z-50 flex w-72 flex-col border-l border-slate-800/80 bg-slate-950 text-slate-100 shadow-2xl transition-transform duration-300 ease-in-out lg:sticky lg:top-0 lg:h-screen lg:z-auto lg:translate-x-0 ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
         {/* Branding & Logo Header */}
         <div className="flex h-20 items-center justify-between border-b border-slate-800/80 px-6">
-          <Link href="/dashboard" onClick={onClose} className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-tr from-amber-600 to-amber-500 text-white shadow-lg shadow-amber-500/20">
-              <Utensils className="h-6 w-6" />
+          <Link href="/dashboard" onClick={onClose} className="flex min-w-0 items-center gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-orange-600 to-amber-500 text-white shadow-lg shadow-amber-500/20">
+              <Drumstick className="h-6 w-6" />
             </div>
-            <div>
-              <div className="flex items-center gap-1.5 font-bold text-lg text-white">
-                <span>مطعم الخديوي</span>
-                <Crown className="h-4 w-4 text-amber-400" />
+            <div className="min-w-0">
+              <div className="truncate font-bold text-lg text-white" title={restaurantName}>
+                {restaurantName}
               </div>
-              <p className="text-xs text-amber-200/80">لوحة تحكم العمليات</p>
+              <p className="text-xs text-amber-200/80">لوحة تحكم الأوردرات والبوت 🍗</p>
             </div>
           </Link>
 
@@ -168,9 +153,11 @@ export function Sidebar({
 
               const badgeCount =
                 item.badge === 'orders'
-                  ? pendingOrdersCount
+                  ? issueOrdersCount
                   : item.badge === 'complaints'
                   ? openComplaintsCount
+                  : item.badge === 'chat'
+                  ? needsHumanCount
                   : 0;
 
               return (
@@ -195,14 +182,12 @@ export function Sidebar({
                   </div>
 
                   {/* Badges for counts */}
-                  {badgeCount > 0 && (
+                  {item.badge && badgeCount > 0 && (
                     <span
+                      title={item.badgeTitle}
+                      aria-label={`${item.badgeTitle ?? ''}: ${badgeCount}`}
                       className={`ml-1 inline-flex items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold ${
-                        isActive
-                          ? 'bg-white text-amber-800'
-                          : item.badge === 'orders'
-                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                          : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                        isActive ? 'bg-white text-amber-800' : BADGE_STYLES[item.badge]
                       }`}
                     >
                       {badgeCount}
@@ -219,9 +204,9 @@ export function Sidebar({
           <div className="flex items-center justify-between rounded-xl bg-slate-900/80 p-3 text-xs text-slate-400 border border-slate-800">
             <span className="flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-              النظام متصل بالسحابة
+              متصل
             </span>
-            <span className="font-mono text-[10px] text-slate-500">v1.0</span>
+            <span className="font-mono text-[10px] text-slate-500">v2.0</span>
           </div>
         </div>
       </aside>
