@@ -46,6 +46,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
       bot_settings: {
         Row: {
@@ -105,6 +106,7 @@ export interface Database {
           delivery_fee?: number
           updated_at?: string
         }
+        Relationships: []
       }
       global_comment_rules: {
         Row: {
@@ -140,6 +142,7 @@ export interface Database {
           dm_buttons?: Json
           updated_at?: string
         }
+        Relationships: []
       }
       post_rules: {
         Row: {
@@ -199,6 +202,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
       offers: {
         Row: {
@@ -243,6 +247,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
       menu_categories: {
         Row: {
@@ -275,6 +280,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
       menu_items: {
         Row: {
@@ -322,6 +328,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
       contacts: {
         Row: {
@@ -363,6 +370,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
       messages: {
         Row: {
@@ -395,6 +403,7 @@ export interface Database {
           is_read?: boolean
           created_at?: string
         }
+        Relationships: []
       }
       orders: {
         Row: {
@@ -448,6 +457,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
       order_items: {
         Row: {
@@ -480,6 +490,7 @@ export interface Database {
           total_price?: number
           notes?: string | null
         }
+        Relationships: []
       }
       complaints: {
         Row: {
@@ -527,7 +538,24 @@ export interface Database {
           updated_at?: string
           resolved_at?: string | null
         }
+        Relationships: []
       }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      user_role: UserRole
+      order_status: OrderStatus
+      complaint_status: ComplaintStatus
+      complaint_priority: ComplaintPriority
+      rule_match_type: RuleMatchType
+    }
+    CompositeTypes: {
+      [_ in never]: never
     }
   }
 }

@@ -1,4 +1,5 @@
 import { createServerClient } from '@supabase/ssr';
+import { SupabaseClient } from '@supabase/supabase-js';
 import { NextResponse, type NextRequest } from 'next/server';
 import { Database, UserRole } from '@/types/database.types';
 
@@ -7,26 +8,29 @@ export async function updateSession(request: NextRequest) {
     request,
   });
 
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key';
+
   const supabase = createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    url,
+    key,
     {
       cookies: {
         getAll() {
           return request.cookies.getAll();
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: Array<{ name: string; value: string; options?: Record<string, unknown> }>) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
           supabaseResponse = NextResponse.next({
             request,
           });
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
+            supabaseResponse.cookies.set(name, value, options as any)
           );
         },
       },
     }
-  );
+  ) as unknown as SupabaseClient<Database>;
 
   const {
     data: { user },
@@ -34,18 +38,18 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
 
-  // Unauthenticated users accessing /dashboard/* are redirected to /login
-  if (!user && pathname.startsWith('/dashboard')) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/login';
-    return NextResponse.redirect(url);
+  // Unauthenticated users accessing / or /dashboard/* are redirected to /login
+  if (!user && (pathname === '/' || pathname.startsWith('/dashboard'))) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = '/login';
+    return NextResponse.redirect(redirectUrl);
   }
 
   // Authenticated users on /login are redirected to /dashboard
   if (user && pathname === '/login') {
-    const url = request.nextUrl.clone();
-    url.pathname = '/dashboard';
-    return NextResponse.redirect(url);
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = '/dashboard';
+    return NextResponse.redirect(redirectUrl);
   }
 
   // Role-Based Access Control (RBAC) Route Guards
@@ -60,9 +64,9 @@ export async function updateSession(request: NextRequest) {
     const isActive = profile?.is_active ?? true;
 
     if (!isActive) {
-      const url = request.nextUrl.clone();
-      url.pathname = '/login?error=account_deactivated';
-      return NextResponse.redirect(url);
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = '/login?error=account_deactivated';
+      return NextResponse.redirect(redirectUrl);
     }
 
     // Role Route Restrictions
@@ -71,18 +75,18 @@ export async function updateSession(request: NextRequest) {
       const allowedPaths = ['/dashboard/orders'];
       const isAllowed = allowedPaths.some((p) => pathname.startsWith(p));
       if (!isAllowed) {
-        const url = request.nextUrl.clone();
-        url.pathname = '/dashboard/orders';
-        return NextResponse.redirect(url);
+        const redirectUrl = request.nextUrl.clone();
+        redirectUrl.pathname = '/dashboard/orders';
+        return NextResponse.redirect(redirectUrl);
       }
     } else if (role === 'support_agent') {
       // Support agent can access /dashboard/complaints, /dashboard/chat
       const allowedPaths = ['/dashboard/complaints', '/dashboard/chat'];
       const isAllowed = allowedPaths.some((p) => pathname.startsWith(p));
       if (!isAllowed) {
-        const url = request.nextUrl.clone();
-        url.pathname = '/dashboard/complaints';
-        return NextResponse.redirect(url);
+        const redirectUrl = request.nextUrl.clone();
+        redirectUrl.pathname = '/dashboard/complaints';
+        return NextResponse.redirect(redirectUrl);
       }
     }
     // Admin has access to everything
