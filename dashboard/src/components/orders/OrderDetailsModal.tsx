@@ -24,7 +24,7 @@ import {
   CreditCard,
   Sparkles,
 } from 'lucide-react';
-import { formatCurrency, formatDateTime, getOrderStatusBadge } from '@/lib/utils';
+import { formatCurrency, formatDateTime, getOrderStatusBadge, getWhatsAppLink } from '@/lib/utils';
 import { OrderWithItems, OrderStatus } from './types';
 
 interface OrderDetailsModalProps {
@@ -51,26 +51,27 @@ export function OrderDetailsModal({
   const [notesSaveSuccess, setNotesSaveSuccess] = useState(false);
   const [isChangingStatus, setIsChangingStatus] = useState(false);
 
-  // Sync internal notes state when order changes
+  // Sync internal notes state only when opening a different order
   useEffect(() => {
     if (order) {
       setInternalNotes(order.internal_notes || '');
       setNotesSaveSuccess(false);
     }
-  }, [order]);
+  }, [order?.id]);
+
+  // Handle Escape key to close modal
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen || !order) return null;
-
-  // Format Egyptian WhatsApp link
-  const getWhatsAppLink = (phone: string) => {
-    let clean = phone.replace(/\D/g, '');
-    if (clean.startsWith('0')) {
-      clean = '2' + clean;
-    } else if (!clean.startsWith('20') && clean.length === 10) {
-      clean = '20' + clean;
-    }
-    return `https://wa.me/${clean}`;
-  };
 
   const handleSaveNotes = async () => {
     setIsSavingNotes(true);
@@ -116,6 +117,12 @@ export function OrderDetailsModal({
       className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-xs animate-in fade-in duration-200"
       role="dialog"
       aria-modal="true"
+      aria-labelledby="order-details-title"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
     >
       <div className="relative w-full max-w-3xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden text-slate-100">
         {/* Header */}
@@ -126,7 +133,7 @@ export function OrderDetailsModal({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="font-extrabold text-lg text-white">
+                <h2 id="order-details-title" className="font-extrabold text-lg text-white">
                   طلب رقم #{order.order_number}
                 </h2>
                 <span

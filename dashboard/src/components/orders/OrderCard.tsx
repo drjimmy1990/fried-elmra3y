@@ -16,7 +16,7 @@ import {
   CreditCard,
   MessageCircle,
 } from 'lucide-react';
-import { formatCurrency, getOrderStatusBadge } from '@/lib/utils';
+import { formatCurrency, getOrderStatusBadge, getWhatsAppLink } from '@/lib/utils';
 import { OrderWithItems, OrderStatus } from './types';
 
 interface OrderCardProps {
@@ -55,7 +55,7 @@ function formatTimeElapsed(dateString: string | null | undefined): string {
   return `منذ ${diffInDays} يوم`;
 }
 
-export function OrderCard({
+function OrderCardComponent({
   order,
   onSelectOrder,
   onAdvanceStatus,
@@ -72,14 +72,6 @@ export function OrderCard({
     .map((item) => `${item.quantity}x ${item.item_name}`)
     .join('، ');
   const remainingCount = order.order_items.length > 2 ? order.order_items.length - 2 : 0;
-
-  // Format WhatsApp link
-  const getWhatsAppLink = (phone: string) => {
-    let clean = phone.replace(/\D/g, '');
-    if (clean.startsWith('0')) clean = '2' + clean;
-    else if (!clean.startsWith('20') && clean.length === 10) clean = '20' + clean;
-    return `https://wa.me/${clean}`;
-  };
 
   return (
     <div
@@ -272,3 +264,5 @@ export function OrderCard({
     </div>
   );
 }
+
+export const OrderCard = React.memo(OrderCardComponent);

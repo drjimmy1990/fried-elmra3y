@@ -53,3 +53,14 @@ export function getComplaintPriorityBadge(priority: string) {
       return { label: priority, color: 'bg-gray-100 text-gray-800 border-gray-300' };
   }
 }
+
+export function getWhatsAppLink(phone: string | null | undefined): string {
+  if (!phone) return '#';
+  let clean = phone.replace(/\D/g, '');
+  if (clean.startsWith('0')) {
+    clean = '2' + clean;
+  } else if (!clean.startsWith('20') && clean.length === 10) {
+    clean = '20' + clean;
+  }
+  return `https://wa.me/${clean}`;
+}

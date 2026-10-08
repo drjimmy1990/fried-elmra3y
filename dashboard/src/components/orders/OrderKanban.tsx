@@ -106,7 +106,7 @@ export function OrderKanban({ initialOrders }: OrderKanbanProps) {
   const [isUpdatingOrder, setIsUpdatingOrder] = useState<Record<string, boolean>>({});
   const [isRealtimeActive, setIsRealtimeActive] = useState(true);
 
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   // Set up Supabase Realtime Subscription
   useEffect(() => {
@@ -221,6 +221,9 @@ export function OrderKanban({ initialOrders }: OrderKanbanProps) {
 
   // Change Status Handler
   const handleChangeStatus = async (orderId: string, newStatus: OrderStatus) => {
+    const targetOrder = orders.find((o) => o.id === orderId);
+    const previousStatus = targetOrder?.status;
+
     setIsUpdatingOrder((prev) => ({ ...prev, [orderId]: true }));
 
     // Optimistic UI update
@@ -241,19 +244,28 @@ export function OrderKanban({ initialOrders }: OrderKanbanProps) {
         .eq('id', orderId);
 
       if (error) {
-        console.error('Error advancing order status:', error);
-        // Refresh local orders from database on error
-        const { data } = await supabase
-          .from('orders')
-          .select('*')
-          .eq('id', orderId)
-          .single();
-        if (data) {
+        console.error('Error updating order status:', error);
+        // Direct rollback to previousStatus
+        if (previousStatus) {
           setOrders((prev) =>
-            prev.map((o) => (o.id === orderId ? { ...o, ...data } : o))
+            prev.map((o) => (o.id === orderId ? { ...o, status: previousStatus } : o))
           );
+          if (selectedOrder?.id === orderId) {
+            setSelectedOrder((prev) => (prev ? { ...prev, status: previousStatus } : null));
+          }
+        }
+        alert('تعذر تحديث حالة الطلب. يرجى التحقق من الاتصال بالإنترنت.');
+      }
+    } catch {
+      if (previousStatus) {
+        setOrders((prev) =>
+          prev.map((o) => (o.id === orderId ? { ...o, status: previousStatus } : o))
+        );
+        if (selectedOrder?.id === orderId) {
+          setSelectedOrder((prev) => (prev ? { ...prev, status: previousStatus } : null));
         }
       }
+      alert('حدث خطأ غير متوقع أثناء تحديث الطلب.');
     } finally {
       setIsUpdatingOrder((prev) => ({ ...prev, [orderId]: false }));
     }
@@ -291,7 +303,16 @@ export function OrderKanban({ initialOrders }: OrderKanbanProps) {
     setPrintingOrder(order);
     setTimeout(() => {
       if (typeof window !== 'undefined') {
+        const afterPrintHandler = () => {
+          setPrintingOrder(null);
+          window.removeEventListener('afterprint', afterPrintHandler);
+        };
+        window.addEventListener('afterprint', afterPrintHandler);
         window.print();
+        // Fallback cleanup in case afterprint does not fire in some browsers
+        setTimeout(() => {
+          setPrintingOrder(null);
+        }, 3000);
       }
     }, 150);
   };
