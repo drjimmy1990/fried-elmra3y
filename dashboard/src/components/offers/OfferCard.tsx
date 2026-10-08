@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Sparkles,
   Edit2,
@@ -43,6 +43,23 @@ export function OfferCard({
   const discount = calculateDiscount(offer.price_before, offer.price_after);
   const validity = getOfferValidityStatus(offer);
   const formattedDateRange = formatOfferDateRange(offer.start_date, offer.end_date);
+
+  // Keyboard accessibility and body scroll lock for delete modal
+  useEffect(() => {
+    if (!isConfirmingDelete) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsConfirmingDelete(false);
+      }
+    };
+    const prevOverflow = document.body.style.overflow;
+    window.addEventListener('keydown', handleKeyDown);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [isConfirmingDelete]);
 
   // Toggle active status instantly with optimistic local update and Supabase sync
   const handleToggleActive = async () => {
@@ -262,9 +279,13 @@ export function OfferCard({
         <div
           role="dialog"
           aria-modal="true"
+          onClick={() => setIsConfirmingDelete(false)}
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs animate-in fade-in duration-150"
         >
-          <div className="w-full max-w-sm bg-slate-900 border border-rose-500/30 rounded-2xl p-5 space-y-4 shadow-2xl">
+          <div
+            className="w-full max-w-sm bg-slate-900 border border-rose-500/30 rounded-2xl p-5 space-y-4 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center gap-3 text-rose-400">
               <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20">
                 <AlertTriangle className="w-5 h-5" />

@@ -118,8 +118,9 @@ export function OfferModal({
 
   // Image Upload handler (Supabase Storage: offer-banners)
   const processUpload = async (file: File) => {
-    if (!file.type.startsWith('image/')) {
-      setFormError('يرجى اختيار ملف صورة صالح (JPG, PNG, WEBP, GIF)');
+    const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedMimeTypes.includes(file.type)) {
+      setFormError('يرجى اختيار ملف صورة صالح (JPG, PNG, WEBP)');
       return;
     }
 
@@ -133,7 +134,9 @@ export function OfferModal({
 
     try {
       const supabase = createClient();
-      const path = 'banners/' + Date.now() + '-' + file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const ext = file.name.split('.').pop()?.toLowerCase() || 'webp';
+      const slug = Math.random().toString(36).substring(2, 8);
+      const path = `banners/${Date.now()}-${slug}.${ext}`;
 
       const { error: uploadError } = await supabase.storage
         .from('offer-banners')
@@ -195,9 +198,17 @@ export function OfferModal({
       return;
     }
 
-    if (priceBefore && (isNaN(parseFloat(priceBefore)) || parseFloat(priceBefore) < 0)) {
-      setFormError('السعر السابق غير صالح');
-      return;
+    if (priceBefore) {
+      const parsedBefore = parseFloat(priceBefore);
+      const parsedAfter = parseFloat(priceAfter);
+      if (isNaN(parsedBefore) || parsedBefore < 0) {
+        setFormError('السعر السابق غير صالح');
+        return;
+      }
+      if (parsedBefore <= parsedAfter) {
+        setFormError('السعر الأصلي قبل الخصم يجب أن يكون أكبر من سعر العرض الحالي');
+        return;
+      }
     }
 
     if (!bannerUrl.trim()) {
@@ -471,7 +482,10 @@ export function OfferModal({
                   </button>
                   <button
                     type="button"
-                    onClick={() => setBannerUrl('')}
+                    onClick={() => {
+                      setBannerUrl('');
+                      if (fileInputRef.current) fileInputRef.current.value = '';
+                    }}
                     disabled={isUploading}
                     className="px-3 py-1.5 rounded-xl bg-rose-600/90 text-white hover:bg-rose-600 text-xs font-semibold flex items-center gap-1.5 transition-colors"
                   >
@@ -598,7 +612,7 @@ export function OfferModal({
               >
                 <span
                   className={cn(
-                    'absolute top-1 w-4 h-4 rounded-full bg-white transition-transform',
+                    'absolute top-1 w-4 h-4 rounded-full bg-white transition-all duration-200',
                     isActive ? 'right-6' : 'right-1'
                   )}
                 />
