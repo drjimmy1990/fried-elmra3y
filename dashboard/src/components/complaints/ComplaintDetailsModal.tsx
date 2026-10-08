@@ -1,0 +1,480 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import {
+  X,
+  Phone,
+  MessageCircle,
+  Clock,
+  User,
+  AlertTriangle,
+  CheckCircle2,
+  Lock,
+  RotateCcw,
+  Sparkles,
+  Save,
+  Check,
+  Loader2,
+  FileText,
+  ShieldAlert,
+  ArrowRight,
+  ExternalLink,
+} from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
+import { formatDateTime, getComplaintPriorityBadge, getWhatsAppLink } from '@/lib/utils';
+import {
+  ComplaintWithDetails,
+  ComplaintStatus,
+  ComplaintPriority,
+  StaffProfile,
+  getComplaintStatusBadge,
+} from './types';
+
+interface ComplaintDetailsModalProps {
+  complaint: ComplaintWithDetails | null;
+  isOpen: boolean;
+  onClose: () => void;
+  staffList: StaffProfile[];
+  onUpdateStatus: (complaintId: string, newStatus: ComplaintStatus) => Promise<void>;
+  onUpdatePriority: (complaintId: string, newPriority: ComplaintPriority) => Promise<void>;
+  onAssignStaff: (complaintId: string, staffId: string | null) => Promise<void>;
+  onUpdateResolutionNotes: (complaintId: string, notes: string) => Promise<boolean>;
+}
+
+export function ComplaintDetailsModal({
+  complaint,
+  isOpen,
+  onClose,
+  staffList,
+  onUpdateStatus,
+  onUpdatePriority,
+  onAssignStaff,
+  onUpdateResolutionNotes,
+}: ComplaintDetailsModalProps) {
+  const router = useRouter();
+
+  const [resolutionNotes, setResolutionNotes] = useState('');
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
+  const [notesSaveSuccess, setNotesSaveSuccess] = useState(false);
+  const [isChangingStatus, setIsChangingStatus] = useState(false);
+  const [isChangingPriority, setIsChangingPriority] = useState(false);
+  const [isAssigning, setIsAssigning] = useState(false);
+  const [isTakingOver, setIsTakingOver] = useState(false);
+
+  // Sync resolution notes when selected complaint changes
+  useEffect(() => {
+    if (complaint) {
+      setResolutionNotes(complaint.resolution_notes || '');
+      setNotesSaveSuccess(false);
+    }
+  }, [complaint?.id]);
+
+  // Handle Escape key to dismiss modal
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+  if (!isOpen || !complaint) return null;
+
+  const priorityBadge = getComplaintPriorityBadge(complaint.priority);
+  const statusBadge = getComplaintStatusBadge(complaint.status);
+
+  // Handle saving internal resolution notes
+  const handleSaveNotes = async () => {
+    setIsSavingNotes(true);
+    try {
+      const success = await onUpdateResolutionNotes(complaint.id, resolutionNotes);
+      if (success) {
+        setNotesSaveSuccess(true);
+        setTimeout(() => setNotesSaveSuccess(false), 3000);
+      }
+    } finally {
+      setIsSavingNotes(false);
+    }
+  };
+
+  // Handle status transition
+  const handleStatusChange = async (newStatus: ComplaintStatus) => {
+    setIsChangingStatus(true);
+    try {
+      await onUpdateStatus(complaint.id, newStatus);
+    } finally {
+      setIsChangingStatus(false);
+    }
+  };
+
+  // Handle priority change
+  const handlePriorityChange = async (newPriority: ComplaintPriority) => {
+    setIsChangingPriority(true);
+    try {
+      await onUpdatePriority(complaint.id, newPriority);
+    } finally {
+      setIsChangingPriority(false);
+    }
+  };
+
+  // Handle staff assignment
+  const handleAssignChange = async (staffId: string) => {
+    setIsAssigning(true);
+    try {
+      await onAssignStaff(complaint.id, staffId === '' ? null : staffId);
+    } finally {
+      setIsAssigning(false);
+    }
+  };
+
+  // One-Click Chat Takeover: disables AI on contact & navigates to live chat
+  const handleChatTakeover = async () => {
+    setIsTakingOver(true);
+    try {
+      if (complaint.contact_id) {
+        const supabase = createClient();
+        const { error } = await supabase
+          .from('contacts')
+          .update({ ai_enabled: false })
+          .eq('id', complaint.contact_id);
+
+        if (error) {
+          console.error('Failed to disable AI for contact on takeover:', error);
+        }
+        router.push(`/dashboard/chat?contactId=${complaint.contact_id}`);
+      } else {
+        router.push('/dashboard/chat');
+      }
+    } catch (err) {
+      console.error('Error during chat takeover:', err);
+    } finally {
+      setIsTakingOver(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-xs animate-in fade-in duration-200"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="complaint-modal-title"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="relative flex flex-col w-full max-w-3xl max-h-[92vh] rounded-3xl bg-slate-900 border border-slate-800 shadow-2xl text-slate-100 overflow-hidden animate-in zoom-in-95 duration-200">
+        {/* Header Bar */}
+        <div className="flex items-center justify-between p-5 sm:p-6 border-b border-slate-800 bg-slate-950/60">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
+              <AlertTriangle className="h-6 w-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 id="complaint-modal-title" className="text-lg font-black text-white font-mono">
+                  تذكرة شكوى #{complaint.ticket_number}
+                </h2>
+                <span
+                  className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${priorityBadge.color}`}
+                >
+                  {priorityBadge.label}
+                </span>
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${statusBadge.color}`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${statusBadge.dot}`} />
+                  {statusBadge.label}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-slate-400 mt-1">
+                <Clock className="w-3.5 h-3.5 text-slate-500" />
+                <span>تاريخ الفتح: {formatDateTime(complaint.created_at)}</span>
+                {complaint.resolved_at && (
+                  <span className="text-emerald-400">
+                    • تم الحل في: {formatDateTime(complaint.resolved_at)}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={onClose}
+            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/80 transition"
+            aria-label="إغلاق النافذة"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Modal Scrollable Body */}
+        <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6">
+          {/* Customer Info & Chat Takeover Banner */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Customer Box */}
+            <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                بيانات صاحب الشكوى
+              </span>
+              <div className="mt-2 flex items-center justify-between">
+                <div>
+                  <div className="font-bold text-slate-100 text-base">
+                    {complaint.customer_name || 'عميل بدون اسم'}
+                  </div>
+                  <div className="text-sm font-mono text-slate-300 mt-0.5" dir="ltr">
+                    {complaint.customer_phone}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <a
+                    href={`tel:${complaint.customer_phone}`}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition border border-slate-700"
+                  >
+                    <Phone className="w-3.5 h-3.5 text-amber-400" />
+                    <span>اتصال</span>
+                  </a>
+                  <a
+                    href={getWhatsAppLink(complaint.customer_phone)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 text-emerald-400 text-xs font-semibold transition border border-emerald-800/50"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5" />
+                    <span>واتساب</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* One-Click Chat Takeover Box */}
+            <div className="rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/10 via-slate-900 to-slate-950 p-4 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center gap-2 text-amber-400 text-xs font-bold">
+                  <Sparkles className="w-4 h-4" />
+                  <span>التدخل المباشر مع العميل (Chat Takeover)</span>
+                </div>
+                <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                  إيقاف الرد الآلي للذكاء الاصطناعي فوراً وتولي المحادثة كدعم فني بشري لإرضاء العميل وحل مشكلته.
+                </p>
+              </div>
+
+              <div className="mt-3">
+                <button
+                  onClick={handleChatTakeover}
+                  disabled={isTakingOver}
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-amber-950/50 transition disabled:opacity-50"
+                >
+                  {isTakingOver ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>جاري تحويل الشات وإيقاف البوت...</span>
+                    </>
+                  ) : (
+                    <>
+                      <MessageCircle className="w-4 h-4" />
+                      <span>الانتقال للمحادثة المباشرة وتولي الرد 💬</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Full Issue Description */}
+          <div className="space-y-2">
+            <span className="text-xs font-bold text-slate-300">نص الشكوى وبلاغ العميل:</span>
+            <div className="rounded-2xl bg-slate-950/80 p-4 border border-slate-800 text-slate-200 text-sm leading-relaxed whitespace-pre-wrap">
+              {complaint.issue_description || 'لا يوجد نص للشكوى'}
+            </div>
+          </div>
+
+          {/* Status Transitions & Priority Management */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Status Transition Actions */}
+            <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4 space-y-3">
+              <span className="text-xs font-bold text-slate-300 block">
+                تحديث مرحلة التذكرة (Status Transition):
+              </span>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {/* To In Progress */}
+                <button
+                  onClick={() => handleStatusChange('in_progress')}
+                  disabled={isChangingStatus || complaint.status === 'in_progress'}
+                  className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-xs font-semibold transition ${
+                    complaint.status === 'in_progress'
+                      ? 'bg-blue-500/20 border-blue-500 text-blue-300 ring-2 ring-blue-500/30'
+                      : 'bg-slate-800 hover:bg-blue-950/50 border-slate-700 hover:border-blue-600/50 text-slate-300'
+                  }`}
+                >
+                  <Clock className="w-4 h-4 mb-1 text-blue-400" />
+                  <span>بدء المعالجة</span>
+                  <span className="text-[10px] text-slate-400 font-normal">قيد المتابعة</span>
+                </button>
+
+                {/* To Resolved */}
+                <button
+                  onClick={() => handleStatusChange('resolved')}
+                  disabled={isChangingStatus || complaint.status === 'resolved'}
+                  className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-xs font-semibold transition ${
+                    complaint.status === 'resolved'
+                      ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 ring-2 ring-emerald-500/30'
+                      : 'bg-slate-800 hover:bg-emerald-950/50 border-slate-700 hover:border-emerald-600/50 text-slate-300'
+                  }`}
+                >
+                  <CheckCircle2 className="w-4 h-4 mb-1 text-emerald-400" />
+                  <span>تم الحل</span>
+                  <span className="text-[10px] text-slate-400 font-normal">وإرضاء العميل</span>
+                </button>
+
+                {/* To Closed */}
+                <button
+                  onClick={() => handleStatusChange('closed')}
+                  disabled={isChangingStatus || complaint.status === 'closed'}
+                  className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-xs font-semibold transition ${
+                    complaint.status === 'closed'
+                      ? 'bg-slate-700 border-slate-500 text-white ring-2 ring-slate-600'
+                      : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300'
+                  }`}
+                >
+                  <Lock className="w-4 h-4 mb-1 text-slate-400" />
+                  <span>إغلاق التذكرة</span>
+                  <span className="text-[10px] text-slate-400 font-normal">أرشيف مغلق</span>
+                </button>
+              </div>
+
+              {/* Reopen Action (if resolved or closed) */}
+              {(complaint.status === 'resolved' || complaint.status === 'closed') && (
+                <button
+                  onClick={() => handleStatusChange('open')}
+                  disabled={isChangingStatus}
+                  className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 text-xs font-semibold border border-slate-700 transition"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>إعادة فتح الشكوى كجديدة (Reopen)</span>
+                </button>
+              )}
+            </div>
+
+            {/* Priority & Staff Assignment */}
+            <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4 space-y-4">
+              {/* Priority Select Buttons */}
+              <div>
+                <span className="text-xs font-bold text-slate-300 block mb-2">
+                  درجة الأولوية (Priority):
+                </span>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {(['urgent', 'high', 'medium', 'low'] as ComplaintPriority[]).map((p) => {
+                    const badge = getComplaintPriorityBadge(p);
+                    const isSelected = complaint.priority === p;
+                    return (
+                      <button
+                        key={p}
+                        onClick={() => handlePriorityChange(p)}
+                        disabled={isChangingPriority}
+                        className={`py-1.5 px-2 rounded-xl text-xs font-bold border transition text-center ${
+                          isSelected
+                            ? `${badge.color} ring-2 ring-amber-500/50`
+                            : 'bg-slate-800/80 border-slate-700/80 text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        {p === 'urgent' && '🔴 عاجل'}
+                        {p === 'high' && '🟠 عالية'}
+                        {p === 'medium' && '🟡 متوسط'}
+                        {p === 'low' && '🟢 عادي'}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Staff Assignment Selector */}
+              <div>
+                <span className="text-xs font-bold text-slate-300 block mb-1.5">
+                  إسناد التذكرة لموظف الدعم:
+                </span>
+                <select
+                  value={complaint.assigned_to || ''}
+                  onChange={(e) => handleAssignChange(e.target.value)}
+                  disabled={isAssigning}
+                  className="w-full rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-xs text-slate-200 focus:outline-hidden focus:border-amber-500 focus:ring-1 focus:ring-amber-500 disabled:opacity-50"
+                >
+                  <option value="">-- غير مخصص (بدون موظف) --</option>
+                  {staffList.map((staff) => (
+                    <option key={staff.id} value={staff.id}>
+                      {staff.full_name} ({staff.role === 'admin' ? 'مدير' : staff.role === 'support_agent' ? 'خدمة عملاء' : 'طلبات'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Internal Resolution Notes */}
+          <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-amber-400" />
+                <span className="text-xs font-bold text-slate-200">
+                  ملاحظات الحل الداخلية والتعويضات (Resolution Notes):
+                </span>
+              </div>
+              {notesSaveSuccess && (
+                <span className="flex items-center gap-1 text-xs font-bold text-emerald-400 animate-in fade-in">
+                  <Check className="w-3.5 h-3.5" />
+                  <span>تم الحفظ بنجاح ✓</span>
+                </span>
+              )}
+            </div>
+
+            <textarea
+              value={resolutionNotes}
+              onChange={(e) => setResolutionNotes(e.target.value)}
+              placeholder="اكتب تفاصيل حل المشكلة، الإجراء المتخذ، أو تفاصيل التعويض المقدم للعميل (وجبة بديلة، كود خصم، استرداد)..."
+              rows={3}
+              className="w-full rounded-xl bg-slate-900/90 border border-slate-700/80 p-3 text-xs text-slate-200 placeholder-slate-500 focus:outline-hidden focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition leading-relaxed resize-none"
+            />
+
+            <div className="flex justify-end">
+              <button
+                onClick={handleSaveNotes}
+                disabled={isSavingNotes || resolutionNotes === (complaint.resolution_notes || '')}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 transition disabled:opacity-40"
+              >
+                {isSavingNotes ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>جاري الحفظ...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-3.5 h-3.5 text-amber-400" />
+                    <span>حفظ ملاحظات الحل</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Modal Footer */}
+        <div className="flex items-center justify-between p-4 sm:p-5 border-t border-slate-800 bg-slate-950/80 text-xs">
+          <div className="text-slate-400">
+            تحديث فوري عبر Supabase Realtime • مطعم الخديوي
+          </div>
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold transition border border-slate-700"
+          >
+            إغلاق
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
