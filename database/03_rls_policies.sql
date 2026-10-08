@@ -159,12 +159,13 @@ TO authenticated
 USING (public.get_user_role(auth.uid()) = 'admin' AND public.is_active_staff(auth.uid()))
 WITH CHECK (public.get_user_role(auth.uid()) = 'admin' AND public.is_active_staff(auth.uid()));
 
--- Staff: View Own Profile
+-- Staff: View Active Staff Profiles (Allows viewing colleagues on tickets and assigned orders)
+DROP POLICY IF EXISTS "Active staff view active profiles" ON public.profiles;
 DROP POLICY IF EXISTS "Staff view own profile" ON public.profiles;
-CREATE POLICY "Staff view own profile"
+CREATE POLICY "Active staff view active profiles"
 ON public.profiles FOR SELECT
 TO authenticated
-USING (id = auth.uid());
+USING (public.is_active_staff(auth.uid()) AND is_active = true);
 
 -- Staff: Update Own Profile (Restricted from privilege escalation)
 DROP POLICY IF EXISTS "Staff update own profile" ON public.profiles;
@@ -443,6 +444,13 @@ ON public.orders FOR SELECT
 TO authenticated
 USING (public.get_user_role(auth.uid()) = 'order_agent' AND public.is_active_staff(auth.uid()));
 
+-- Order Agent: Insert access (Manual phone/counter order creation)
+DROP POLICY IF EXISTS "Order agent insert on orders" ON public.orders;
+CREATE POLICY "Order agent insert on orders"
+ON public.orders FOR INSERT
+TO authenticated
+WITH CHECK (public.get_user_role(auth.uid()) = 'order_agent' AND public.is_active_staff(auth.uid()));
+
 -- Order Agent: Update access (Update order status, delivery notes)
 DROP POLICY IF EXISTS "Order agent update on orders" ON public.orders;
 CREATE POLICY "Order agent update on orders"
@@ -477,6 +485,13 @@ CREATE POLICY "Order agent select on order_items"
 ON public.order_items FOR SELECT
 TO authenticated
 USING (public.get_user_role(auth.uid()) = 'order_agent' AND public.is_active_staff(auth.uid()));
+
+-- Order Agent: Insert access
+DROP POLICY IF EXISTS "Order agent insert on order_items" ON public.order_items;
+CREATE POLICY "Order agent insert on order_items"
+ON public.order_items FOR INSERT
+TO authenticated
+WITH CHECK (public.get_user_role(auth.uid()) = 'order_agent' AND public.is_active_staff(auth.uid()));
 
 -- Order Agent: Update access
 DROP POLICY IF EXISTS "Order agent update on order_items" ON public.order_items;
