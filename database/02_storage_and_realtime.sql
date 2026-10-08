@@ -81,14 +81,14 @@ VALUES
         'menu-assets',
         true,
         10485760, -- 10MB (10 * 1024 * 1024 bytes)
-        ARRAY['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
+        ARRAY['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf']
     ),
     (
         'offer-banners',
         'offer-banners',
         true,
         10485760, -- 10MB (10 * 1024 * 1024 bytes)
-        ARRAY['image/jpeg', 'image/png', 'image/webp']
+        ARRAY['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
     )
 ON CONFLICT (id) DO UPDATE SET
     public = EXCLUDED.public,
@@ -118,6 +118,7 @@ WITH CHECK (
         SELECT 1 FROM public.profiles
         WHERE profiles.id = auth.uid()
           AND profiles.role = 'admin'
+          AND profiles.is_active = true
     )
 );
 
@@ -132,6 +133,7 @@ USING (
         SELECT 1 FROM public.profiles
         WHERE profiles.id = auth.uid()
           AND profiles.role = 'admin'
+          AND profiles.is_active = true
     )
 )
 WITH CHECK (
@@ -140,6 +142,7 @@ WITH CHECK (
         SELECT 1 FROM public.profiles
         WHERE profiles.id = auth.uid()
           AND profiles.role = 'admin'
+          AND profiles.is_active = true
     )
 );
 
@@ -154,6 +157,7 @@ USING (
         SELECT 1 FROM public.profiles
         WHERE profiles.id = auth.uid()
           AND profiles.role = 'admin'
+          AND profiles.is_active = true
     )
 );
 
