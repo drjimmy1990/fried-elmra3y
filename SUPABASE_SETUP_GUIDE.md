@@ -1,4 +1,4 @@
-# 📖 Supabase Deployment & Setup Guide (Al-Khedewy Bot & Dashboard)
+# 📖 Supabase Deployment & Setup Guide (Restaurant Bot & Dashboard)
 
 This guide provides a complete, repeatable walkthrough to deploy the database and control dashboard on **any new or existing Supabase project** in less than 5 minutes.
 
@@ -11,7 +11,7 @@ This guide provides a complete, repeatable walkthrough to deploy the database an
 4. [Step 3: Retrieve Supabase API Keys](#step-3-retrieve-supabase-api-keys)
 5. [Step 4: Configure the Dashboard (`.env.local`)](#step-4-configure-the-dashboard-envlocal)
 6. [Step 5: Launch the Dashboard & Log In](#step-5-launch-the-dashboard--log-in)
-7. [Step 6: Configure Facebook Page & Telegram (Directly via UI)](#step-6-configure-facebook-page--telegram-directly-via-ui)
+7. [Step 6: Connect the Facebook Page & Set Up the Restaurant](#step-6-connect-the-facebook-page--set-up-the-restaurant-from-the-dashboard)
 8. [Step 7: Connect n8n Automation Workflows](#step-7-connect-n8n-automation-workflows)
 9. [Troubleshooting & Quick Fixes](#troubleshooting--quick-fixes)
 
@@ -138,52 +138,59 @@ SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOi...your-service-role-key...
 
 ---
 
-## Step 6: Configure Facebook Page & Telegram (Directly via UI)
+## Step 6: Connect the Facebook Page & Set Up the Restaurant (from the Dashboard)
 
-> [!WARNING]
-> **Being replaced in v2.** After `04_v2_upgrade.sql`, Facebook pages are no longer set in `/settings`. They move to a new **القنوات (`/channels`)** page: add your Meta App ID/Secret, then click "Connect with Facebook" to get a non-expiring page token automatically. This step and Step 7 will be rewritten once that page ships. Do not paste a Graph API Explorer token: it expires in about 1 hour.
+Nothing about Facebook or Telegram goes in `.env.local`. Everything is managed from the dashboard and stored server-side.
 
-No need to touch `.env` files or restart the server when tokens change. Manage them from the UI:
+### 6.1 Connect the page: `/dashboard/channels` (القنوات)
+1. **رابط الويب هوك (n8n):** paste your n8n router URL (`https://…`) and save. This one URL serves every page and every app.
+2. **تطبيقات ميتا → إضافة تطبيق:** enter the Meta **App ID** and **App Secret** (and the Login for Business **config_id** if you use it). The dashboard checks them and shows the **OAuth Redirect URI**, **Callback URL** and **Verify Token** to copy into the Meta app.
+3. **ربط صفحة فيسبوك:** choose the app, log in, and pick your page. The server stores a **non-expiring page token** and subscribes the page to the webhooks automatically.
+4. Press **اختبار الاتصال** on the page card. You should see 🟢 متصلة.
 
-1. In the sidebar, click **الإعدادات العامة** (`/dashboard/settings`).
-2. **Facebook Page Configuration**:
-   - **معرف الصفحة (Page ID):** Enter your Facebook Page ID (e.g., `104857291827462`).
-   - **رمز الوصول للصفحة (Page Access Token):** Paste your Meta Page Access Token (click 👁️ to toggle visibility).
-3. **Telegram Operations Alerts**:
-   - **رمز توكن بوت تيليجرام (Bot Token):** From [@BotFather](https://t.me/BotFather).
-   - **معرف المحادثة (Chat ID):** Your staff group/channel ID (e.g., `-1001234567890`).
-   - Click **إرسال رسالة تجريبية (Send Test Message)** to verify instant Telegram alert delivery.
-4. **Restaurant & AI Parameters**:
-   - Adjust delivery fee (in EGP), business operating hours, and Gemini 2.0 system prompt.
-5. Click **حفظ التغييرات (Save Changes)**.
+👉 Full walkthrough (creating the Meta app, permissions, App Review, limits): [`docs/META_APP_SETUP.md`](./docs/META_APP_SETUP.md)
 
-### How to get the Facebook Page Token & ID:
-1. Go to [developers.facebook.com](https://developers.facebook.com) -> **Tools** -> **Graph API Explorer**.
-2. Select your App and Facebook Page.
-3. Add permissions: `pages_show_list`, `pages_read_engagement`, `pages_manage_posts`, `pages_manage_engagement`, `pages_messaging`.
-4. Click **Generate Access Token**.
-5. To get the Page ID, query `me?fields=id,name` or open your Facebook Page -> **About** -> **Page Transparency**.
+> [!IMPORTANT]
+> If the Meta app form has no **Login Config ID** field saving, run this once in the SQL Editor:
+> `ALTER TABLE public.meta_apps ADD COLUMN IF NOT EXISTS login_config_id TEXT;`
+
+### 6.2 Restaurant & bot: `/dashboard/settings` (الإعدادات)
+- Restaurant name (shown in the sidebar and on receipts), delivery fee and currency.
+- Bot master switch and auto-pause on complaint.
+- Bot messages: welcome, human handoff, off-hours.
+- Business hours.
+- AI system prompt (there is a fried-chicken template button).
+- Telegram bot token + chat ID, with a test button.
+
+### 6.3 Menu & prices: `/dashboard/menu` (المنيو)
+- Upload the menu **images** (several, reorderable) and an optional **PDF**. The bot sends them when a customer asks for the menu.
+- **قائمة الأسعار:** a text/Markdown price list. Use it in n8n with `{{ $json.price_list }}`.
+
+### 6.4 Offers: `/dashboard/offers` (العروض)
+- Quick add with only the title required (image, price and end date are optional).
+- Turn offers on or off and reorder them. An offer is hidden automatically after its end date.
+
+### 6.5 Comments: `/dashboard/comments` (التعليقات)
+- Global rules, sensitive/complaint words, anti-spam settings and per-post rules.
+- The inbox fills up once the n8n comments workflow is running.
 
 ---
 
 ## Step 7: Connect n8n Automation Workflows
 
-1. Open your n8n workspace.
-2. Under **Credentials**, create a new **PostgreSQL** credential:
-   - **Host:** `db.your-project-id.supabase.co` (Found in Supabase -> Settings -> Database -> Connection string)
-   - **Database:** `postgres`
-   - **User:** `postgres`
-   - **Password:** Your Supabase database password
-   - **Port:** `5432` (or `6543` if using Connection Pooler)
+> [!NOTE]
+> The n8n workflows are being rebuilt for v2: one router plus the comments, Messenger AI and Telegram flows. The old files in `n8n-workflows/` use the removed v1 tables, so **don't import them** into production.
+
+What every v2 workflow reads and writes is defined in [`docs/WORKFLOW_DATA_CONTRACT.md`](./docs/WORKFLOW_DATA_CONTRACT.md).
+
+To prepare n8n now:
+1. Under **Credentials**, create a **Postgres** credential (or a Supabase credential with the `service_role` key):
+   - **Host:** `db.your-project-id.supabase.co` (Supabase → Settings → Database → Connection string)
+   - **Database / User:** `postgres` / `postgres`
+   - **Password:** your Supabase database password
+   - **Port:** `5432` (or `6543` for the pooler)
    - **SSL:** `require`
-3. Import the 3 workflow JSON files located in `n8n-workflows/`:
-   - `01_facebook_comments_engine.json`: Handles comment triggers, anti-spam randomized replies, auto-like, and private DMs.
-   - `02_messenger_ai_ordering.json`: Handles Messenger conversation, Gemini 2.0 food ordering, human takeover pause checks (`ai_enabled == false`).
-   - `03_telegram_alerts_dispatcher.json`: Dispatches rich HTML alerts to your Telegram operations group.
-4. Set up Webhooks in Meta Developers:
-   - In Meta Developers -> App Dashboard -> **Webhooks** -> **Page**:
-     - Subscribe to `feed` (for post comments) -> Point to `01_facebook_comments_engine` webhook URL.
-     - Subscribe to `messages` (for Messenger) -> Point to `02_messenger_ai_ordering` webhook URL.
+2. Create the router webhook in n8n (GET + POST on the same path) and paste its production URL into **/dashboard/channels → رابط الويب هوك (n8n)** and into the Meta app's **Webhooks → Page → Callback URL**.
 
 ---
 
@@ -199,5 +206,10 @@ No need to touch `.env` files or restart the server when tokens change. Manage t
 ### 3. Realtime notifications not ringing or updating in the dashboard
 - **Fix:** Verify that Section 3 of `02_storage_and_realtime.sql` was executed. You can confirm in Supabase Dashboard -> **Database** -> **Replication** -> Ensure `orders`, `complaints`, `messages`, and `contacts` are toggled ON under Source Tables.
 
-### 4. Changing or Rotating the Facebook Page
-- Simply navigate to `/dashboard/settings`, update the Page ID and Access Token in the UI, and click **Save Changes**. The visual post picker and live chat will instantly switch to the new page.
+### 4. Changing or adding a Facebook Page
+- Go to **/dashboard/channels**. Press **فصل** on the old page and **ربط صفحة فيسبوك** for the new one, or simply connect additional pages.
+- No restart or `.env` change is needed. Live Chat and the comments tools always use the page each customer or post belongs to.
+
+### 5. Live Chat says the message couldn't be sent
+- Facebook only allows replies within **24 hours** of the customer's last message. The failed message stays in the thread with a **إعادة المحاولة** button.
+- Other errors (token expired, missing permission) are shown in Arabic. Press **اختبار الاتصال** in /channels.
