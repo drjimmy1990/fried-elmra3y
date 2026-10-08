@@ -72,13 +72,14 @@ export function VisualPostPickerModal({
         onClose();
       }
     };
+    const prevOverflow = document.body.style.overflow;
     if (isOpen) {
       window.addEventListener('keydown', handleKeyDown);
       document.body.style.overflow = 'hidden';
     }
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = prevOverflow;
     };
   }, [isOpen, onClose]);
 
@@ -248,7 +249,7 @@ export function VisualPostPickerModal({
                         {hasExistingRule && !isCurrentSelected && (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-blue-500/90 text-white shadow-md backdrop-blur-sm">
                             <CheckCircle2 className="w-3 h-3" />
-                            توجد قاعدة مربوطة
+                            قاعدة مضافة مسبقاً
                           </span>
                         )}
                       </div>

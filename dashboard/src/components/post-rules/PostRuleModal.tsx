@@ -127,13 +127,14 @@ export function PostRuleModal({
         onClose();
       }
     };
+    const prevOverflow = document.body.style.overflow;
     if (isOpen) {
       window.addEventListener('keydown', handleKeyDown);
       document.body.style.overflow = 'hidden';
     }
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = prevOverflow;
     };
   }, [isOpen, isPickerOpen, onClose]);
 
@@ -154,10 +155,18 @@ export function PostRuleModal({
   // Keywords management
   const handleAddKeyword = () => {
     const trimmed = keywordInput.trim();
-    if (trimmed && !triggerKeywords.includes(trimmed)) {
-      setTriggerKeywords([...triggerKeywords, trimmed]);
-      setKeywordInput('');
+    if (!trimmed) return;
+
+    // Split by standard comma or Arabic comma (،)
+    const candidates = trimmed.split(/[,،]/).map((k) => k.trim()).filter(Boolean);
+    const updated = [...triggerKeywords];
+    for (const item of candidates) {
+      if (!updated.includes(item)) {
+        updated.push(item);
+      }
     }
+    setTriggerKeywords(updated);
+    setKeywordInput('');
   };
 
   const handleRemoveKeyword = (index: number) => {

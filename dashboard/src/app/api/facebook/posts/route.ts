@@ -59,6 +59,19 @@ export async function GET() {
   try {
     const supabase = await createClient();
 
+    // Verify authenticated user
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { success: false, error: 'غير مصرح لك بالوصول - يرجى تسجيل الدخول' },
+        { status: 401 }
+      );
+    }
+
     // Check bot_settings table for credentials if present
     let dbPageId: string | null = null;
     let dbPageToken: string | null = null;
