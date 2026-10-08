@@ -5,74 +5,9 @@
 -- ==============================================================================
 
 -- ==============================================================================
--- 1. Storage Compatibility Fallback Stubs
--- (Guarantees local testing compatibility when running outside hosted Supabase)
--- ==============================================================================
-CREATE SCHEMA IF NOT EXISTS storage;
-
--- Safe fallback stubs for Supabase roles if running in standalone PostgreSQL
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
-        CREATE ROLE authenticated;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
-        CREATE ROLE anon;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN
-        CREATE ROLE service_role;
-    END IF;
-END $$;
-
--- Safe fallback stub for auth.uid() function if running in standalone PostgreSQL
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_proc p 
-        JOIN pg_namespace n ON p.pronamespace = n.oid 
-        WHERE n.nspname = 'auth' AND p.proname = 'uid'
-    ) THEN
-        CREATE OR REPLACE FUNCTION auth.uid() 
-        RETURNS UUID 
-        LANGUAGE sql STABLE 
-        AS $func$
-            SELECT NULLIF(current_setting('request.jwt.claim.sub', true), '')::uuid;
-        $func$;
-    END IF;
-END $$;
-
--- Storage buckets metadata table stub
-CREATE TABLE IF NOT EXISTS storage.buckets (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    owner UUID REFERENCES auth.users(id),
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
-    public BOOLEAN DEFAULT FALSE,
-    avif_autodetection BOOLEAN DEFAULT FALSE,
-    file_size_limit BIGINT,
-    allowed_mime_types TEXT[]
-);
-
--- Storage objects metadata table stub
-CREATE TABLE IF NOT EXISTS storage.objects (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    bucket_id TEXT REFERENCES storage.buckets(id),
-    name TEXT,
-    owner UUID REFERENCES auth.users(id),
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
-    last_accessed_at TIMESTAMPTZ DEFAULT NOW(),
-    metadata JSONB,
-    path_tokens TEXT[] GENERATED ALWAYS AS (string_to_array(name, '/')) STORED
-);
-
--- Enable RLS on storage.objects
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
-
--- ==============================================================================
--- 2. Storage Buckets Configuration
+-- 1. Storage Buckets Configuration
 -- Creates 'menu-assets' (images & PDF) and 'offer-banners' (images only) with 10MB limit
+-- (storage.buckets and storage.objects are pre-managed by Supabase)
 -- ==============================================================================
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES 
@@ -97,7 +32,7 @@ ON CONFLICT (id) DO UPDATE SET
     updated_at = NOW();
 
 -- ==============================================================================
--- 3. Storage Row-Level Security Policies for storage.objects
+-- 2. Storage Row-Level Security Policies for storage.objects
 -- ==============================================================================
 
 -- 3.1 Public Read Access for menu assets and promotional offer banners
