@@ -16,6 +16,8 @@ export interface BotSettingsFormData {
   notify_telegram: boolean;
   telegram_bot_token: string;
   telegram_chat_id: string;
+  facebook_page_id: string;
+  facebook_page_access_token: string;
   notify_dashboard: boolean;
   menu_full_image_url: string;
   menu_full_pdf_url: string;

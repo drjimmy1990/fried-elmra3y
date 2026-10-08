@@ -75,6 +75,8 @@ CREATE TABLE IF NOT EXISTS public.bot_settings (
     notify_telegram BOOLEAN NOT NULL DEFAULT TRUE,
     telegram_bot_token TEXT,
     telegram_chat_id TEXT,
+    facebook_page_id TEXT,
+    facebook_page_access_token TEXT,
     notify_dashboard BOOLEAN NOT NULL DEFAULT TRUE,
     business_hours_enabled BOOLEAN NOT NULL DEFAULT FALSE,
     open_time TIME,

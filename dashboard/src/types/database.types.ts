@@ -56,6 +56,8 @@ export interface Database {
           notify_telegram: boolean
           telegram_bot_token: string | null
           telegram_chat_id: string | null
+          facebook_page_id: string | null
+          facebook_page_access_token: string | null
           notify_dashboard: boolean
           business_hours_enabled: boolean
           open_time: string | null
@@ -75,6 +77,8 @@ export interface Database {
           notify_telegram?: boolean
           telegram_bot_token?: string | null
           telegram_chat_id?: string | null
+          facebook_page_id?: string | null
+          facebook_page_access_token?: string | null
           notify_dashboard?: boolean
           business_hours_enabled?: boolean
           open_time?: string | null
@@ -94,6 +98,8 @@ export interface Database {
           notify_telegram?: boolean
           telegram_bot_token?: string | null
           telegram_chat_id?: string | null
+          facebook_page_id?: string | null
+          facebook_page_access_token?: string | null
           notify_dashboard?: boolean
           business_hours_enabled?: boolean
           open_time?: string | null

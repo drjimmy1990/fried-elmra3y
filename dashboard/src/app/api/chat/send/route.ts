@@ -86,7 +86,16 @@ export async function POST(request: NextRequest) {
       contact.platform.toLowerCase() === 'facebook';
 
     if (isMessenger && contact.platform_user_id) {
-      const pageAccessToken = process.env.FACEBOOK_PAGE_ACCESS_TOKEN || null;
+      let pageAccessToken = process.env.FACEBOOK_PAGE_ACCESS_TOKEN || null;
+
+      if (!pageAccessToken) {
+        const { data: bs } = await supabase
+          .from('bot_settings')
+          .select('facebook_page_access_token')
+          .limit(1)
+          .maybeSingle();
+        pageAccessToken = (bs as any)?.facebook_page_access_token || null;
+      }
 
       if (pageAccessToken) {
         try {

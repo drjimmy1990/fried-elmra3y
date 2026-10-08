@@ -77,6 +77,8 @@ export default async function SettingsPage() {
     notify_telegram: true,
     telegram_bot_token: null,
     telegram_chat_id: null,
+    facebook_page_id: null,
+    facebook_page_access_token: null,
     notify_dashboard: true,
     business_hours_enabled: false,
     open_time: '10:00:00',
