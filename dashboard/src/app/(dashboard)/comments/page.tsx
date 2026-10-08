@@ -14,6 +14,8 @@ export const dynamic = 'force-dynamic';
 
 const DEFAULT_SETTINGS: CommentSettings = {
   id: '',
+  ai_enabled: true,
+  ai_system_prompt: null,
   sensitive_keywords: [],
   complaint_public_reply: null,
   complaint_dm_message: null,

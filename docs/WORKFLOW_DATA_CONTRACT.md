@@ -47,27 +47,24 @@ flowchart LR
 ### 2.1 Order of operations
 
 1. **Lock / dedupe.** `INSERT INTO comment_events (comment_id, channel_id, post_id, parent_comment_id, commenter_id, commenter_name, comment_text, comment_created_at, decision) VALUES (..., 'pending') ON CONFLICT (comment_id) DO NOTHING RETURNING id`. If no row comes back, the comment was already handled, so **stop**.
-2. **Load:** `comment_settings` (single row), `post_settings` for this `facebook_post_id`, and active `comment_rules` where (`channel_id` is null or equals this channel) and (`scope = 'global'` or `facebook_post_id` = the post).
-3. **Resolve** in exactly this order. It is the same logic as `resolveComment()` in [`dashboard/src/lib/rules-matcher.ts`](dashboard/src/lib/rules-matcher.ts), which the dashboard's rule tester uses.
-
-| # | Check | Result |
-|---|---|---|
-| 1 | `bot_settings.bot_enabled = false` | ignored `bot_off` |
-| 2 | Commenter id = page id (`value.from.id = entry.id`) | ignored `page_own_comment` |
-| 3 | `post_settings.bot_enabled = false` (no row = on) | ignored `post_off` |
-| 4 | `parent_id ≠ post_id` (reply to a comment) and `ignore_nested_replies` | ignored `nested_reply` |
-| 5 | `ignore_mentions_only` and the text is only tags / emoji / punctuation | ignored `mentions_only` |
-| 6 | Text contains any `comment_settings.sensitive_keywords` | **complaint** |
-| 7 | Post rules with `trigger_type = 'keywords'` that match, in `priority` order (ascending) | rule `post_keywords` |
-| 8 | Post rules with `trigger_type = 'any'` | rule `post_any` |
-| 9 | Global rules with `trigger_type = 'keywords'` that match | rule `global_keywords` |
-| 10 | Global rules with `trigger_type = 'any'` (fallback) | rule `global_any` |
-| — | Nothing matched | ignored `no_rule` |
-
-**Keyword matching:**
-- Text is normalised: lowercase; tashkeel and tatweel removed; أ/إ/آ become ا; ى→ي; ة→ه; ؤ→و; ئ→ي; repeated letters collapse ("بكاااام" → "بكام"); punctuation and emoji become spaces.
-- Keywords match as **whole words**, with the prefixes `وال بال فال كال لل ال و ب ف ل ك` and the suffixes `هم ها كم نا ه ك ي ات` allowed.
-- Multi-word keywords are supported.
+2. **Load:** `comment_settings` (single row with `ai_enabled`, `ai_system_prompt`), `post_settings` for this `facebook_post_id`, active `comment_rules` (post & global overrides), and `bot_settings` (`price_list`, `restaurant_name`).
+3. **Resolve:**
+   - **Pre-checks:** Bot off, post bot off, page's own comment, nested reply ignore, mentions-only ignore.
+   - **Complaint Keywords (Deterministic Guard):** `comment_settings.sensitive_keywords` → immediate complaint action.
+   - **Specific Post / Keyword Rules (Optional Overrides):** If a specific rule matches for this post/keyword, run that rule.
+   - **AI Comment Agent (The Primary Engine):** If `comment_settings.ai_enabled` is true (default), the comment text is evaluated by the AI using `comment_settings.ai_system_prompt` and the restaurant's `price_list`. The AI returns:
+     ```json
+     {
+       "intent": "inquiry | complaint | spam_abuse | praise | general",
+       "should_hide": boolean,
+       "public_reply": string | null,
+       "send_dm": boolean,
+       "dm_message": string | null,
+       "is_complaint": boolean,
+       "notify_staff": boolean
+     }
+     ```
+   - **Fallback:** If AI is disabled and no rule matches, mark as ignored (`no_rule`).
 
 ### 2.2 Running a rule (`comment_rules` columns)
 

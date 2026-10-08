@@ -223,25 +223,26 @@ export function CommentsCenter({ role, initialEvents, initialRules, initialSetti
 
       {tab === 'global' && (
         <div className="space-y-6">
-          <section className="space-y-3">
+          <CommentSettingsForm settings={settings} canEdit={canEdit} onSave={saveSettings} />
+
+          <section className="space-y-3 pt-4 border-t border-slate-800/80">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
-                <h3 className="text-sm font-bold text-white">القواعد العامة (لكل المنشورات)</h3>
+                <h3 className="text-sm font-bold text-white">قواعد مخصصة لكلمات معينة (اختياري)</h3>
                 <p className="text-[11px] text-slate-400">
-                  قواعد الكلمات بتتفحص الأول بالأولوية، وبعدها قاعدة &quot;أي تعليق&quot; كرد احتياطي.
+                  قواعد إضافية تتجاوز الذكاء الاصطناعي لو حابب تثبت رد معين على كلمات محددة.
                 </p>
               </div>
               {canEdit && (
-                <button type="button" className={btn.primary} onClick={() => setEditor(emptyRule('global'))}>
-                  <Plus className="w-4 h-4" /> قاعدة عامة جديدة
+                <button type="button" className={btn.secondary} onClick={() => setEditor(emptyRule('global'))}>
+                  <Plus className="w-4 h-4" /> إضافة قاعدة كلمات مخصصة
                 </button>
               )}
             </div>
-            <RuleList rules={globalRules} pages={pages} canEdit={canEdit} emptyText="لا توجد قواعد عامة" {...ruleHandlers} />
+            <RuleList rules={globalRules} pages={pages} canEdit={canEdit} emptyText="لا توجد قواعد مخصصة (الذكاء الاصطناعي يتولى جميع الردود)" {...ruleHandlers} />
           </section>
 
           <RuleTester rules={rules} settings={settings} posts={postSettings.filter((p) => !p.id.startsWith('local-'))} />
-          <CommentSettingsForm settings={settings} canEdit={canEdit} onSave={saveSettings} />
         </div>
       )}
 

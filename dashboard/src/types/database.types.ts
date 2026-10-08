@@ -383,6 +383,8 @@ export type Database = {
       comment_settings: {
         Row: {
           id: string
+          ai_enabled: boolean
+          ai_system_prompt: string | null
           sensitive_keywords: string[]
           complaint_public_reply: string | null
           complaint_dm_message: string | null
@@ -398,6 +400,8 @@ export type Database = {
         }
         Insert: {
           id?: string
+          ai_enabled?: boolean
+          ai_system_prompt?: string | null
           sensitive_keywords?: string[]
           complaint_public_reply?: string | null
           complaint_dm_message?: string | null
@@ -413,6 +417,8 @@ export type Database = {
         }
         Update: {
           id?: string
+          ai_enabled?: boolean
+          ai_system_prompt?: string | null
           sensitive_keywords?: string[]
           complaint_public_reply?: string | null
           complaint_dm_message?: string | null

@@ -1,11 +1,31 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { CheckCircle2, Loader2, ShieldAlert, Timer } from 'lucide-react';
+import { Bot, CheckCircle2, Loader2, RotateCcw, ShieldAlert, Sparkles, Timer } from 'lucide-react';
 import { btn, inputClass } from '@/components/ui/Modal';
 import { Switch, TagInput } from '@/components/ui/FormControls';
 import { cn } from '@/lib/utils';
 import type { CommentSettings } from './types';
+
+const DEFAULT_AI_PROMPT = `أنت المساعد الذكي لمطعم فراخ مقلية (بروستد وكريسبي)، ومسؤول عن الرد على تعليقات العملاء على منشورات فيسبوك وإدارتها باحترافية.
+
+## شخصيتك وأسلوبك:
+- لهجة مصرية ودودة، سريعة، تشهي العميل (يا فندم، نورتنا، بالهنا والشفا، ألف هنا).
+- الردود قصيرة ومباشرة (من سطر لسطرين فقط وبدون إطالة).
+- ممنوع استخدام تنسيقات Markdown (لا تستخدم نجوم ** أو هاشتاجات #) لأنها لا تظهر بشكل صحيح في تعليقات فيسبوك.
+
+## مهامك في تحليل كل تعليق وتحديد القرار:
+1. الاستفسار عن الأسعار أو المنيو (inquiry):
+   - رد بلباقة واذكر السعر بدقة إذا كان مذكوراً في قائمة الأسعار، وشجع العميل.
+   - إذا سأل عن المنيو أو تفاصيل كثيرة، اذكر له أنك أرسلت له المنيو والعروض في رسالة خاصة (send_dm: true).
+2. المدح والإشادة (praise):
+   - اشكر العميل بحرارة وتمنّى له أوقات سعيدة دائماً.
+3. الشكاوى والاستياء (complaint):
+   - اعتذر بأعلى درجات الأدب والاهتمام.
+   - حدد is_complaint: true و notify_staff: true لفتح تذكرة فورية وإبلاغ الإدارة على تليجرام.
+   - إذا كانت الشكوى شديدة وبها غضب، اجعل should_hide: true لحماية سمعة الصفحة حتى تتواصل معه الإدارة في الخاص.
+4. السب أو الإعلانات أو الروابط المضللة (spam_abuse):
+   - اجعل should_hide: true فوراً بدون رد علني وبدون رسائل خاصة.`;
 
 interface Props {
   settings: CommentSettings;
@@ -29,6 +49,8 @@ export function CommentSettingsForm({ settings, canEdit, onSave }: Props) {
     setMsg(null);
     try {
       await onSave({
+        ai_enabled: s.ai_enabled,
+        ai_system_prompt: s.ai_system_prompt?.trim() || null,
         sensitive_keywords: s.sensitive_keywords,
         complaint_public_reply: s.complaint_public_reply?.trim() || null,
         complaint_dm_message: s.complaint_dm_message?.trim() || null,
@@ -53,6 +75,68 @@ export function CommentSettingsForm({ settings, canEdit, onSave }: Props) {
 
   return (
     <div className="space-y-5">
+      {/* AI Comment Agent */}
+      <section className="p-5 rounded-3xl bg-slate-900/80 border border-amber-500/30 space-y-4 shadow-xl shadow-amber-500/5">
+        <header className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center">
+              <Bot className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-white">المساعد الذكي للتعليقات (AI Comment Agent)</h3>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  <Sparkles className="w-3 h-3" /> المحرك الأساسي
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                الذكاء الاصطناعي بيحلل قصد كل تعليق، يولد ردود ذكية، يخفي السبام، ويسجل الشكاوى تلقائياً.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className={cn('text-xs font-bold', s.ai_enabled ? 'text-emerald-400' : 'text-slate-500')}>
+              {s.ai_enabled ? '🟢 الذكاء الاصطناعي مفعل' : '⚪ معطل'}
+            </span>
+            <Switch
+              checked={s.ai_enabled}
+              onChange={(v) => set('ai_enabled', v)}
+              disabled={!canEdit}
+              label="تفعيل الذكاء الاصطناعي للتعليقات"
+            />
+          </div>
+        </header>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <label className="text-xs font-semibold text-slate-200">
+              تعليمات وأسلوب الذكاء الاصطناعي (System Prompt)
+            </label>
+            {canEdit && (
+              <button
+                type="button"
+                onClick={() => set('ai_system_prompt', DEFAULT_AI_PROMPT)}
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-400 hover:text-amber-300 transition"
+              >
+                <RotateCcw className="w-3 h-3" /> استعادة القالب الافتراضي للمطعم
+              </button>
+            )}
+          </div>
+          <textarea
+            rows={9}
+            disabled={!canEdit || !s.ai_enabled}
+            className={cn(inputClass, 'font-sans text-xs leading-relaxed resize-y', !s.ai_enabled && 'opacity-50')}
+            value={s.ai_system_prompt ?? ''}
+            onChange={(e) => set('ai_system_prompt', e.target.value)}
+            placeholder="اكتب تعليمات الذكاء الاصطناعي هنا..."
+          />
+          <div className="flex flex-wrap items-center justify-between text-[11px] text-slate-500 gap-2">
+            <span>البوت بيعتمد على قائمة الأسعار ومنيو المطعم في الردود، والردود بتطلع بلهجة طبيعية غير مكررة.</span>
+            <span>{s.ai_system_prompt?.length ?? 0} حرف</span>
+          </div>
+        </div>
+      </section>
+
       {/* Complaint words */}
       <section className="p-5 rounded-3xl bg-slate-900/60 border border-rose-500/20 space-y-4">
         <header className="flex items-center gap-2">

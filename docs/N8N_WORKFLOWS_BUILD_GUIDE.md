@@ -1009,7 +1009,19 @@ if (sens) {
     }
     if (rule) break;
   }
-  if (!rule) return ignore('no_rule');
+  // If no custom rule matched, route to the AI Comment Agent if enabled
+  if (!rule) {
+    if (cs.ai_enabled !== false && cs.ai_system_prompt) {
+      return [{ json: {
+        ...res,
+        action_source: 'ai_agent',
+        needs_ai: true,
+        ai_system_prompt: `${cs.ai_system_prompt}\n\n## قائمة أسعار المطعم الحالية:\n${x.bot?.price_list || 'غير متوفرة حالياً'}`,
+        comment_text: cm.text,
+      } }];
+    }
+    return ignore('no_rule');
+  }
 
   // menu / offers can't be attached to a one-shot private reply → add buttons that trigger them in 02
   const buttons = Array.isArray(rule.dm_buttons) ? [...rule.dm_buttons] : [];
@@ -1022,6 +1034,7 @@ if (sens) {
     && Date.now() - lastDm < cs.dm_cooldown_hours * 3600 * 1000;
 
   Object.assign(res, {
+    action_source: 'rule',
     final_decision: 'replied', rule_id: rule.id, level,
     do_like: !!rule.like_comment,
     reply_text: rule.reply_enabled ? pick(rule.reply_variations, 'تم الرد في الخاص يا فندم ❤️') : null,
@@ -1037,6 +1050,22 @@ res.has_actions = !!(res.do_like || res.reply_text || res.dm || res.hide);
 res.delay_sec = res.reply_text || res.dm ? delay(cs.reply_delay_min_sec ?? 5, cs.reply_delay_max_sec ?? 40) : 0;
 return [{ json: res }];
 ```
+
+> **AI Comment Node (when `needs_ai` is true):**
+> An AI Model node (e.g. OpenAI / Gemini) receives `comment_text` with the `ai_system_prompt` and outputs a JSON object:
+> ```json
+> {
+>   "intent": "inquiry | complaint | spam_abuse | praise | general",
+>   "should_hide": false,
+>   "public_reply": "أهلاً بحضرتك يا فندم! ده تفاصيل العروض والأسعار وبعتنالك في الخاص 🍗❤️",
+>   "send_dm": true,
+>   "dm_message": "أهلاً بيك! ده المنيو والعروض الحالية 👇",
+>   "is_complaint": false,
+>   "notify_staff": false
+> }
+> ```
+> The output properties map directly into `res.do_like = true`, `res.reply_text`, `res.dm`, `res.hide`, `res.create_complaint`, and `res.notify`, giving you intelligent, dynamic responses for every comment without needing hundreds of manual keywords!
+
 
 **6. `Has Actions?`** (IF): `{{ $json.has_actions }}` is true.
 - **true** → `Human Delay`.
