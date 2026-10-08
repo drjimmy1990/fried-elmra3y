@@ -27,12 +27,13 @@ export function ChatSidebar({
   onFilterChange,
   isMobileOpen = false,
   onCloseMobile,
+  channels,
 }: ChatSidebarProps) {
   // Filter contacts based on search query and AI status filter
   const filteredContacts = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
 
-    return contacts.filter((contact) => {
+    const filtered = contacts.filter((contact) => {
       // 1. Text search matching name, phone, or last message content
       if (q) {
         const nameMatch = (contact.name || '').toLowerCase().includes(q);
@@ -44,8 +45,8 @@ export function ChatSidebar({
       }
 
       // 2. Tab filter
-      if (filter === 'ai_active') {
-        return contact.ai_enabled === true;
+      if (filter === 'needs_human') {
+        return contact.needs_human === true;
       }
       if (filter === 'ai_paused') {
         return contact.ai_enabled === false;
@@ -53,22 +54,35 @@ export function ChatSidebar({
 
       return true;
     });
+
+    // Sort needs_human first
+    return filtered.sort((a, b) => {
+      if (a.needs_human && !b.needs_human) return -1;
+      if (!a.needs_human && b.needs_human) return 1;
+      if (a.needs_human && b.needs_human) {
+        const aTime = a.needs_human_at ? new Date(a.needs_human_at).getTime() : 0;
+        const bTime = b.needs_human_at ? new Date(b.needs_human_at).getTime() : 0;
+        return bTime - aTime; // newest needs_human first
+      }
+      return 0; // preserve original last_interaction_at order
+    });
   }, [contacts, searchQuery, filter]);
 
   // Count active / paused for quick badges
   const counts = useMemo(() => {
-    let aiActive = 0;
+    let needsHumanCount = 0;
     let aiPaused = 0;
     for (const c of contacts) {
-      if (c.ai_enabled) {
-        aiActive++;
-      } else {
+      if (c.needs_human) {
+        needsHumanCount++;
+      }
+      if (!c.ai_enabled) {
         aiPaused++;
       }
     }
     return {
       all: contacts.length,
-      aiActive,
+      needsHumanCount,
       aiPaused,
     };
   }, [contacts]);
@@ -183,15 +197,15 @@ export function ChatSidebar({
           </button>
 
           <button
-            onClick={() => onFilterChange('ai_active')}
+            onClick={() => onFilterChange('needs_human')}
             className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold border transition flex items-center justify-center gap-1 ${
-              filter === 'ai_active'
+              filter === 'needs_human'
                 ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
                 : 'bg-slate-900 text-slate-400 border-slate-800 hover:bg-slate-800/80 hover:text-slate-200'
             }`}
           >
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            <span>البوت ({counts.aiActive})</span>
+            <span>يحتاج موظف ({counts.needsHumanCount})</span>
           </button>
 
           <button
@@ -259,13 +273,24 @@ export function ChatSidebar({
                 {/* Info & Snippet */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-1 mb-1">
-                    <span className="font-bold text-sm text-slate-100 truncate">
+                    <span className="font-bold text-sm text-slate-100 truncate flex items-center gap-1.5">
                       {contact.name || contact.phone || 'عميل بدون اسم'}
+                      {contact.needs_human && (
+                        <span className="inline-flex items-center justify-center bg-amber-500/20 text-amber-400 text-[10px] px-1.5 py-0.5 rounded font-bold border border-amber-500/30" title="يحتاج موظف">
+                          🙋
+                        </span>
+                      )}
                     </span>
                     <span className="text-[11px] text-slate-500 shrink-0 font-medium">
                       {timeElapsed}
                     </span>
                   </div>
+                  
+                  {channels.length > 1 && contact.channel_id && (
+                    <div className="text-[10px] text-slate-500 mb-0.5 truncate">
+                      الصفحة: {channels.find(c => c.id === contact.channel_id)?.name || 'غير معروف'}
+                    </div>
+                  )}
 
                   {/* Message Snippet */}
                   <p

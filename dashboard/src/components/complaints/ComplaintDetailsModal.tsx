@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   X,
   Phone,
@@ -63,6 +64,8 @@ export function ComplaintDetailsModal({
   const [isChangingPriority, setIsChangingPriority] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
   const [isTakingOver, setIsTakingOver] = useState(false);
+  const [pendingStatusChange, setPendingStatusChange] = useState<ComplaintStatus | null>(null);
+  const [orderResolutionAction, setOrderResolutionAction] = useState<'confirmed' | 'cancelled' | 'keep'>('confirmed');
 
   // Sync resolution notes only when complaint ID changes
   useEffect(() => {
@@ -118,9 +121,36 @@ export function ComplaintDetailsModal({
 
   // Handle status transition
   const handleStatusChange = async (newStatus: ComplaintStatus) => {
+    if ((newStatus === 'resolved' || newStatus === 'closed') && complaint.order?.status === 'issue') {
+      setPendingStatusChange(newStatus);
+      return;
+    }
+    
     setIsChangingStatus(true);
     try {
       await onUpdateStatus(complaint.id, newStatus);
+    } finally {
+      setIsChangingStatus(false);
+    }
+  };
+
+  const confirmStatusChangeWithOrder = async () => {
+    if (!pendingStatusChange) return;
+    setIsChangingStatus(true);
+    try {
+      if (orderResolutionAction !== 'keep') {
+        const supabase = createClient();
+        await supabase
+          .from('orders')
+          .update({ status: orderResolutionAction, updated_at: new Date().toISOString() })
+          .eq('id', complaint.order_id as string);
+          
+        if (complaint.order) {
+          complaint.order.status = orderResolutionAction;
+        }
+      }
+      await onUpdateStatus(complaint.id, pendingStatusChange);
+      setPendingStatusChange(null);
     } finally {
       setIsChangingStatus(false);
     }
@@ -140,7 +170,7 @@ export function ComplaintDetailsModal({
   const handleAssignChange = async (staffId: string) => {
     setIsAssigning(true);
     try {
-      await onAssignStaff(complaint.id, staffId === '' ? null : staffId);
+      await onAssignStaff(complaint.id, staffId === '' ? null : staffId as any);
     } finally {
       setIsAssigning(false);
     }
@@ -206,6 +236,17 @@ export function ComplaintDetailsModal({
                 >
                   {statusBadge.label}
                 </span>
+                <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-slate-800 text-slate-300 border-slate-700">
+                  {complaint.source === 'messenger' ? 'ماسنجر' : complaint.source === 'comment' ? 'تعليق' : complaint.source === 'dashboard' ? 'لوحة التحكم' : 'تليفون'}
+                </span>
+                {complaint.order && (
+                  <Link
+                    href={`/dashboard/orders?orderId=${complaint.order_id}`}
+                    className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20 transition-colors"
+                  >
+                    الأوردر #{complaint.order.order_number}
+                  </Link>
+                )}
               </div>
               <div className="flex items-center gap-3 text-xs text-slate-400 mt-1">
                 <span className="flex items-center gap-1">
@@ -382,6 +423,47 @@ export function ComplaintDetailsModal({
                   <span>إعادة فتح</span>
                 </button>
               </div>
+                            {pendingStatusChange && (
+                <div className="mt-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-3">
+                  <span className="text-xs font-bold text-amber-400 block">حالة الأوردر بعد الحل؟</span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setOrderResolutionAction('confirmed')}
+                      className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition border ${orderResolutionAction === 'confirmed' ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-slate-900 border-slate-700 text-slate-400'}`}
+                    >
+                      رجّعه مؤكد
+                    </button>
+                    <button
+                      onClick={() => setOrderResolutionAction('cancelled')}
+                      className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition border ${orderResolutionAction === 'cancelled' ? 'bg-rose-600 text-white border-rose-500' : 'bg-slate-900 border-slate-700 text-slate-400'}`}
+                    >
+                      ألغِ الأوردر
+                    </button>
+                    <button
+                      onClick={() => setOrderResolutionAction('keep')}
+                      className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition border ${orderResolutionAction === 'keep' ? 'bg-slate-700 text-white border-slate-500' : 'bg-slate-900 border-slate-700 text-slate-400'}`}
+                    >
+                      سيبه زي ما هو
+                    </button>
+                  </div>
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      onClick={confirmStatusChangeWithOrder}
+                      disabled={isChangingStatus}
+                      className="flex-1 py-1.5 rounded-lg text-xs font-bold bg-amber-600 text-white hover:bg-amber-500 transition"
+                    >
+                      تأكيد
+                    </button>
+                    <button
+                      onClick={() => setPendingStatusChange(null)}
+                      disabled={isChangingStatus}
+                      className="flex-1 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition"
+                    >
+                      إلغاء
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Priority & Staff Assignment */}
@@ -485,7 +567,7 @@ export function ComplaintDetailsModal({
         {/* Modal Footer */}
         <div className="flex items-center justify-between p-4 sm:p-5 border-t border-slate-800 bg-slate-950/80 text-xs">
           <div className="text-slate-400">
-            تحديث فوري عبر Supabase Realtime • مطعم الخديوي
+            تحديث فوري عبر Supabase Realtime • المطعم
           </div>
           <button
             onClick={handleSafeClose}
@@ -498,3 +580,11 @@ export function ComplaintDetailsModal({
     </div>
   );
 }
+
+
+
+
+
+
+
+

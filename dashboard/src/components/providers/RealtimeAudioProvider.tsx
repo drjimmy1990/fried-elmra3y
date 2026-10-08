@@ -217,13 +217,13 @@ export function RealtimeAudioProvider({
         {notifications.map((item) => (
           <div
             key={item.id}
-            className="pointer-events-auto flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-xl ring-1 ring-black/5 transition-all animate-in slide-in-from-top-2"
+            className="pointer-events-auto flex items-start gap-3 rounded-xl border border-slate-700 bg-slate-900 p-4 shadow-xl ring-1 ring-black/5 transition-all animate-in slide-in-from-top-2"
           >
             <div
               className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
                 item.type === 'order'
-                  ? 'bg-emerald-100 text-emerald-700'
-                  : 'bg-rose-100 text-rose-700'
+                  ? 'bg-emerald-500/10 text-emerald-400'
+                  : 'bg-rose-500/10 text-rose-400'
               }`}
             >
               {item.type === 'order' ? (
@@ -234,8 +234,8 @@ export function RealtimeAudioProvider({
             </div>
 
             <div className="flex-1 min-w-0">
-              <h4 className="text-sm font-bold text-slate-900">{item.title}</h4>
-              <p className="mt-0.5 text-xs text-slate-600 line-clamp-2 leading-relaxed">
+              <h4 className="text-sm font-bold text-slate-100">{item.title}</h4>
+              <p className="mt-0.5 text-xs text-slate-400 line-clamp-2 leading-relaxed">
                 {item.message}
               </p>
               <div className="mt-2.5 flex items-center gap-2">
@@ -249,7 +249,7 @@ export function RealtimeAudioProvider({
                 <button
                   type="button"
                   onClick={() => dismissNotification(item.id)}
-                  className="rounded-md px-2 py-1 text-xs text-slate-500 hover:bg-slate-100 transition"
+                  className="rounded-md px-2 py-1 text-xs text-slate-400 hover:bg-slate-800 transition"
                 >
                   إغلاق
                 </button>
@@ -259,7 +259,7 @@ export function RealtimeAudioProvider({
             <button
               type="button"
               onClick={() => dismissNotification(item.id)}
-              className="text-slate-400 hover:text-slate-600 p-1"
+              className="text-slate-500 hover:text-slate-300 p-1"
               aria-label="إغلاق التنبيه"
             >
               <X className="h-4 w-4" />

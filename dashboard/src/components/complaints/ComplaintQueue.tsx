@@ -21,6 +21,7 @@ import {
   MessageCircle,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { formatDateTime, getComplaintPriorityBadge } from '@/lib/utils';
 import { ComplaintCard } from './ComplaintCard';
 import { ComplaintDetailsModal } from './ComplaintDetailsModal';
@@ -87,7 +88,20 @@ export function ComplaintQueue({ initialComplaints, staffList }: ComplaintQueueP
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [viewMode, setViewMode] = useState<ViewMode>('columns');
-  const [selectedComplaint, setSelectedComplaint] = useState<ComplaintWithDetails | null>(null);
+    const [selectedComplaint, setSelectedComplaint] = useState<ComplaintWithDetails | null>(null);
+
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  useEffect(() => {
+    const id = searchParams.get('complaintId');
+    if (id) {
+      const found = complaints.find(c => c.id === id);
+      if (found) {
+        setSelectedComplaint(found);
+      }
+    }
+  }, [searchParams, complaints]);
   const [isRealtimeActive, setIsRealtimeActive] = useState(true);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState<Record<string, boolean>>({});
 
@@ -743,3 +757,4 @@ export function ComplaintQueue({ initialComplaints, staffList }: ComplaintQueueP
     </div>
   );
 }
+

@@ -10,7 +10,7 @@ export interface ContactWithLatestMessage extends ContactRow {
 
 export type ContactWithMeta = ContactWithLatestMessage;
 
-export type ChatFilter = 'all' | 'ai_active' | 'ai_paused';
+export type ChatFilter = 'all' | 'needs_human' | 'ai_paused';
 
 export interface QuickReply {
   id: string;
@@ -18,10 +18,17 @@ export interface QuickReply {
   label?: string;
 }
 
+export interface ChannelSimple {
+  id: string;
+  name: string | null;
+  picture_url: string | null;
+}
+
 export interface ChatContainerProps {
   initialContacts: ContactWithLatestMessage[];
   initialActiveContact: ContactRow | null;
   initialMessages: MessageRow[];
+  channels: ChannelSimple[];
 }
 
 export interface ChatSidebarProps {
@@ -34,6 +41,7 @@ export interface ChatSidebarProps {
   onFilterChange: (filter: ChatFilter) => void;
   isMobileOpen?: boolean;
   onCloseMobile?: () => void;
+  channels: ChannelSimple[];
 }
 
 export interface ChatThreadProps {
@@ -45,4 +53,5 @@ export interface ChatThreadProps {
   onSendMessage: (content: string) => Promise<boolean>;
   isSending?: boolean;
   onBackToSidebar?: () => void;
+  channels: ChannelSimple[];
 }

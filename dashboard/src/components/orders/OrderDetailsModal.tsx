@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import React, { useState, useEffect } from 'react';
 import {
   X,
@@ -8,7 +9,7 @@ import {
   MessageCircle,
   MapPin,
   Clock,
-  Printer,
+  Printer, AlertTriangle,
   FileText,
   Save,
   Check,
@@ -35,6 +36,7 @@ interface OrderDetailsModalProps {
   onChangeStatus: (orderId: string, newStatus: OrderStatus) => Promise<void>;
   onUpdateNotes: (orderId: string, notes: string) => Promise<boolean>;
   onPrintReceipt: (order: OrderWithItems) => void;
+  complaints?: any[];
 }
 
 export function OrderDetailsModal({
@@ -44,8 +46,7 @@ export function OrderDetailsModal({
   onAdvanceStatus,
   onChangeStatus,
   onUpdateNotes,
-  onPrintReceipt,
-}: OrderDetailsModalProps) {
+  onPrintReceipt, complaints = [] }: OrderDetailsModalProps) {
   const [internalNotes, setInternalNotes] = useState('');
   const [isSavingNotes, setIsSavingNotes] = useState(false);
   const [notesSaveSuccess, setNotesSaveSuccess] = useState(false);
@@ -349,73 +350,72 @@ export function OrderDetailsModal({
             </div>
           </div>
 
+                    {/* Linked Complaints */}
+          {complaints && complaints.length > 0 && (
+            <div className="rounded-2xl bg-slate-950/60 border border-rose-900/50 p-4">
+              <div className="text-xs font-bold text-rose-400 mb-3 flex items-center gap-1.5">
+                <AlertTriangle className="w-4 h-4" />
+                <span>شكاوى مرتبطة بالطلب</span>
+              </div>
+              <div className="space-y-2">
+                {complaints.map(c => (
+                  <Link
+                    key={c.id}
+                    href={{pathname: '/dashboard/complaints', query: {complaintId: c.id}}}
+                    className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-rose-500/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-white">#{c.ticket_number}</span>
+                      <span className="text-xs text-slate-400">
+                        {c.status === 'open' ? 'مفتوحة' : c.status === 'in_progress' ? 'قيد المتابعة' : c.status === 'resolved' ? 'تم الحل' : 'مغلقة'}
+                      </span>
+                    </div>
+                    <span className="text-xs text-rose-400 font-medium">عرض التفاصيل</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Status Workflow Controls */}
           <div className="rounded-2xl bg-slate-950/60 border border-slate-800/80 p-4">
             <div className="text-xs font-bold text-slate-300 mb-3 flex items-center gap-1.5">
               <Sparkles className="w-4 h-4 text-amber-400" />
-              <span>تحديث مسار وحالة الطلب</span>
+              <span>تحديث حالة الطلب</span>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={() => handleStatusChange('pending')}
-                disabled={isChangingStatus || order.status === 'pending'}
+                onClick={() => handleStatusChange('confirmed')}
+                disabled={isChangingStatus || order.status === 'confirmed'}
                 className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all ${
-                  order.status === 'pending'
-                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 ring-2 ring-amber-500/20'
-                    : 'bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-800'
-                }`}
-              >
-                <Clock className="w-3.5 h-3.5" />
-                <span>معلق / جديد</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleStatusChange('preparing')}
-                disabled={isChangingStatus || order.status === 'preparing'}
-                className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all ${
-                  order.status === 'preparing'
-                    ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40 ring-2 ring-blue-500/20'
-                    : 'bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-800'
-                }`}
-              >
-                <ChefHat className="w-3.5 h-3.5" />
-                <span>جاري التجهيز</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleStatusChange('out_for_delivery')}
-                disabled={isChangingStatus || order.status === 'out_for_delivery'}
-                className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all ${
-                  order.status === 'out_for_delivery'
-                    ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40 ring-2 ring-purple-500/20'
-                    : 'bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-800'
-                }`}
-              >
-                <Bike className="w-3.5 h-3.5" />
-                <span>مع الدليفري</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleStatusChange('delivered')}
-                disabled={isChangingStatus || order.status === 'delivered'}
-                className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all ${
-                  order.status === 'delivered'
+                  order.status === 'confirmed'
                     ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 ring-2 ring-emerald-500/20'
                     : 'bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-800'
                 }`}
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>تم التسليم</span>
+                <span>مؤكد</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleStatusChange('issue')}
+                disabled={isChangingStatus || order.status === 'issue'}
+                className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all ${
+                  order.status === 'issue'
+                    ? 'bg-orange-500/20 text-orange-300 border border-orange-500/40 ring-2 ring-orange-500/20'
+                    : 'bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-800'
+                }`}
+              >
+                <AlertTriangle className="w-3.5 h-3.5" />
+                <span>تسجيل مشكلة</span>
               </button>
             </div>
 
             {/* Cancel Action */}
-            {order.status !== 'cancelled' && order.status !== 'delivered' && (
+            {order.status !== 'cancelled' && (
               <div className="mt-3 pt-3 border-t border-slate-800/80 flex justify-end">
                 <button
                   type="button"
@@ -456,31 +456,19 @@ export function OrderDetailsModal({
             </button>
 
             {/* Quick Next-Step Advance Button */}
-            {(order.status === 'pending' || order.status === 'confirmed') && (
+            {order.status === 'confirmed' && (
               <button
                 type="button"
                 onClick={() => onAdvanceStatus(order.id, order.status)}
                 disabled={isChangingStatus}
-                className="flex items-center gap-2 px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold shadow-lg shadow-blue-600/30 transition-all hover:scale-102"
+                className="flex items-center gap-2 px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-sm font-bold shadow-lg shadow-rose-600/30 transition-all hover:scale-102"
               >
-                <ChefHat className="w-4 h-4" />
-                <span>بدء التجهيز</span>
+                <AlertTriangle className="w-4 h-4" />
+                <span>تسجيل مشكلة</span>
               </button>
             )}
 
-            {order.status === 'preparing' && (
-              <button
-                type="button"
-                onClick={() => onAdvanceStatus(order.id, order.status)}
-                disabled={isChangingStatus}
-                className="flex items-center gap-2 px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-sm font-bold shadow-lg shadow-purple-600/30 transition-all hover:scale-102"
-              >
-                <Bike className="w-4 h-4" />
-                <span>إرسال مع الدليفري</span>
-              </button>
-            )}
-
-            {order.status === 'out_for_delivery' && (
+            {order.status === 'issue' && (
               <button
                 type="button"
                 onClick={() => onAdvanceStatus(order.id, order.status)}
@@ -488,7 +476,7 @@ export function OrderDetailsModal({
                 className="flex items-center gap-2 px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-lg shadow-emerald-600/30 transition-all hover:scale-102"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                <span>تأكيد التسليم بنجاح</span>
+                <span>تأكيد (حل المشكلة)</span>
               </button>
             )}
           </div>
@@ -497,3 +485,11 @@ export function OrderDetailsModal({
     </div>
   );
 }
+
+
+
+
+
+
+
+

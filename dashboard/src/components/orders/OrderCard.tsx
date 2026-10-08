@@ -1,11 +1,12 @@
 'use client';
 
+import Link from 'next/link';
 import React from 'react';
 import {
   Clock,
   MapPin,
   Phone,
-  Printer,
+  Printer, AlertTriangle,
   ChevronLeft,
   ChefHat,
   Bike,
@@ -26,6 +27,7 @@ interface OrderCardProps {
   onCancelOrder: (orderId: string) => Promise<void>;
   onPrintReceipt: (order: OrderWithItems) => void;
   isUpdating?: boolean;
+  complaints?: any[];
 }
 
 // Arabic relative time elapsed helper
@@ -120,6 +122,15 @@ function OrderCardComponent({
             >
               <MessageCircle className="w-3.5 h-3.5" />
             </a>
+            {order.contact_id && (
+              <Link
+                href={{pathname: '/dashboard/chat', query: {contactId: order.contact_id}}}
+                className="p-1 rounded-lg text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 transition-colors"
+                title="فتح محادثة العميل"
+              >
+                <MessageCircle className="w-3.5 h-3.5" />
+              </Link>
+            )}
           </div>
         </div>
 
@@ -185,7 +196,7 @@ function OrderCardComponent({
           </button>
 
           {/* Quick Cancel Button (for non-terminal statuses) */}
-          {order.status !== 'cancelled' && order.status !== 'delivered' && (
+          {order.status !== 'cancelled' && (
             <button
               type="button"
               onClick={() => {
@@ -211,44 +222,26 @@ function OrderCardComponent({
             </div>
           ) : (
             <>
-              {(order.status === 'pending' || order.status === 'confirmed') && (
+              {order.status === 'confirmed' && (
                 <button
                   type="button"
-                  onClick={() => onAdvanceStatus(order.id, order.status)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-600/20 transition-all hover:scale-102"
+                  onClick={() => onAdvanceStatus(order.id, 'issue')}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-md shadow-rose-600/20 transition-all hover:scale-102"
                 >
-                  <ChefHat className="w-3.5 h-3.5" />
-                  <span>بدء التجهيز</span>
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                  <span>تسجيل مشكلة</span>
                 </button>
               )}
 
-              {order.status === 'preparing' && (
+              {order.status === 'issue' && (
                 <button
                   type="button"
-                  onClick={() => onAdvanceStatus(order.id, order.status)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-md shadow-purple-600/20 transition-all hover:scale-102"
-                >
-                  <Bike className="w-3.5 h-3.5" />
-                  <span>إرسال للدليفري</span>
-                </button>
-              )}
-
-              {order.status === 'out_for_delivery' && (
-                <button
-                  type="button"
-                  onClick={() => onAdvanceStatus(order.id, order.status)}
+                  onClick={() => onAdvanceStatus(order.id, 'confirmed')}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition-all hover:scale-102"
                 >
                   <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>تم التوصيل</span>
+                  <span>تم الحل (تأكيد)</span>
                 </button>
-              )}
-
-              {order.status === 'delivered' && (
-                <span className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-500/10 text-emerald-400 text-xs font-semibold border border-emerald-500/20">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>مكتمل</span>
-                </span>
               )}
 
               {order.status === 'cancelled' && (
@@ -266,3 +259,10 @@ function OrderCardComponent({
 }
 
 export const OrderCard = React.memo(OrderCardComponent);
+
+
+
+
+
+
+

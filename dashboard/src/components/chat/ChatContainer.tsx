@@ -9,18 +9,21 @@ import {
   MessageRow,
   ContactRow,
   ChatFilter,
+  ChannelSimple,
 } from './types';
 
 interface ChatContainerProps {
   initialContacts: ContactWithMeta[];
   initialActiveContact: ContactWithMeta | null;
   initialMessages: MessageRow[];
+  channels: ChannelSimple[];
 }
 
 export function ChatContainer({
   initialContacts,
   initialActiveContact,
   initialMessages,
+  channels,
 }: ChatContainerProps) {
   const [contacts, setContacts] = useState<ContactWithMeta[]>(initialContacts);
   const [activeContact, setActiveContact] = useState<ContactWithMeta | null>(initialActiveContact);
@@ -176,6 +179,9 @@ export function ChatContainer({
         media_type: null,
         is_read: true,
         created_at: new Date().toISOString(),
+        platform_message_id: null,
+        sent_by: null,
+        send_error: null,
       };
 
       // 1. Optimistic message append
@@ -196,8 +202,8 @@ export function ChatContainer({
 
         return updated.sort(
           (a, b) =>
-            new Date(b.last_interaction_at).getTime() -
-            new Date(a.last_interaction_at).getTime()
+            new Date(b.last_interaction_at || 0).getTime() -
+            new Date(a.last_interaction_at || 0).getTime()
         );
       });
 
@@ -298,8 +304,8 @@ export function ChatContainer({
 
             return nextList.sort(
               (a, b) =>
-                new Date(b.last_interaction_at).getTime() -
-                new Date(a.last_interaction_at).getTime()
+                new Date(b.last_interaction_at || 0).getTime() -
+                new Date(a.last_interaction_at || 0).getTime()
             );
           });
         }
@@ -357,8 +363,8 @@ export function ChatContainer({
 
             return nextList.sort(
               (a, b) =>
-                new Date(b.last_interaction_at).getTime() -
-                new Date(a.last_interaction_at).getTime()
+                new Date(b.last_interaction_at || 0).getTime() -
+                new Date(a.last_interaction_at || 0).getTime()
             );
           });
         }
@@ -383,6 +389,7 @@ export function ChatContainer({
         onFilterChange={setFilter}
         isMobileOpen={isMobileSidebarOpen}
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
+        channels={channels}
       />
 
       {/* Main: Active Thread */}
@@ -394,6 +401,7 @@ export function ChatContainer({
         onSendMessage={handleSendMessage}
         onToggleAi={handleToggleAi}
         onBackToSidebar={() => setIsMobileSidebarOpen(true)}
+        channels={channels}
       />
     </div>
   );

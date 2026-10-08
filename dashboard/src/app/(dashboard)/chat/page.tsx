@@ -9,7 +9,7 @@ import {
 } from '@/components/chat/types';
 
 export const metadata: Metadata = {
-  title: 'المحادثات المباشرة والتدخل البشري | مطعم الخديوي',
+  title: 'المحادثات | لوحة التحكم',
   description: 'إدارة المحادثات الحية للعملاء، التبديل بين الرد الآلي بالذكاء الاصطناعي والرد البشري المباشر',
 };
 
@@ -47,11 +47,13 @@ export default async function ChatPage({ searchParams }: ChatPageProps) {
   const unreadCountsMap: Record<string, number> = {};
 
   if (contactIds.length > 0) {
+    // Bounded window: enough for previews + unread badges without loading full history.
     const { data: recentMessages, error: msgsError } = await supabase
       .from('messages')
       .select('*')
       .in('contact_id', contactIds)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(1500);
 
     if (msgsError) {
       console.error('Failed to fetch recent messages:', msgsError);
@@ -117,12 +119,21 @@ export default async function ChatPage({ searchParams }: ChatPageProps) {
     }
   }
 
+  // 4. Fetch channels with admin client because they lack client RLS policies
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const adminDb = createAdminClient();
+  const { data: channelsData } = await adminDb
+    .from('channels')
+    .select('id, name, picture_url');
+  const channels = channelsData || [];
+
   return (
     <div className="p-2 sm:p-4 lg:p-6 max-w-7xl mx-auto h-[calc(100vh-6.5rem)]">
       <ChatContainer
         initialContacts={initialContacts}
         initialActiveContact={initialActiveContact}
         initialMessages={initialMessages}
+        channels={channels}
       />
     </div>
   );

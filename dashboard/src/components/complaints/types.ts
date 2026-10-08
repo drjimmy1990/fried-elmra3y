@@ -18,6 +18,7 @@ export interface StaffProfile {
 export type ComplaintWithDetails = ComplaintRow & {
   assigned_profile?: StaffProfile | null;
   contact?: ContactRow | null;
+  order?: Database['public']['Tables']['orders']['Row'] | null;
 };
 
 export type PriorityFilter = 'all' | ComplaintPriority;

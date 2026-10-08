@@ -22,20 +22,14 @@ export function formatDateTime(dateString: string | null | undefined): string {
 
 export function getOrderStatusBadge(status: string) {
   switch (status) {
-    case 'pending':
-      return { label: 'جديد قيد الانتظار', color: 'bg-amber-100 text-amber-800 border-amber-300' };
     case 'confirmed':
-      return { label: 'تم التأكيد', color: 'bg-blue-100 text-blue-800 border-blue-300' };
-    case 'preparing':
-      return { label: 'قيد التحضير في المطبخ', color: 'bg-purple-100 text-purple-800 border-purple-300' };
-    case 'out_for_delivery':
-      return { label: 'مع الطيار للتوصيل', color: 'bg-indigo-100 text-indigo-800 border-indigo-300' };
-    case 'delivered':
-      return { label: 'تم التسليم بنجاح', color: 'bg-emerald-100 text-emerald-800 border-emerald-300' };
+      return { label: 'مؤكد', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' };
+    case 'issue':
+      return { label: 'عليه مشكلة', color: 'bg-rose-500/10 text-rose-400 border-rose-500/20' };
     case 'cancelled':
-      return { label: 'ملغي', color: 'bg-rose-100 text-rose-800 border-rose-300' };
+      return { label: 'ملغي', color: 'bg-slate-500/10 text-slate-400 border-slate-500/20' };
     default:
-      return { label: status, color: 'bg-gray-100 text-gray-800 border-gray-300' };
+      return { label: status, color: 'bg-slate-800 text-slate-300 border-slate-700' };
   }
 }
 

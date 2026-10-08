@@ -9,13 +9,13 @@ interface ThermalReceiptProps {
   order: OrderWithItems;
   onClose?: () => void;
   isPreview?: boolean;
+  restaurantName?: string;
 }
 
 export function ThermalReceipt({
   order,
   onClose,
-  isPreview = false,
-}: ThermalReceiptProps) {
+  isPreview = false, restaurantName = 'المطعم' }: ThermalReceiptProps) {
   useEffect(() => {
     if (!isPreview) return;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -56,9 +56,9 @@ export function ThermalReceipt({
       <div className="text-center pb-2 border-b border-dashed border-black">
         <div className="flex items-center justify-center gap-1.5 font-bold text-sm">
           <Utensils className="w-4 h-4" />
-          <span>مطعم الخديوي</span>
+          <span>{restaurantName}</span>
         </div>
-        <p className="text-[10px] text-gray-700 mt-0.5">مشويات - طواجن - مأكولات شرقية</p>
+        <p className="text-[10px] text-gray-700 mt-0.5">فرايد تشيكن - بروست - وجبات سريعة</p>
         <p className="text-[9px] text-gray-600 mt-0.5" dir="ltr">Hotline: 01000000000 / 01100000000</p>
       </div>
 
@@ -161,7 +161,7 @@ export function ThermalReceipt({
 
       {/* Footer Notes & Barcode */}
       <div className="pt-3 text-center space-y-1.5">
-        <p className="text-[10px] font-bold">شكراً لطلبكم من مطعم الخديوي ❤️</p>
+        <p className="text-[10px] font-bold">شكراً لطلبكم من المطعم ❤️</p>
         <p className="text-[8px] text-gray-500">نعتز بخدمتكم - نتمنى لكم وجبة شهية</p>
         
         {/* Simulated Barcode for POS Scanning */}
@@ -306,3 +306,4 @@ export function ThermalReceipt({
     </>
   );
 }
+

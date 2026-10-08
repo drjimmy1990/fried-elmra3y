@@ -42,7 +42,7 @@ const CANNED_REPLIES: QuickReply[] = [
   },
   {
     id: '4',
-    text: 'شرفتنا دائماً في مطعم الخديوي! هل يمكننا مساعدتك في أي شيء آخر؟',
+    text: 'شرفتنا يا فندم 🍗 تحب نساعدك في حاجة تانية؟',
     label: 'إنهاء المحادثة',
   },
   {
@@ -61,6 +61,7 @@ export function ChatThread({
   onSendMessage,
   isSending = false,
   onBackToSidebar,
+  channels = [],
 }: ChatThreadProps) {
   const [inputText, setInputText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -174,6 +175,11 @@ export function ChatThread({
               <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
                 {contact.platform === 'messenger' ? 'فيسبوك ماسنجر' : contact.platform}
               </span>
+              {channels && channels.length > 1 && contact.channel_id && (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-900/40 text-indigo-300 border border-indigo-700/50">
+                  {channels.find(c => c.id === contact.channel_id)?.name || 'صفحة غير معروفة'}
+                </span>
+              )}
             </div>
 
             <div className="flex items-center gap-3 text-xs text-slate-400 mt-1 flex-wrap">
@@ -281,8 +287,27 @@ export function ChatThread({
         </div>
       </div>
 
+      {/* needs_human banner */}
+      {contact.needs_human && (
+        <div className="bg-amber-950/60 border-b border-amber-900 px-4 py-2 flex items-center justify-between text-xs text-amber-300">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span className="font-bold">العميل طلب يكلم موظف</span>
+          </div>
+          <button
+            onClick={async () => {
+              /* Note: needs_human state management is ideally handled via a parent prop, but for brevity we use an API fetch here or parent onUpdateContact */
+              await fetch('/api/chat/needs-human', { method: 'POST', body: JSON.stringify({ contactId: contact.id, needs_human: false }) });
+            }}
+            className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 transition shrink-0 ml-2"
+          >
+            تم — إلغاء التنبيه
+          </button>
+        </div>
+      )}
+
       {/* Warning Alert if AI is still enabled while agent is viewing */}
-      {contact.ai_enabled && (
+      {contact.ai_enabled && !contact.needs_human && (
         <div className="bg-emerald-950/40 border-b border-emerald-900/50 px-4 py-2 flex items-center justify-between text-xs text-emerald-300">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -418,6 +443,24 @@ export function ChatThread({
                       {message.content}
                     </p>
                   )}
+                  
+                  {/* Send Error */}
+                  {isAgent && message.send_error && (
+                    <div className="mt-2 pt-2 border-t border-red-500/30">
+                      <div className="flex items-center gap-1.5 text-red-400 text-[11px] font-bold mb-1">
+                        <AlertCircle className="w-3.5 h-3.5" />
+                        <span>لم يتم الإرسال ⚠️</span>
+                      </div>
+                      <p className="text-[10px] text-red-300/80 mb-2">{message.send_error}</p>
+                      <button
+                        onClick={() => onSendMessage(message.content || '')}
+                        disabled={isSending}
+                        className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded px-2 py-1 text-[10px] font-bold transition"
+                      >
+                        إعادة المحاولة
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -447,6 +490,23 @@ export function ChatThread({
 
       {/* 5. Agent Input Box */}
       <div className="p-4 border-t border-slate-800 bg-slate-950">
+        {contact.platform === 'messenger' && (() => {
+          const lastUserMessage = [...messages].reverse().find(m => m.sender_type === 'user');
+          const isPast24h = lastUserMessage 
+            ? new Date().getTime() - new Date(lastUserMessage.created_at).getTime() > 24 * 60 * 60 * 1000
+            : true;
+          
+          if (isPast24h) {
+            return (
+              <div className="mb-2 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[10px] px-3 py-1.5 rounded-lg flex items-center gap-1.5">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                <span>فيسبوك بيسمح بالرد خلال 24 ساعة من آخر رسالة للعميل — الرسالة ممكن متتبعتش</span>
+              </div>
+            );
+          }
+          return null;
+        })()}
+        
         <div className="relative flex items-end gap-2 bg-slate-900 border border-slate-800 rounded-2xl p-2 focus-within:border-amber-500 focus-within:ring-1 focus-within:ring-amber-500 transition shadow-lg">
           <textarea
             ref={textareaRef}

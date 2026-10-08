@@ -5,8 +5,8 @@ import { OrderKanban } from '@/components/orders/OrderKanban';
 import { OrderWithItems, OrderItemRow, OrderRow } from '@/components/orders/types';
 
 export const metadata: Metadata = {
-  title: 'إدارة الطلبات المباشرة | مطعم الخديوي',
-  description: 'نظام إدارة ومتابعة الطلبات المباشرة وطباعة الإيصالات الحرارية في مطعم الخديوي',
+  title: 'إدارة الطلبات المباشرة | المطعم',
+  description: 'نظام إدارة ومتابعة الطلبات المباشرة وطباعة الإيصالات الحرارية في المطعم',
 };
 
 export const revalidate = 0; // Dynamic server component
@@ -14,12 +14,18 @@ export const revalidate = 0; // Dynamic server component
 export default async function OrdersPage() {
   const supabase = await createClient();
 
-  // Fetch recent orders ordered by creation timestamp descending
+  // Last 8 days covers the board's date filters (today / yesterday / last 7 days).
+  // Older orders are opened on demand via ?orderId= deep links.
+  const since = new Date();
+  since.setHours(0, 0, 0, 0);
+  since.setDate(since.getDate() - 8);
+
   const { data: orders, error: ordersError } = await supabase
     .from('orders')
     .select('*')
+    .gte('created_at', since.toISOString())
     .order('created_at', { ascending: false })
-    .limit(200);
+    .limit(2000);
 
   if (ordersError) {
     console.error('Failed to fetch initial orders:', ordersError);

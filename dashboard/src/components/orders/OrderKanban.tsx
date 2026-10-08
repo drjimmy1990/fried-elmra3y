@@ -11,7 +11,7 @@ import {
   Bike,
   CheckCircle2,
   Ban,
-  Printer,
+  Printer, AlertTriangle,
   Eye,
   RefreshCw,
   ShoppingBag,
@@ -25,6 +25,7 @@ import {
   Radio,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { formatCurrency, formatDateTime, getOrderStatusBadge } from '@/lib/utils';
 import { OrderCard } from './OrderCard';
 import { OrderDetailsModal } from './OrderDetailsModal';
@@ -44,53 +45,33 @@ interface OrderKanbanProps {
 
 const KANBAN_COLUMNS: KanbanColumnDef[] = [
   {
-    id: 'pending_group',
-    title: 'جديد / معلق',
-    subtitle: 'بانتظار التأكيد وبدء التجهيز',
-    badgeColor: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
-    bgLight: 'bg-amber-500/5',
-    borderLight: 'border-amber-500/20',
-    dotColor: 'bg-amber-500',
-    allowedStatuses: ['pending', 'confirmed'],
-  },
-  {
-    id: 'preparing',
-    title: 'جاري التجهيز',
-    subtitle: 'قيد التحضير في المطبخ',
-    badgeColor: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
-    bgLight: 'bg-blue-500/5',
-    borderLight: 'border-blue-500/20',
-    dotColor: 'bg-blue-500',
-    allowedStatuses: ['preparing'],
-  },
-  {
-    id: 'out_for_delivery',
-    title: 'خرج للتوصيل',
-    subtitle: 'مع مندوب الدليفري في الطريق',
-    badgeColor: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
-    bgLight: 'bg-purple-500/5',
-    borderLight: 'border-purple-500/20',
-    dotColor: 'bg-purple-500',
-    allowedStatuses: ['out_for_delivery'],
-  },
-  {
-    id: 'delivered',
-    title: 'تم التسليم',
-    subtitle: 'تم الاستلام والتحصيل بنجاح',
+    id: 'confirmed',
+    title: 'مؤكد',
+    subtitle: 'طلبات قيد التنفيذ',
     badgeColor: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
     bgLight: 'bg-emerald-500/5',
     borderLight: 'border-emerald-500/20',
     dotColor: 'bg-emerald-500',
-    allowedStatuses: ['delivered'],
+    allowedStatuses: ['confirmed'],
+  },
+  {
+    id: 'issue',
+    title: 'عليه مشكلة',
+    subtitle: 'شكاوى أو مشاكل متعلقة بالطلب',
+    badgeColor: 'bg-orange-500/10 text-orange-400 border-orange-500/30',
+    bgLight: 'bg-orange-500/5',
+    borderLight: 'border-orange-500/20',
+    dotColor: 'bg-orange-500',
+    allowedStatuses: ['issue'],
   },
   {
     id: 'cancelled',
     title: 'ملغي',
     subtitle: 'طلبات تم إلغاؤها',
-    badgeColor: 'bg-rose-500/10 text-rose-400 border-rose-500/30',
-    bgLight: 'bg-rose-500/5',
-    borderLight: 'border-rose-500/20',
-    dotColor: 'bg-rose-500',
+    badgeColor: 'bg-slate-500/10 text-slate-400 border-slate-500/30',
+    bgLight: 'bg-slate-500/5',
+    borderLight: 'border-slate-500/20',
+    dotColor: 'bg-slate-500',
     allowedStatuses: ['cancelled'],
   },
 ];
@@ -100,13 +81,71 @@ export function OrderKanban({ initialOrders }: OrderKanbanProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [dateFilter, setDateFilter] = useState<DateFilterType>('all');
   const [viewMode, setViewMode] = useState<ViewMode>('kanban');
-  const [selectedOrder, setSelectedOrder] = useState<OrderWithItems | null>(null);
+    const [selectedOrder, setSelectedOrder] = useState<OrderWithItems | null>(null);
+
+  const searchParams = useSearchParams();
   const [printingOrder, setPrintingOrder] = useState<OrderWithItems | null>(null);
   const [isReceiptPreviewOpen, setIsReceiptPreviewOpen] = useState(false);
   const [isUpdatingOrder, setIsUpdatingOrder] = useState<Record<string, boolean>>({});
   const [isRealtimeActive, setIsRealtimeActive] = useState(true);
 
   const supabase = useMemo(() => createClient(), []);
+
+  useEffect(() => {
+    const id = searchParams.get('orderId');
+    if (id) {
+      const found = orders.find(o => o.id === id);
+      if (found) {
+        setSelectedOrder(found);
+      } else {
+        // Fetch if not found
+        const fetchMissing = async () => {
+          const { data } = await supabase.from('orders').select('*').eq('id', id).single();
+          if (data) {
+             const { data: items } = await supabase.from('order_items').select('*').eq('order_id', id);
+             const fullOrder = { ...(data as any), order_items: (items as any) || [] } as OrderWithItems;
+             setSelectedOrder(fullOrder);
+             setOrders(prev => [fullOrder, ...prev]);
+          }
+        };
+        fetchMissing();
+      }
+    }
+  }, [searchParams, orders, supabase]);
+  // Complaint tracking for visible orders
+  const [complaintsMap, setComplaintsMap] = useState<Record<string, any[]>>({});
+
+  useEffect(() => {
+    const fetchComplaints = async () => {
+      const ids = orders.map(o => o.id);
+      if (ids.length === 0) return;
+      const { data } = await supabase
+        .from('complaints')
+        .select('id, ticket_number, order_id, status')
+        .in('order_id', ids);
+      
+      if (data) {
+        const map: Record<string, any[]> = {};
+        data.forEach(c => {
+          if (c.order_id) { if (!map[c.order_id]) map[c.order_id] = []; map[c.order_id].push(c); }
+        });
+        setComplaintsMap(map);
+      }
+    };
+    fetchComplaints();
+  }, [orders, supabase]);
+
+  // Settings
+  const [restaurantName, setRestaurantName] = useState('المطعم');
+  useEffect(() => {
+    const fetchSettings = async () => {
+      const { data } = await supabase.rpc('get_public_settings');
+      if (data && (data as any).restaurant_name) {
+        setRestaurantName((data as any).restaurant_name);
+      }
+    };
+    fetchSettings();
+  }, [supabase]);
 
   // Set up Supabase Realtime Subscription
   useEffect(() => {
@@ -121,41 +160,54 @@ export function OrderKanban({ initialOrders }: OrderKanbanProps) {
         },
         async (payload) => {
           setIsRealtimeActive(true);
+          
           if (payload.eventType === 'INSERT') {
             const newOrder = payload.new as OrderRow;
-            // Fetch associated line items
+            // Fetch items for the new order to build the full object
             const { data: items } = await supabase
               .from('order_items')
               .select('*')
               .eq('order_id', newOrder.id);
-
-            const completeOrder: OrderWithItems = {
+              
+            const fullOrder: OrderWithItems = {
               ...newOrder,
-              order_items: items || [],
+              order_items: (items as any) || [],
             };
-
-            setOrders((prev) => [completeOrder, ...prev.filter((o) => o.id !== newOrder.id)]);
+            
+            setOrders((prev) => [fullOrder, ...prev]);
           } else if (payload.eventType === 'UPDATE') {
-            const updated = payload.new as OrderRow;
+            const updatedOrder = payload.new as OrderRow;
             setOrders((prev) =>
-              prev.map((order) =>
-                order.id === updated.id
-                  ? { ...order, ...updated }
-                  : order
-              )
+              prev.map((o) => (o.id === updatedOrder.id ? { ...o, ...updatedOrder } : o))
             );
-
-            // Also update currently inspected order if open
-            setSelectedOrder((prev) =>
-              prev?.id === updated.id ? { ...prev, ...updated } : prev
-            );
-            setPrintingOrder((prev) =>
-              prev?.id === updated.id ? { ...prev, ...updated } : prev
+            setSelectedOrder((prev) => 
+              prev?.id === updatedOrder.id ? { ...prev, ...updatedOrder } : prev
             );
           } else if (payload.eventType === 'DELETE') {
-            const deletedId = (payload.old as { id: string }).id;
-            setOrders((prev) => prev.filter((order) => order.id !== deletedId));
-            setSelectedOrder((prev) => (prev?.id === deletedId ? null : prev));
+            setOrders((prev) => prev.filter((o) => o.id !== payload.old.id));
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'complaints',
+        },
+        async (payload) => {
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            const c = payload.new as any;
+            if (!c.order_id) return;
+            setComplaintsMap(prev => {
+              const orderComplaints = prev[c.order_id] || [];
+              const exists = orderComplaints.some(x => x.id === c.id);
+              if (exists) {
+                return { ...prev, [c.order_id]: orderComplaints.map(x => x.id === c.id ? c : x) };
+              } else {
+                return { ...prev, [c.order_id]: [...orderComplaints, c] };
+              }
+            });
           }
         }
       )
@@ -206,13 +258,11 @@ export function OrderKanban({ initialOrders }: OrderKanbanProps) {
 
   // Workflow Status Advancement
   const handleAdvanceStatus = async (orderId: string, currentStatus: OrderStatus) => {
-    let nextStatus: OrderStatus = 'preparing';
-    if (currentStatus === 'pending' || currentStatus === 'confirmed') {
-      nextStatus = 'preparing';
-    } else if (currentStatus === 'preparing') {
-      nextStatus = 'out_for_delivery';
-    } else if (currentStatus === 'out_for_delivery') {
-      nextStatus = 'delivered';
+    let nextStatus: OrderStatus = 'issue';
+    if (currentStatus === 'confirmed') {
+      nextStatus = 'issue';
+    } else if (currentStatus === 'issue') {
+      nextStatus = 'confirmed';
     } else {
       return;
     }
@@ -325,16 +375,11 @@ export function OrderKanban({ initialOrders }: OrderKanbanProps) {
 
   // Summary Metrics calculations
   const totalOrdersCount = filteredOrders.length;
-  const pendingCount = filteredOrders.filter(
-    (o) => o.status === 'pending' || o.status === 'confirmed'
-  ).length;
-  const preparingCount = filteredOrders.filter((o) => o.status === 'preparing').length;
-  const outForDeliveryCount = filteredOrders.filter(
-    (o) => o.status === 'out_for_delivery'
-  ).length;
-  const deliveredCount = filteredOrders.filter((o) => o.status === 'delivered').length;
+  const confirmedCount = filteredOrders.filter((o) => o.status === 'confirmed').length;
+  const issueCount = filteredOrders.filter((o) => o.status === 'issue').length;
+  const cancelledCount = filteredOrders.filter((o) => o.status === 'cancelled').length;
   const totalRevenue = filteredOrders
-    .filter((o) => o.status !== 'cancelled')
+    .filter((o) => o.status === 'confirmed')
     .reduce((sum, o) => sum + (Number(o.total_amount) || 0), 0);
 
   return (
@@ -405,35 +450,27 @@ export function OrderKanban({ initialOrders }: OrderKanbanProps) {
           </div>
         </div>
 
-        <div className="rounded-2xl bg-amber-500/5 border border-amber-500/20 p-3.5 flex flex-col justify-between">
-          <span className="text-xs text-amber-400 font-medium">جديد / معلق</span>
-          <div className="flex items-baseline justify-between mt-2">
-            <span className="text-xl font-black text-amber-400">{pendingCount}</span>
-            <Clock className="w-4 h-4 text-amber-500" />
-          </div>
-        </div>
-
-        <div className="rounded-2xl bg-blue-500/5 border border-blue-500/20 p-3.5 flex flex-col justify-between">
-          <span className="text-xs text-blue-400 font-medium">جاري التجهيز</span>
-          <div className="flex items-baseline justify-between mt-2">
-            <span className="text-xl font-black text-blue-400">{preparingCount}</span>
-            <ChefHat className="w-4 h-4 text-blue-500" />
-          </div>
-        </div>
-
-        <div className="rounded-2xl bg-purple-500/5 border border-purple-500/20 p-3.5 flex flex-col justify-between">
-          <span className="text-xs text-purple-400 font-medium">مع الدليفري</span>
-          <div className="flex items-baseline justify-between mt-2">
-            <span className="text-xl font-black text-purple-400">{outForDeliveryCount}</span>
-            <Bike className="w-4 h-4 text-purple-500" />
-          </div>
-        </div>
-
         <div className="rounded-2xl bg-emerald-500/5 border border-emerald-500/20 p-3.5 flex flex-col justify-between">
-          <span className="text-xs text-emerald-400 font-medium">تم التسليم</span>
+          <span className="text-xs text-emerald-400 font-medium">مؤكد</span>
           <div className="flex items-baseline justify-between mt-2">
-            <span className="text-xl font-black text-emerald-400">{deliveredCount}</span>
+            <span className="text-xl font-black text-emerald-400">{confirmedCount}</span>
             <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+          </div>
+        </div>
+
+        <div className="rounded-2xl bg-orange-500/5 border border-orange-500/20 p-3.5 flex flex-col justify-between">
+          <span className="text-xs text-orange-400 font-medium">عليه مشكلة</span>
+          <div className="flex items-baseline justify-between mt-2">
+            <span className="text-xl font-black text-orange-400">{issueCount}</span>
+            <AlertTriangle className="w-4 h-4 text-orange-500" />
+          </div>
+        </div>
+
+        <div className="rounded-2xl bg-slate-500/5 border border-slate-500/20 p-3.5 flex flex-col justify-between">
+          <span className="text-xs text-slate-400 font-medium">ملغي</span>
+          <div className="flex items-baseline justify-between mt-2">
+            <span className="text-xl font-black text-slate-400">{cancelledCount}</span>
+            <Ban className="w-4 h-4 text-slate-500" />
           </div>
         </div>
 
@@ -581,6 +618,7 @@ export function OrderKanban({ initialOrders }: OrderKanbanProps) {
                       <OrderCard
                         key={order.id}
                         order={order}
+                          complaints={complaintsMap[order.id] || []}
                         onSelectOrder={(ord) => setSelectedOrder(ord)}
                         onAdvanceStatus={handleAdvanceStatus}
                         onCancelOrder={handleCancelOrder}
@@ -679,33 +717,23 @@ export function OrderKanban({ initialOrders }: OrderKanbanProps) {
                               <Printer className="w-3.5 h-3.5 text-amber-400" />
                             </button>
 
-                            {(order.status === 'pending' || order.status === 'confirmed') && (
+                            {order.status === 'confirmed' && (
                               <button
                                 type="button"
-                                onClick={() => handleAdvanceStatus(order.id, order.status)}
-                                className="px-2 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition-colors"
+                                onClick={() => handleAdvanceStatus(order.id, 'confirmed')}
+                                className="px-2 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold transition-colors"
                               >
-                                تجهيز
+                                مشكلة
                               </button>
                             )}
 
-                            {order.status === 'preparing' && (
+                            {order.status === 'issue' && (
                               <button
                                 type="button"
-                                onClick={() => handleAdvanceStatus(order.id, order.status)}
-                                className="px-2 py-1 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold transition-colors"
-                              >
-                                دليفري
-                              </button>
-                            )}
-
-                            {order.status === 'out_for_delivery' && (
-                              <button
-                                type="button"
-                                onClick={() => handleAdvanceStatus(order.id, order.status)}
+                                onClick={() => handleAdvanceStatus(order.id, 'issue')}
                                 className="px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition-colors"
                               >
-                                تسليم
+                                تأكيد
                               </button>
                             )}
 
@@ -732,6 +760,7 @@ export function OrderKanban({ initialOrders }: OrderKanbanProps) {
       {/* Order Details Modal */}
       <OrderDetailsModal
         order={selectedOrder}
+        complaints={selectedOrder ? (complaintsMap[selectedOrder.id] || []) : []}
         isOpen={Boolean(selectedOrder)}
         onClose={() => setSelectedOrder(null)}
         onAdvanceStatus={handleAdvanceStatus}
@@ -742,7 +771,7 @@ export function OrderKanban({ initialOrders }: OrderKanbanProps) {
 
       {/* Thermal Receipt Print Component & Preview Modal */}
       {printingOrder && (
-        <ThermalReceipt
+        <ThermalReceipt restaurantName={restaurantName}
           order={printingOrder}
           isPreview={isReceiptPreviewOpen}
           onClose={() => setIsReceiptPreviewOpen(false)}
@@ -751,3 +780,11 @@ export function OrderKanban({ initialOrders }: OrderKanbanProps) {
     </div>
   );
 }
+
+
+
+
+
+
+
+
