@@ -67,12 +67,20 @@ In your Supabase project, click on the **SQL Editor** icon (`>_` in the left sid
     - `order_agent`: Read/Write access to orders, order items, contacts, read-only menu/offers.
     - `support_agent`: Read/Write access to complaints, live chat messages, contacts.
 
-### 4️⃣ Run `04_seed.sql`
-- **File:** [`database/04_seed.sql`](./database/04_seed.sql)
-- **What it does:** 
-  - Seeds the singleton `bot_settings` row (default delivery fee 20 EGP, Egyptian Arabic AI system prompt).
-  - Seeds the fallback `global_comment_rules` (randomized public comment replies and private DM with menu/offers buttons).
-  - *(Optional)* Seeds 4 sample Egyptian menu categories, 12 dishes, and 2 active offers for immediate live testing.
+### 4️⃣ Run `04_v2_upgrade.sql`
+- **File:** [`database/04_v2_upgrade.sql`](./database/04_v2_upgrade.sql)
+- **Safe to run on an existing database:** it keeps all existing data and can be re-run any number of times (idempotent).
+- **What it does:**
+  - **Channels:** `meta_apps` (Meta App ID / Secret / verify token, server-only), `channels` (connected pages) and `channel_secrets` (page tokens, server-only). Supports many pages across many Meta apps.
+  - **Orders:** simplifies `order_status` to 3 values: `confirmed` (مؤكد), `issue` (عليه مشكلة) and `cancelled` (ملغي). Order items become free text.
+  - **Complaints:** linked to orders (`complaints.order_id`). Opening a complaint on an order sets that order to `issue` automatically.
+  - **Menu:** removes the dish/category catalogue. The menu is now images and/or a PDF (`bot_settings.menu_images`, `menu_pdf_url`), plus a free-text price list (`bot_settings.price_list`) you can inject into n8n.
+  - **Comments:** `comment_settings` (anti-spam and sensitive words), `post_settings` (per-post bot on/off), `comment_rules` (post-level and global rules in one table) and `comment_events` (inbox log with dedupe).
+  - Inserts fried-chicken defaults: the bot settings row, sensitive keywords and 3 global comment rules (menu/prices, offers, fallback reply).
+  - Adds the matching RLS policies, triggers and Realtime for `comment_events`.
+
+> [!NOTE]
+> There is **no seed / demo data step** any more. `04_v2_upgrade.sql` already inserts every default row the system needs. Add the restaurant name, menu images, price list and offers from the dashboard.
 
 ### 5️⃣ Run `05_create_admin.sql`
 - **File:** [`database/05_create_admin.sql`](./database/05_create_admin.sql)
@@ -131,6 +139,9 @@ SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOi...your-service-role-key...
 ---
 
 ## Step 6: Configure Facebook Page & Telegram (Directly via UI)
+
+> [!WARNING]
+> **Being replaced in v2.** After `04_v2_upgrade.sql`, Facebook pages are no longer set in `/settings`. They move to a new **القنوات (`/channels`)** page: add your Meta App ID/Secret, then click "Connect with Facebook" to get a non-expiring page token automatically. This step and Step 7 will be rewritten once that page ships. Do not paste a Graph API Explorer token: it expires in about 1 hour.
 
 No need to touch `.env` files or restart the server when tokens change. Manage them from the UI:
 
