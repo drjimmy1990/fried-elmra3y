@@ -1,0 +1,461 @@
+'use client';
+
+import React, { useState, useMemo } from 'react';
+import {
+  Sparkles,
+  Plus,
+  Search,
+  Filter,
+  CheckCircle2,
+  Calendar,
+  Percent,
+  Layers,
+  Clock,
+  Tag,
+  AlertCircle,
+  X,
+  TrendingUp,
+} from 'lucide-react';
+import { Offer, OfferFilterTab, calculateDiscount } from './types';
+import { OfferCard } from './OfferCard';
+import { OfferModal } from './OfferModal';
+import { cn } from '@/lib/utils';
+
+interface OffersContainerProps {
+  initialOffers: Offer[];
+}
+
+export function OffersContainer({ initialOffers }: OffersContainerProps) {
+  const [offers, setOffers] = useState<Offer[]>(initialOffers);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState<OfferFilterTab>('all');
+
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedOfferForEdit, setSelectedOfferForEdit] = useState<Offer | null>(null);
+
+  // Toast / notification feedback
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const showToast = (message: string) => {
+    setToastMessage(message);
+    setTimeout(() => {
+      setToastMessage((current) => (current === message ? null : current));
+    }, 4000);
+  };
+
+  // KPI Calculations
+  const stats = useMemo(() => {
+    const now = new Date();
+    const totalOffers = offers.length;
+    const activeOffers = offers.filter((o) => o.is_active).length;
+
+    const currentlyValidOffers = offers.filter((o) => {
+      if (!o.is_active) return false;
+      const startValid = !o.start_date || new Date(o.start_date) <= now;
+      const endValid = !o.end_date || new Date(o.end_date) >= now;
+      return startValid && endValid;
+    }).length;
+
+    let highestDiscount = 0;
+    offers.forEach((o) => {
+      const disc = calculateDiscount(o.price_before, o.price_after);
+      if (disc.hasDiscount && disc.discountPercentage > highestDiscount) {
+        highestDiscount = disc.discountPercentage;
+      }
+    });
+
+    return {
+      totalOffers,
+      activeOffers,
+      currentlyValidOffers,
+      highestDiscount,
+    };
+  }, [offers]);
+
+  // Tab counts for badge indicator on filter tabs
+  const tabCounts = useMemo(() => {
+    const now = new Date();
+    return {
+      all: offers.length,
+      active: offers.filter((o) => o.is_active).length,
+      inactive: offers.filter((o) => !o.is_active).length,
+      expired: offers.filter((o) => o.end_date && new Date(o.end_date) < now).length,
+    };
+  }, [offers]);
+
+  // Filtered and searched offers
+  const filteredOffers = useMemo(() => {
+    const now = new Date();
+    const query = searchQuery.trim().toLowerCase();
+
+    return offers.filter((offer) => {
+      // 1. Tab filter
+      if (activeTab === 'active' && !offer.is_active) return false;
+      if (activeTab === 'inactive' && offer.is_active) return false;
+      if (activeTab === 'expired') {
+        if (!offer.end_date || new Date(offer.end_date) >= now) return false;
+      }
+
+      // 2. Search query filter
+      if (query) {
+        const titleMatch = offer.title.toLowerCase().includes(query);
+        const descMatch = offer.description
+          ? offer.description.toLowerCase().includes(query)
+          : false;
+        if (!titleMatch && !descMatch) return false;
+      }
+
+      return true;
+    });
+  }, [offers, activeTab, searchQuery]);
+
+  // Sort helper to ensure proper sorting after any mutations
+  const sortOffersList = (list: Offer[]): Offer[] => {
+    return [...list].sort((a, b) => {
+      if (a.sort_order !== b.sort_order) {
+        return a.sort_order - b.sort_order;
+      }
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+  };
+
+  // Handlers for modal & CRUD
+  const handleOpenCreateModal = () => {
+    setSelectedOfferForEdit(null);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEditModal = (offer: Offer) => {
+    setSelectedOfferForEdit(offer);
+    setIsModalOpen(true);
+  };
+
+  const handleSaveOffer = (savedOffer: Offer) => {
+    setOffers((prev) => {
+      const exists = prev.some((o) => o.id === savedOffer.id);
+      let updated: Offer[];
+      if (exists) {
+        updated = prev.map((o) => (o.id === savedOffer.id ? savedOffer : o));
+        showToast(`تم تعديل عرض "${savedOffer.title}" بنجاح.`);
+      } else {
+        updated = [savedOffer, ...prev];
+        showToast(`تمت إضافة العرض الترويجي "${savedOffer.title}" بنجاح.`);
+      }
+      return sortOffersList(updated);
+    });
+  };
+
+  const handleDeleteOffer = (offerId: string) => {
+    setOffers((prev) => prev.filter((o) => o.id !== offerId));
+    showToast('تم حذف العرض الترويجي بنجاح.');
+  };
+
+  const handleOfferUpdated = (updatedOffer: Offer) => {
+    setOffers((prev) =>
+      prev.map((o) => (o.id === updatedOffer.id ? updatedOffer : o))
+    );
+  };
+
+  return (
+    <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-300">
+      {/* Toast Feedback */}
+      {toastMessage && (
+        <div className="fixed bottom-6 left-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl bg-slate-900 border border-emerald-500/40 text-emerald-300 shadow-2xl shadow-black/80 animate-in slide-in-from-bottom-5">
+          <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+          <span className="text-xs font-semibold">{toastMessage}</span>
+          <button
+            type="button"
+            onClick={() => setToastMessage(null)}
+            className="p-1 text-slate-400 hover:text-white"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Top Header & Page Title */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
+              <Sparkles className="w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                إدارة العروض والخصومات الترويجية
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
+                تنسيق العروض الخاصة، نسب الخصومات وبانرات الحملات لمطعم الخديوي
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Add New Offer Button */}
+        <button
+          type="button"
+          onClick={handleOpenCreateModal}
+          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs sm:text-sm shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 transition-all cursor-pointer active:scale-95"
+        >
+          <Plus className="w-4 h-4 stroke-[3]" />
+          <span>إضافة عرض ترويجي جديد</span>
+        </button>
+      </div>
+
+      {/* Top KPI Cards Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {/* Total Offers */}
+        <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-sm flex items-center justify-between">
+          <div className="space-y-1">
+            <span className="text-[11px] font-semibold text-slate-400 block">
+              إجمالي العروض
+            </span>
+            <span className="text-2xl sm:text-3xl font-black text-white block">
+              {stats.totalOffers}
+            </span>
+            <span className="text-[10px] text-slate-500">كافة الحملات المسجلة</span>
+          </div>
+          <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/60 text-amber-400">
+            <Layers className="w-5 h-5 sm:w-6 sm:h-6" />
+          </div>
+        </div>
+
+        {/* Active Offers */}
+        <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-sm flex items-center justify-between">
+          <div className="space-y-1">
+            <span className="text-[11px] font-semibold text-slate-400 block">
+              العروض المفعلة
+            </span>
+            <span className="text-2xl sm:text-3xl font-black text-emerald-400 block">
+              {stats.activeOffers}
+            </span>
+            <span className="text-[10px] text-emerald-500/80">جاهزة للطلب الآن</span>
+          </div>
+          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+            <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6" />
+          </div>
+        </div>
+
+        {/* Valid in Date Window */}
+        <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-sm flex items-center justify-between">
+          <div className="space-y-1">
+            <span className="text-[11px] font-semibold text-slate-400 block">
+              عروض سارية حالياً
+            </span>
+            <span className="text-2xl sm:text-3xl font-black text-blue-400 block">
+              {stats.currentlyValidOffers}
+            </span>
+            <span className="text-[10px] text-blue-500/80">ضمن النافذة الزمنية</span>
+          </div>
+          <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400">
+            <Calendar className="w-5 h-5 sm:w-6 sm:h-6" />
+          </div>
+        </div>
+
+        {/* Highest Discount */}
+        <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-sm flex items-center justify-between">
+          <div className="space-y-1">
+            <span className="text-[11px] font-semibold text-slate-400 block">
+              أعلى نسبة خصم
+            </span>
+            <span className="text-2xl sm:text-3xl font-black text-amber-400 block">
+              {stats.highestDiscount > 0 ? `${stats.highestDiscount}%` : '0%'}
+            </span>
+            <span className="text-[10px] text-amber-500/80">أكبر توفير للعميل</span>
+          </div>
+          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
+            <Percent className="w-5 h-5 sm:w-6 sm:h-6" />
+          </div>
+        </div>
+      </div>
+
+      {/* Filter and Search Bar */}
+      <div className="p-3 sm:p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+        {/* Filter Tabs */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
+          <button
+            type="button"
+            onClick={() => setActiveTab('all')}
+            className={cn(
+              'px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5',
+              activeTab === 'all'
+                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                : 'bg-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-800'
+            )}
+          >
+            <span>الكل</span>
+            <span
+              className={cn(
+                'px-1.5 py-0.2 rounded-md text-[10px]',
+                activeTab === 'all'
+                  ? 'bg-slate-950/30 text-slate-950 font-black'
+                  : 'bg-slate-750 text-slate-400'
+              )}
+            >
+              {tabCounts.all}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('active')}
+            className={cn(
+              'px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5',
+              activeTab === 'active'
+                ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20'
+                : 'bg-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-800'
+            )}
+          >
+            <span>مفعل حالياً</span>
+            <span
+              className={cn(
+                'px-1.5 py-0.2 rounded-md text-[10px]',
+                activeTab === 'active'
+                  ? 'bg-slate-950/30 text-slate-950 font-black'
+                  : 'bg-slate-750 text-slate-400'
+              )}
+            >
+              {tabCounts.active}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('inactive')}
+            className={cn(
+              'px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5',
+              activeTab === 'inactive'
+                ? 'bg-slate-200 text-slate-950'
+                : 'bg-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-800'
+            )}
+          >
+            <span>متوقف</span>
+            <span
+              className={cn(
+                'px-1.5 py-0.2 rounded-md text-[10px]',
+                activeTab === 'inactive'
+                  ? 'bg-slate-950/30 text-slate-950 font-black'
+                  : 'bg-slate-750 text-slate-400'
+              )}
+            >
+              {tabCounts.inactive}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('expired')}
+            className={cn(
+              'px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5',
+              activeTab === 'expired'
+                ? 'bg-rose-500 text-white shadow-md shadow-rose-500/20'
+                : 'bg-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-800'
+            )}
+          >
+            <span>منتهي الصلاحية</span>
+            <span
+              className={cn(
+                'px-1.5 py-0.2 rounded-md text-[10px]',
+                activeTab === 'expired'
+                  ? 'bg-white/20 text-white font-black'
+                  : 'bg-slate-750 text-slate-400'
+              )}
+            >
+              {tabCounts.expired}
+            </span>
+          </button>
+        </div>
+
+        {/* Search input */}
+        <div className="relative flex-1 md:max-w-xs">
+          <Search className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="بحث بالعنوان أو الوصف..."
+            className="w-full pr-10 pl-8 py-2 rounded-xl bg-slate-950/70 border border-slate-800 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500/60"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white p-0.5"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Offers Grid */}
+      {filteredOffers.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+          {filteredOffers.map((offer) => (
+            <OfferCard
+              key={offer.id}
+              offer={offer}
+              onEdit={handleOpenEditModal}
+              onDelete={handleDeleteOffer}
+              onOfferUpdated={handleOfferUpdated}
+            />
+          ))}
+        </div>
+      ) : (
+        /* Empty State */
+        <div className="p-12 rounded-2xl bg-slate-900/60 border border-slate-800/80 flex flex-col items-center justify-center text-center space-y-4">
+          <div className="p-4 rounded-2xl bg-slate-850 border border-slate-700/60 text-slate-500">
+            <Sparkles className="w-10 h-10" />
+          </div>
+
+          <div className="max-w-md space-y-1.5">
+            <h3 className="text-base sm:text-lg font-bold text-white">
+              {offers.length === 0
+                ? 'لا توجد عروض ترويجية حتى الآن'
+                : 'لا توجد عروض مطابقة للبحث أو الفلتر المحدد'}
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
+              {offers.length === 0
+                ? 'ابدأ بإضافة أول عرض ترويجي وبانر لزيادة مبيعات مطعم الخديوي وجذب العملاء عبر البوت'
+                : 'جرّب تعديل كلمات البحث أو التبديل إلى فلتر عرض آخر لإظهار النتائج'}
+            </p>
+          </div>
+
+          {offers.length === 0 ? (
+            <button
+              type="button"
+              onClick={handleOpenCreateModal}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs sm:text-sm shadow-lg shadow-amber-500/20 transition-all cursor-pointer"
+            >
+              <Plus className="w-4 h-4 stroke-[3]" />
+              <span>إضافة أول عرض ترويجي</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchQuery('');
+                setActiveTab('all');
+              }}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-300 font-semibold text-xs transition-colors"
+            >
+              <span>إعادة ضبط عوامل التصفية</span>
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Offer Modal (Create/Edit) */}
+      <OfferModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedOfferForEdit(null);
+        }}
+        offerToEdit={selectedOfferForEdit}
+        onSave={handleSaveOffer}
+      />
+    </div>
+  );
+}
