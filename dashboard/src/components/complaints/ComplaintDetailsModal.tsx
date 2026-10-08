@@ -7,35 +7,37 @@ import {
   Phone,
   MessageCircle,
   Clock,
-  User,
-  AlertTriangle,
-  CheckCircle2,
-  Lock,
-  RotateCcw,
-  Sparkles,
+  FileText,
   Save,
   Check,
-  Loader2,
-  FileText,
-  ShieldAlert,
+  AlertTriangle,
+  CheckCircle2,
+  Ban,
   ArrowRight,
-  ExternalLink,
+  User,
+  Sparkles,
+  Loader2,
+  RotateCcw,
 } from 'lucide-react';
+import {
+  getComplaintPriorityBadge,
+  getComplaintStatusBadge,
+  getWhatsAppLink,
+  formatDateTime,
+} from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
-import { formatDateTime, getComplaintPriorityBadge, getWhatsAppLink } from '@/lib/utils';
 import {
   ComplaintWithDetails,
   ComplaintStatus,
   ComplaintPriority,
   StaffProfile,
-  getComplaintStatusBadge,
 } from './types';
 
 interface ComplaintDetailsModalProps {
   complaint: ComplaintWithDetails | null;
   isOpen: boolean;
-  onClose: () => void;
   staffList: StaffProfile[];
+  onClose: () => void;
   onUpdateStatus: (complaintId: string, newStatus: ComplaintStatus) => Promise<void>;
   onUpdatePriority: (complaintId: string, newPriority: ComplaintPriority) => Promise<void>;
   onAssignStaff: (complaintId: string, staffId: string | null) => Promise<void>;
@@ -45,8 +47,8 @@ interface ComplaintDetailsModalProps {
 export function ComplaintDetailsModal({
   complaint,
   isOpen,
-  onClose,
   staffList,
+  onClose,
   onUpdateStatus,
   onUpdatePriority,
   onAssignStaff,
@@ -62,7 +64,7 @@ export function ComplaintDetailsModal({
   const [isAssigning, setIsAssigning] = useState(false);
   const [isTakingOver, setIsTakingOver] = useState(false);
 
-  // Sync resolution notes when selected complaint changes
+  // Sync resolution notes only when complaint ID changes
   useEffect(() => {
     if (complaint) {
       setResolutionNotes(complaint.resolution_notes || '');
@@ -70,17 +72,30 @@ export function ComplaintDetailsModal({
     }
   }, [complaint?.id]);
 
-  // Handle Escape key to dismiss modal
+  // Safe Close preventing accidental loss of unsaved draft notes
+  const handleSafeClose = () => {
+    const isDirty = resolutionNotes.trim() !== (complaint?.resolution_notes || '').trim();
+    if (
+      isDirty &&
+      typeof window !== 'undefined' &&
+      !window.confirm('لديك ملاحظات حل غير محفوظة، هل أنت متأكد من الإغلاق وتجاهل التعديلات؟')
+    ) {
+      return;
+    }
+    onClose();
+  };
+
+  // Handle Escape key to dismiss modal safely
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose();
+        handleSafeClose();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, resolutionNotes, complaint]);
 
   if (!isOpen || !complaint) return null;
 
@@ -133,24 +148,27 @@ export function ComplaintDetailsModal({
 
   // One-Click Chat Takeover: disables AI on contact & navigates to live chat
   const handleChatTakeover = async () => {
+    if (!complaint.contact_id) {
+      alert('هذه الشكوى مسجلة هاتفياً - لا يوجد حساب محادثة مرتبط.');
+      return;
+    }
+
     setIsTakingOver(true);
     try {
-      if (complaint.contact_id) {
-        const supabase = createClient();
-        const { error } = await supabase
-          .from('contacts')
-          .update({ ai_enabled: false })
-          .eq('id', complaint.contact_id);
+      const supabase = createClient();
+      const { error } = await supabase
+        .from('contacts')
+        .update({ ai_enabled: false })
+        .eq('id', complaint.contact_id);
 
-        if (error) {
-          console.error('Failed to disable AI for contact on takeover:', error);
-        }
-        router.push(`/dashboard/chat?contactId=${complaint.contact_id}`);
-      } else {
-        router.push('/dashboard/chat');
+      if (error) {
+        console.error('Failed to disable AI for contact on takeover:', error);
+        alert('تعذر إيقاف البوت آلياً، يمكنك إيقاف البوت يدوياً من واجهة المحادثة المباشرة.');
       }
+      router.push(`/dashboard/chat?contactId=${complaint.contact_id}`);
     } catch (err) {
       console.error('Error during chat takeover:', err);
+      alert('حدث خطأ أثناء الانتقال للمحادثة.');
     } finally {
       setIsTakingOver(false);
     }
@@ -163,7 +181,7 @@ export function ComplaintDetailsModal({
       aria-modal="true"
       aria-labelledby="complaint-modal-title"
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) handleSafeClose();
       }}
     >
       <div className="relative flex flex-col w-full max-w-3xl max-h-[92vh] rounded-3xl bg-slate-900 border border-slate-800 shadow-2xl text-slate-100 overflow-hidden animate-in zoom-in-95 duration-200">
@@ -184,18 +202,20 @@ export function ComplaintDetailsModal({
                   {priorityBadge.label}
                 </span>
                 <span
-                  className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${statusBadge.color}`}
+                  className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${statusBadge.color}`}
                 >
-                  <span className={`w-1.5 h-1.5 rounded-full ${statusBadge.dot}`} />
                   {statusBadge.label}
                 </span>
               </div>
-              <div className="flex items-center gap-2 text-xs text-slate-400 mt-1">
-                <Clock className="w-3.5 h-3.5 text-slate-500" />
-                <span>تاريخ الفتح: {formatDateTime(complaint.created_at)}</span>
+              <div className="flex items-center gap-3 text-xs text-slate-400 mt-1">
+                <span className="flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5 text-slate-500" />
+                  <span>تاريخ التسجيل: {formatDateTime(complaint.created_at)}</span>
+                </span>
                 {complaint.resolved_at && (
-                  <span className="text-emerald-400">
-                    • تم الحل في: {formatDateTime(complaint.resolved_at)}
+                  <span className="flex items-center gap-1 text-emerald-400">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>تاريخ الحل: {formatDateTime(complaint.resolved_at)}</span>
                   </span>
                 )}
               </div>
@@ -203,7 +223,7 @@ export function ComplaintDetailsModal({
           </div>
 
           <button
-            onClick={onClose}
+            onClick={handleSafeClose}
             className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/80 transition"
             aria-label="إغلاق النافذة"
           >
@@ -228,6 +248,13 @@ export function ComplaintDetailsModal({
                   <div className="text-sm font-mono text-slate-300 mt-0.5" dir="ltr">
                     {complaint.customer_phone}
                   </div>
+                  {complaint.contact && (
+                    <div className="flex items-center gap-2 mt-1.5 text-[11px] text-slate-400">
+                      <span>المنصة: {complaint.contact.platform === 'messenger' ? 'فيسبوك ماسنجر' : complaint.contact.platform}</span>
+                      <span>•</span>
+                      <span>إجمالي الطلبات: {complaint.contact.total_orders || 0}</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -266,7 +293,7 @@ export function ComplaintDetailsModal({
               <div className="mt-3">
                 <button
                   onClick={handleChatTakeover}
-                  disabled={isTakingOver}
+                  disabled={isTakingOver || !complaint.contact_id}
                   className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-amber-950/50 transition disabled:opacity-50"
                 >
                   {isTakingOver ? (
@@ -274,6 +301,8 @@ export function ComplaintDetailsModal({
                       <Loader2 className="w-4 h-4 animate-spin" />
                       <span>جاري تحويل الشات وإيقاف البوت...</span>
                     </>
+                  ) : !complaint.contact_id ? (
+                    <span>شكوى مسجلة هاتفياً - لا توجد محادثة شات</span>
                   ) : (
                     <>
                       <MessageCircle className="w-4 h-4" />
@@ -288,88 +317,82 @@ export function ComplaintDetailsModal({
           {/* Full Issue Description */}
           <div className="space-y-2">
             <span className="text-xs font-bold text-slate-300">نص الشكوى وبلاغ العميل:</span>
-            <div className="rounded-2xl bg-slate-950/80 p-4 border border-slate-800 text-slate-200 text-sm leading-relaxed whitespace-pre-wrap">
-              {complaint.issue_description || 'لا يوجد نص للشكوى'}
+            <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 text-slate-200 text-sm leading-relaxed whitespace-pre-wrap select-text">
+              {complaint.issue_description}
             </div>
           </div>
 
-          {/* Status Transitions & Priority Management */}
+          {/* Operational Workflow Controls */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Status Transition Actions */}
             <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4 space-y-3">
               <span className="text-xs font-bold text-slate-300 block">
-                تحديث مرحلة التذكرة (Status Transition):
+                تحديث حالة التذكرة (Workflow Status):
               </span>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                {/* To In Progress */}
+              <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => handleStatusChange('in_progress')}
                   disabled={isChangingStatus || complaint.status === 'in_progress'}
-                  className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-xs font-semibold transition ${
+                  className={`flex items-center justify-center gap-1.5 p-2.5 rounded-xl text-xs font-bold border transition ${
                     complaint.status === 'in_progress'
-                      ? 'bg-blue-500/20 border-blue-500 text-blue-300 ring-2 ring-blue-500/30'
-                      : 'bg-slate-800 hover:bg-blue-950/50 border-slate-700 hover:border-blue-600/50 text-slate-300'
+                      ? 'bg-blue-600 text-white border-blue-500'
+                      : 'bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800'
                   }`}
                 >
-                  <Clock className="w-4 h-4 mb-1 text-blue-400" />
+                  <ArrowRight className="w-3.5 h-3.5" />
                   <span>بدء المعالجة</span>
-                  <span className="text-[10px] text-slate-400 font-normal">قيد المتابعة</span>
                 </button>
 
-                {/* To Resolved */}
                 <button
                   onClick={() => handleStatusChange('resolved')}
                   disabled={isChangingStatus || complaint.status === 'resolved'}
-                  className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-xs font-semibold transition ${
+                  className={`flex items-center justify-center gap-1.5 p-2.5 rounded-xl text-xs font-bold border transition ${
                     complaint.status === 'resolved'
-                      ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 ring-2 ring-emerald-500/30'
-                      : 'bg-slate-800 hover:bg-emerald-950/50 border-slate-700 hover:border-emerald-600/50 text-slate-300'
+                      ? 'bg-emerald-600 text-white border-emerald-500'
+                      : 'bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800'
                   }`}
                 >
-                  <CheckCircle2 className="w-4 h-4 mb-1 text-emerald-400" />
-                  <span>تم الحل</span>
-                  <span className="text-[10px] text-slate-400 font-normal">وإرضاء العميل</span>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>تم الحل بنجاح</span>
                 </button>
 
-                {/* To Closed */}
                 <button
                   onClick={() => handleStatusChange('closed')}
                   disabled={isChangingStatus || complaint.status === 'closed'}
-                  className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-xs font-semibold transition ${
+                  className={`flex items-center justify-center gap-1.5 p-2.5 rounded-xl text-xs font-bold border transition ${
                     complaint.status === 'closed'
-                      ? 'bg-slate-700 border-slate-500 text-white ring-2 ring-slate-600'
-                      : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300'
+                      ? 'bg-slate-700 text-white border-slate-600'
+                      : 'bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800'
                   }`}
                 >
-                  <Lock className="w-4 h-4 mb-1 text-slate-400" />
-                  <span>إغلاق التذكرة</span>
-                  <span className="text-[10px] text-slate-400 font-normal">أرشيف مغلق</span>
+                  <Ban className="w-3.5 h-3.5 text-slate-400" />
+                  <span>أرشفة وإغلاق</span>
                 </button>
-              </div>
 
-              {/* Reopen Action (if resolved or closed) */}
-              {(complaint.status === 'resolved' || complaint.status === 'closed') && (
                 <button
                   onClick={() => handleStatusChange('open')}
-                  disabled={isChangingStatus}
-                  className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 text-xs font-semibold border border-slate-700 transition"
+                  disabled={isChangingStatus || complaint.status === 'open'}
+                  className={`flex items-center justify-center gap-1.5 p-2.5 rounded-xl text-xs font-bold border transition ${
+                    complaint.status === 'open'
+                      ? 'bg-rose-600 text-white border-rose-500'
+                      : 'bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800'
+                  }`}
                 >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>إعادة فتح الشكوى كجديدة (Reopen)</span>
+                  <RotateCcw className="w-3.5 h-3.5 text-rose-400" />
+                  <span>إعادة فتح</span>
                 </button>
-              )}
+              </div>
             </div>
 
             {/* Priority & Staff Assignment */}
             <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4 space-y-4">
-              {/* Priority Select Buttons */}
+              {/* Priority Selector */}
               <div>
-                <span className="text-xs font-bold text-slate-300 block mb-2">
-                  درجة الأولوية (Priority):
+                <span className="text-xs font-bold text-slate-300 block mb-1.5">
+                  مستوى الأولوية والخطورة:
                 </span>
                 <div className="grid grid-cols-4 gap-1.5">
-                  {(['urgent', 'high', 'medium', 'low'] as ComplaintPriority[]).map((p) => {
+                  {(['low', 'medium', 'high', 'urgent'] as ComplaintPriority[]).map((p) => {
                     const badge = getComplaintPriorityBadge(p);
                     const isSelected = complaint.priority === p;
                     return (
@@ -377,16 +400,13 @@ export function ComplaintDetailsModal({
                         key={p}
                         onClick={() => handlePriorityChange(p)}
                         disabled={isChangingPriority}
-                        className={`py-1.5 px-2 rounded-xl text-xs font-bold border transition text-center ${
+                        className={`py-1.5 px-2 rounded-xl text-[11px] font-bold border transition ${
                           isSelected
-                            ? `${badge.color} ring-2 ring-amber-500/50`
-                            : 'bg-slate-800/80 border-slate-700/80 text-slate-400 hover:text-slate-200'
+                            ? 'bg-amber-600 text-white border-amber-500 shadow-sm'
+                            : 'bg-slate-900 text-slate-300 border-slate-700 hover:bg-slate-800'
                         }`}
                       >
-                        {p === 'urgent' && '🔴 عاجل'}
-                        {p === 'high' && '🟠 عالية'}
-                        {p === 'medium' && '🟡 متوسط'}
-                        {p === 'low' && '🟢 عادي'}
+                        {p === 'urgent' ? 'عاجل' : p === 'high' ? 'عالي' : p === 'medium' ? 'متوسط' : 'عادي'}
                       </button>
                     );
                   })}
@@ -468,7 +488,7 @@ export function ComplaintDetailsModal({
             تحديث فوري عبر Supabase Realtime • مطعم الخديوي
           </div>
           <button
-            onClick={onClose}
+            onClick={handleSafeClose}
             className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold transition border border-slate-700"
           >
             إغلاق

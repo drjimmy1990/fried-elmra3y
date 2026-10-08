@@ -6,19 +6,16 @@ import {
   Phone,
   MessageCircle,
   User,
-  AlertTriangle,
-  CheckCircle2,
-  ChevronLeft,
-  FileText,
   Loader2,
-  ShieldAlert,
+  FileText,
 } from 'lucide-react';
-import { getComplaintPriorityBadge, getWhatsAppLink } from '@/lib/utils';
 import {
-  ComplaintWithDetails,
-  ComplaintStatus,
+  getComplaintPriorityBadge,
   getComplaintStatusBadge,
-} from './types';
+  getWhatsAppLink,
+  formatTimeElapsed,
+} from '@/lib/utils';
+import { ComplaintWithDetails, ComplaintStatus } from './types';
 
 interface ComplaintCardProps {
   complaint: ComplaintWithDetails;
@@ -27,34 +24,7 @@ interface ComplaintCardProps {
   isUpdating?: boolean;
 }
 
-// Arabic relative time elapsed helper
-function formatTimeElapsed(dateString: string | null | undefined): string {
-  if (!dateString) return '-';
-  const now = new Date();
-  const date = new Date(dateString);
-  const diffInSeconds = Math.max(0, Math.floor((now.getTime() - date.getTime()) / 1000));
-
-  if (diffInSeconds < 60) return 'الآن';
-  const diffInMinutes = Math.floor(diffInSeconds / 60);
-  if (diffInMinutes === 1) return 'منذ دقيقة';
-  if (diffInMinutes === 2) return 'منذ دقيقتين';
-  if (diffInMinutes >= 3 && diffInMinutes <= 10) return `منذ ${diffInMinutes} دقائق`;
-  if (diffInMinutes < 60) return `منذ ${diffInMinutes} دقيقة`;
-
-  const diffInHours = Math.floor(diffInMinutes / 60);
-  if (diffInHours === 1) return 'منذ ساعة';
-  if (diffInHours === 2) return 'منذ ساعتين';
-  if (diffInHours >= 3 && diffInHours <= 10) return `منذ ${diffInHours} ساعات`;
-  if (diffInHours < 24) return `منذ ${diffInHours} ساعة`;
-
-  const diffInDays = Math.floor(diffInHours / 24);
-  if (diffInDays === 1) return 'منذ يوم';
-  if (diffInDays === 2) return 'منذ يومين';
-  if (diffInDays >= 3 && diffInDays <= 10) return `منذ ${diffInDays} أيام`;
-  return `منذ ${diffInDays} يوم`;
-}
-
-export function ComplaintCard({
+function ComplaintCardComponent({
   complaint,
   onSelect,
   onQuickAdvanceStatus,
@@ -79,8 +49,16 @@ export function ComplaintCard({
 
   return (
     <div
+      role="button"
+      tabIndex={0}
       onClick={() => onSelect(complaint)}
-      className="group relative rounded-2xl bg-slate-900/90 hover:bg-slate-900 border border-slate-800/90 hover:border-slate-700/80 p-4 shadow-md hover:shadow-xl transition-all duration-200 cursor-pointer text-slate-200 flex flex-col gap-3 select-none"
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect(complaint);
+        }
+      }}
+      className="group relative rounded-2xl bg-slate-900/90 hover:bg-slate-900 border border-slate-800/90 hover:border-slate-700/80 p-4 shadow-md hover:shadow-xl transition-all duration-200 cursor-pointer text-slate-200 flex flex-col gap-3 select-none focus:outline-none focus:ring-2 focus:ring-amber-500/50"
     >
       {/* Top Meta Bar: Ticket Number, Elapsed Time, Priority & Status Badges */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -169,7 +147,6 @@ export function ComplaintCard({
           <span
             className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${statusBadge.color}`}
           >
-            <span className={`w-1.5 h-1.5 rounded-full ${statusBadge.dot}`} />
             {statusBadge.label}
           </span>
 
@@ -191,3 +168,5 @@ export function ComplaintCard({
     </div>
   );
 }
+
+export const ComplaintCard = React.memo(ComplaintCardComponent);

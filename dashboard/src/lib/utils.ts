@@ -64,3 +64,44 @@ export function getWhatsAppLink(phone: string | null | undefined): string {
   }
   return `https://wa.me/${clean}`;
 }
+
+export function getComplaintStatusBadge(status: string) {
+  switch (status) {
+    case 'open':
+      return { label: 'مفتوحة / جديدة', color: 'bg-rose-500/10 text-rose-400 border-rose-500/20' };
+    case 'in_progress':
+      return { label: 'قيد المتابعة', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20' };
+    case 'resolved':
+      return { label: 'تم الحل بنجاح', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' };
+    case 'closed':
+      return { label: 'مغلقة ومؤرشفة', color: 'bg-slate-800 text-slate-400 border-slate-700' };
+    default:
+      return { label: status, color: 'bg-slate-800 text-slate-300 border-slate-700' };
+  }
+}
+
+export function formatTimeElapsed(dateString: string | null | undefined): string {
+  if (!dateString) return '-';
+  const now = new Date();
+  const date = new Date(dateString);
+  const diffInSeconds = Math.max(0, Math.floor((now.getTime() - date.getTime()) / 1000));
+
+  if (diffInSeconds < 60) return 'الآن';
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  if (diffInMinutes === 1) return 'منذ دقيقة';
+  if (diffInMinutes === 2) return 'منذ دقيقتين';
+  if (diffInMinutes >= 3 && diffInMinutes <= 10) return `منذ ${diffInMinutes} دقائق`;
+  if (diffInMinutes < 60) return `منذ ${diffInMinutes} دقيقة`;
+
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours === 1) return 'منذ ساعة';
+  if (diffInHours === 2) return 'منذ ساعتين';
+  if (diffInHours >= 3 && diffInHours <= 10) return `منذ ${diffInHours} ساعات`;
+  if (diffInHours < 24) return `منذ ${diffInHours} ساعة`;
+
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays === 1) return 'منذ يوم';
+  if (diffInDays === 2) return 'منذ يومين';
+  if (diffInDays >= 3 && diffInDays <= 10) return `منذ ${diffInDays} أيام`;
+  return `منذ ${diffInDays} يوم`;
+}

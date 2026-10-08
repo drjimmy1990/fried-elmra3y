@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   AlertTriangle,
   AlertCircle,
@@ -146,7 +146,7 @@ export function ComplaintQueue({ initialComplaints, staffList }: ComplaintQueueP
                   return {
                     ...c,
                     ...updatedRow,
-                    assigned_profile: assignedProfile ?? c.assigned_profile,
+                    assigned_profile: assignedProfile,
                   };
                 }
                 return c;
@@ -158,7 +158,7 @@ export function ComplaintQueue({ initialComplaints, staffList }: ComplaintQueueP
                 return {
                   ...prev,
                   ...updatedRow,
-                  assigned_profile: assignedProfile ?? prev.assigned_profile,
+                  assigned_profile: assignedProfile,
                 };
               }
               return prev;
@@ -196,7 +196,7 @@ export function ComplaintQueue({ initialComplaints, staffList }: ComplaintQueueP
     return complaints.filter((c) => {
       // 1. Search Query Filter: customer name, customer phone, ticket number, issue description
       if (searchQuery.trim()) {
-        const query = searchQuery.trim().toLowerCase();
+        const query = searchQuery.trim().toLowerCase().replace(/^#/, '');
         const matchesName = c.customer_name?.toLowerCase().includes(query);
         const matchesPhone = c.customer_phone?.includes(query);
         const matchesTicket = String(c.ticket_number).includes(query);
@@ -222,108 +222,215 @@ export function ComplaintQueue({ initialComplaints, staffList }: ComplaintQueueP
   }, [complaints, searchQuery, priorityFilter, statusFilter]);
 
   // Complaint Actions: Status
-  const handleUpdateStatus = async (complaintId: string, newStatus: ComplaintStatus) => {
-    setIsUpdatingStatus((prev) => ({ ...prev, [complaintId]: true }));
-    const resolvedAt = newStatus === 'resolved' ? new Date().toISOString() : null;
+  const handleUpdateStatus = useCallback(
+    async (complaintId: string, newStatus: ComplaintStatus) => {
+      setIsUpdatingStatus((prev) => ({ ...prev, [complaintId]: true }));
+      const previousComplaint = complaints.find((c) => c.id === complaintId);
 
-    // Optimistic state update
-    setComplaints((prev) =>
-      prev.map((c) =>
-        c.id === complaintId
-          ? { ...c, status: newStatus, resolved_at: resolvedAt }
-          : c
-      )
-    );
-    setSelectedComplaint((prev) =>
-      prev?.id === complaintId
-        ? { ...prev, status: newStatus, resolved_at: resolvedAt }
-        : prev
-    );
+      const resolvedAt =
+        newStatus === 'resolved'
+          ? previousComplaint?.resolved_at || new Date().toISOString()
+          : newStatus === 'open'
+          ? null
+          : previousComplaint?.resolved_at || null;
 
-    try {
-      const { error } = await supabase
-        .from('complaints')
-        .update({
-          status: newStatus,
-          resolved_at: resolvedAt,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', complaintId);
+      // Optimistic state update
+      setComplaints((prev) =>
+        prev.map((c) =>
+          c.id === complaintId
+            ? { ...c, status: newStatus, resolved_at: resolvedAt }
+            : c
+        )
+      );
+      setSelectedComplaint((prev) =>
+        prev?.id === complaintId
+          ? { ...prev, status: newStatus, resolved_at: resolvedAt }
+          : prev
+      );
 
-      if (error) {
-        console.error('Failed to update complaint status in Supabase:', error);
+      try {
+        const { error } = await supabase
+          .from('complaints')
+          .update({
+            status: newStatus,
+            resolved_at: resolvedAt,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', complaintId);
+
+        if (error) {
+          console.error('Failed to update complaint status in Supabase:', error);
+          if (previousComplaint) {
+            setComplaints((prev) =>
+              prev.map((c) => (c.id === complaintId ? previousComplaint : c))
+            );
+            setSelectedComplaint((prev) =>
+              prev?.id === complaintId ? previousComplaint : prev
+            );
+          }
+          alert('تعذر تحديث حالة الشكوى. يرجى التحقق من اتصال الإنترنت.');
+        }
+      } catch {
+        if (previousComplaint) {
+          setComplaints((prev) =>
+            prev.map((c) => (c.id === complaintId ? previousComplaint : c))
+          );
+          setSelectedComplaint((prev) =>
+            prev?.id === complaintId ? previousComplaint : prev
+          );
+        }
+        alert('حدث خطأ غير متوقع أثناء تحديث الشكوى.');
+      } finally {
+        setIsUpdatingStatus((prev) => ({ ...prev, [complaintId]: false }));
       }
-    } finally {
-      setIsUpdatingStatus((prev) => ({ ...prev, [complaintId]: false }));
-    }
-  };
+    },
+    [complaints, supabase]
+  );
 
   // Complaint Actions: Priority
-  const handleUpdatePriority = async (complaintId: string, newPriority: ComplaintPriority) => {
-    setComplaints((prev) =>
-      prev.map((c) => (c.id === complaintId ? { ...c, priority: newPriority } : c))
-    );
-    setSelectedComplaint((prev) =>
-      prev?.id === complaintId ? { ...prev, priority: newPriority } : prev
-    );
+  const handleUpdatePriority = useCallback(
+    async (complaintId: string, newPriority: ComplaintPriority) => {
+      const previousComplaint = complaints.find((c) => c.id === complaintId);
 
-    const { error } = await supabase
-      .from('complaints')
-      .update({ priority: newPriority, updated_at: new Date().toISOString() })
-      .eq('id', complaintId);
+      setComplaints((prev) =>
+        prev.map((c) => (c.id === complaintId ? { ...c, priority: newPriority } : c))
+      );
+      setSelectedComplaint((prev) =>
+        prev?.id === complaintId ? { ...prev, priority: newPriority } : prev
+      );
 
-    if (error) {
-      console.error('Failed to update complaint priority:', error);
-    }
-  };
+      try {
+        const { error } = await supabase
+          .from('complaints')
+          .update({ priority: newPriority, updated_at: new Date().toISOString() })
+          .eq('id', complaintId);
+
+        if (error) {
+          console.error('Failed to update complaint priority:', error);
+          if (previousComplaint) {
+            setComplaints((prev) =>
+              prev.map((c) => (c.id === complaintId ? previousComplaint : c))
+            );
+            setSelectedComplaint((prev) =>
+              prev?.id === complaintId ? previousComplaint : prev
+            );
+          }
+          alert('تعذر تحديث أولوية الشكوى.');
+        }
+      } catch {
+        if (previousComplaint) {
+          setComplaints((prev) =>
+            prev.map((c) => (c.id === complaintId ? previousComplaint : c))
+          );
+          setSelectedComplaint((prev) =>
+            prev?.id === complaintId ? previousComplaint : prev
+          );
+        }
+        alert('حدث خطأ غير متوقع أثناء تحديث الأولوية.');
+      }
+    },
+    [complaints, supabase]
+  );
 
   // Complaint Actions: Staff Assignment
-  const handleAssignStaff = async (complaintId: string, staffId: string | null) => {
-    const assignedProfile = staffId ? staffList.find((s) => s.id === staffId) || null : null;
+  const handleAssignStaff = useCallback(
+    async (complaintId: string, staffId: string | null) => {
+      const previousComplaint = complaints.find((c) => c.id === complaintId);
+      const assignedProfile = staffId ? staffList.find((s) => s.id === staffId) || null : null;
 
-    setComplaints((prev) =>
-      prev.map((c) =>
-        c.id === complaintId
-          ? { ...c, assigned_to: staffId, assigned_profile: assignedProfile }
-          : c
-      )
-    );
-    setSelectedComplaint((prev) =>
-      prev?.id === complaintId
-        ? { ...prev, assigned_to: staffId, assigned_profile: assignedProfile }
-        : prev
-    );
+      setComplaints((prev) =>
+        prev.map((c) =>
+          c.id === complaintId
+            ? { ...c, assigned_to: staffId, assigned_profile: assignedProfile }
+            : c
+        )
+      );
+      setSelectedComplaint((prev) =>
+        prev?.id === complaintId
+          ? { ...prev, assigned_to: staffId, assigned_profile: assignedProfile }
+          : prev
+      );
 
-    const { error } = await supabase
-      .from('complaints')
-      .update({ assigned_to: staffId, updated_at: new Date().toISOString() })
-      .eq('id', complaintId);
+      try {
+        const { error } = await supabase
+          .from('complaints')
+          .update({ assigned_to: staffId, updated_at: new Date().toISOString() })
+          .eq('id', complaintId);
 
-    if (error) {
-      console.error('Failed to assign staff:', error);
-    }
-  };
+        if (error) {
+          console.error('Failed to assign staff:', error);
+          if (previousComplaint) {
+            setComplaints((prev) =>
+              prev.map((c) => (c.id === complaintId ? previousComplaint : c))
+            );
+            setSelectedComplaint((prev) =>
+              prev?.id === complaintId ? previousComplaint : prev
+            );
+          }
+          alert('تعذر تغيير إسناد الموظف.');
+        }
+      } catch {
+        if (previousComplaint) {
+          setComplaints((prev) =>
+            prev.map((c) => (c.id === complaintId ? previousComplaint : c))
+          );
+          setSelectedComplaint((prev) =>
+            prev?.id === complaintId ? previousComplaint : prev
+          );
+        }
+        alert('حدث خطأ غير متوقع أثناء إسناد الموظف.');
+      }
+    },
+    [complaints, staffList, supabase]
+  );
 
   // Complaint Actions: Resolution Notes
-  const handleUpdateResolutionNotes = async (complaintId: string, notes: string): Promise<boolean> => {
-    setComplaints((prev) =>
-      prev.map((c) => (c.id === complaintId ? { ...c, resolution_notes: notes } : c))
-    );
-    setSelectedComplaint((prev) =>
-      prev?.id === complaintId ? { ...prev, resolution_notes: notes } : prev
-    );
+  const handleUpdateResolutionNotes = useCallback(
+    async (complaintId: string, notes: string): Promise<boolean> => {
+      const previousComplaint = complaints.find((c) => c.id === complaintId);
 
-    const { error } = await supabase
-      .from('complaints')
-      .update({ resolution_notes: notes, updated_at: new Date().toISOString() })
-      .eq('id', complaintId);
+      setComplaints((prev) =>
+        prev.map((c) => (c.id === complaintId ? { ...c, resolution_notes: notes } : c))
+      );
+      setSelectedComplaint((prev) =>
+        prev?.id === complaintId ? { ...prev, resolution_notes: notes } : prev
+      );
 
-    if (error) {
-      console.error('Failed to save resolution notes:', error);
-      return false;
-    }
-    return true;
-  };
+      try {
+        const { error } = await supabase
+          .from('complaints')
+          .update({ resolution_notes: notes, updated_at: new Date().toISOString() })
+          .eq('id', complaintId);
+
+        if (error) {
+          console.error('Failed to save resolution notes:', error);
+          if (previousComplaint) {
+            setComplaints((prev) =>
+              prev.map((c) => (c.id === complaintId ? previousComplaint : c))
+            );
+            setSelectedComplaint((prev) =>
+              prev?.id === complaintId ? previousComplaint : prev
+            );
+          }
+          alert('تعذر حفظ ملاحظات الحل. يرجى التحقق من اتصال الإنترنت.');
+          return false;
+        }
+        return true;
+      } catch {
+        if (previousComplaint) {
+          setComplaints((prev) =>
+            prev.map((c) => (c.id === complaintId ? previousComplaint : c))
+          );
+          setSelectedComplaint((prev) =>
+            prev?.id === complaintId ? previousComplaint : prev
+          );
+        }
+        alert('حدث خطأ غير متوقع أثناء حفظ الملاحظات.');
+        return false;
+      }
+    },
+    [complaints, supabase]
+  );
 
   return (
     <div className="space-y-6">
@@ -461,6 +568,7 @@ export function ComplaintQueue({ initialComplaints, staffList }: ComplaintQueueP
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              aria-label="بحث في تذاكر الشكاوى"
               placeholder="ابحث باسم العميل، رقم الهاتف، رقم التذكرة #، أو نص الشكوى..."
               className="w-full rounded-xl bg-slate-50 border border-slate-200 pr-10 pl-9 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-hidden focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition"
             />
