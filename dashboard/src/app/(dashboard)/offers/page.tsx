@@ -6,9 +6,9 @@ import { OffersContainer } from '@/components/offers/OffersContainer';
 import { Offer } from '@/components/offers/types';
 
 export const metadata: Metadata = {
-  title: 'إدارة العروض الترويجية والخصومات | مطعم الخديوي',
+  title: 'إدارة العروض الترويجية والخصومات | لوحة التحكم',
   description:
-    'إدارة وتنسيق العروض الترويجية، الخصومات الحصرية، والبانرات الإعلانية لمطعم الخديوي',
+    'إدارة وتنسيق العروض الترويجية، الخصومات الحصرية، والبانرات الإعلانية للمطعم',
 };
 
 export const revalidate = 0; // Dynamic server component

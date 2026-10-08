@@ -20,6 +20,7 @@ import { Offer, OfferFilterTab, calculateDiscount } from './types';
 import { OfferCard } from './OfferCard';
 import { OfferModal } from './OfferModal';
 import { cn } from '@/lib/utils';
+import { createClient } from '@/lib/supabase/client';
 
 interface OffersContainerProps {
   initialOffers: Offer[];
@@ -29,6 +30,7 @@ export function OffersContainer({ initialOffers }: OffersContainerProps) {
   const [offers, setOffers] = useState<Offer[]>(initialOffers);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<OfferFilterTab>('all');
+  const supabase = createClient();
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -44,43 +46,15 @@ export function OffersContainer({ initialOffers }: OffersContainerProps) {
     }, 4000);
   };
 
-  // KPI Calculations
-  const stats = useMemo(() => {
-    const now = new Date();
-    const totalOffers = offers.length;
-    const activeOffers = offers.filter((o) => o.is_active).length;
-
-    const currentlyValidOffers = offers.filter((o) => {
-      if (!o.is_active) return false;
-      const startValid = !o.start_date || new Date(o.start_date) <= now;
-      const endValid = !o.end_date || new Date(o.end_date) >= now;
-      return startValid && endValid;
-    }).length;
-
-    let highestDiscount = 0;
-    offers.forEach((o) => {
-      const disc = calculateDiscount(o.price_before, o.price_after);
-      if (disc.hasDiscount && disc.discountPercentage > highestDiscount) {
-        highestDiscount = disc.discountPercentage;
-      }
-    });
-
-    return {
-      totalOffers,
-      activeOffers,
-      currentlyValidOffers,
-      highestDiscount,
-    };
-  }, [offers]);
-
   // Tab counts for badge indicator on filter tabs
   const tabCounts = useMemo(() => {
     const now = new Date();
+    const isExpired = (o: Offer) => !!o.end_date && new Date(o.end_date) < now;
     return {
       all: offers.length,
-      active: offers.filter((o) => o.is_active).length,
-      inactive: offers.filter((o) => !o.is_active).length,
-      expired: offers.filter((o) => o.end_date && new Date(o.end_date) < now).length,
+      active: offers.filter((o) => o.is_active && !isExpired(o)).length,
+      inactive: offers.filter((o) => !o.is_active && !isExpired(o)).length,
+      expired: offers.filter(isExpired).length,
     };
   }, [offers]);
 
@@ -90,14 +64,11 @@ export function OffersContainer({ initialOffers }: OffersContainerProps) {
     const query = searchQuery.trim().toLowerCase();
 
     return offers.filter((offer) => {
-      // 1. Tab filter
-      if (activeTab === 'active' && !offer.is_active) return false;
-      if (activeTab === 'inactive' && offer.is_active) return false;
-      if (activeTab === 'expired') {
-        if (!offer.end_date || new Date(offer.end_date) >= now) return false;
-      }
+      const expired = !!offer.end_date && new Date(offer.end_date) < now;
+      if (activeTab === 'active' && (!offer.is_active || expired)) return false;
+      if (activeTab === 'inactive' && (offer.is_active || expired)) return false;
+      if (activeTab === 'expired' && !expired) return false;
 
-      // 2. Search query filter
       if (query) {
         const titleMatch = offer.title.toLowerCase().includes(query);
         const descMatch = offer.description
@@ -105,12 +76,10 @@ export function OffersContainer({ initialOffers }: OffersContainerProps) {
           : false;
         if (!titleMatch && !descMatch) return false;
       }
-
       return true;
     });
   }, [offers, activeTab, searchQuery]);
 
-  // Sort helper to ensure proper sorting after any mutations
   const sortOffersList = (list: Offer[]): Offer[] => {
     return [...list].sort((a, b) => {
       if (a.sort_order !== b.sort_order) {
@@ -120,7 +89,6 @@ export function OffersContainer({ initialOffers }: OffersContainerProps) {
     });
   };
 
-  // Handlers for modal & CRUD
   const handleOpenCreateModal = () => {
     setSelectedOfferForEdit(null);
     setIsModalOpen(true);
@@ -152,9 +120,29 @@ export function OffersContainer({ initialOffers }: OffersContainerProps) {
   };
 
   const handleOfferUpdated = (updatedOffer: Offer) => {
-    setOffers((prev) =>
-      prev.map((o) => (o.id === updatedOffer.id ? updatedOffer : o))
-    );
+    setOffers((prev) => sortOffersList(prev.map((o) => (o.id === updatedOffer.id ? updatedOffer : o))));
+  };
+
+  const handleMoveOffer = async (offerId: string, direction: 'up' | 'down') => {
+    const currentIndex = offers.findIndex(o => o.id === offerId);
+    if (currentIndex === -1) return;
+    if (direction === 'up' && currentIndex === 0) return;
+    if (direction === 'down' && currentIndex === offers.length - 1) return;
+
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    const newOffers = [...offers];
+    
+    // Swap sort_order
+    const tempSortOrder = newOffers[currentIndex].sort_order;
+    newOffers[currentIndex].sort_order = newOffers[targetIndex].sort_order;
+    newOffers[targetIndex].sort_order = tempSortOrder;
+    
+    // Update local state first for responsiveness
+    setOffers(sortOffersList(newOffers));
+    
+    // Persist to DB
+    await supabase.from('offers').update({ sort_order: newOffers[currentIndex].sort_order }).eq('id', newOffers[currentIndex].id);
+    await supabase.from('offers').update({ sort_order: newOffers[targetIndex].sort_order }).eq('id', newOffers[targetIndex].id);
   };
 
   return (
@@ -186,7 +174,7 @@ export function OffersContainer({ initialOffers }: OffersContainerProps) {
                 إدارة العروض والخصومات الترويجية
               </h1>
               <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
-                تنسيق العروض الخاصة، نسب الخصومات وبانرات الحملات لمطعم الخديوي
+                تنسيق العروض الخاصة، نسب الخصومات وبانرات الحملات للمطعم
               </p>
             </div>
           </div>
@@ -201,73 +189,6 @@ export function OffersContainer({ initialOffers }: OffersContainerProps) {
           <Plus className="w-4 h-4 stroke-[3]" />
           <span>إضافة عرض ترويجي جديد</span>
         </button>
-      </div>
-
-      {/* Top KPI Cards Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {/* Total Offers */}
-        <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-sm flex items-center justify-between">
-          <div className="space-y-1">
-            <span className="text-[11px] font-semibold text-slate-400 block">
-              إجمالي العروض
-            </span>
-            <span className="text-2xl sm:text-3xl font-black text-white block">
-              {stats.totalOffers}
-            </span>
-            <span className="text-[10px] text-slate-500">كافة الحملات المسجلة</span>
-          </div>
-          <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/60 text-amber-400">
-            <Layers className="w-5 h-5 sm:w-6 sm:h-6" />
-          </div>
-        </div>
-
-        {/* Active Offers */}
-        <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-sm flex items-center justify-between">
-          <div className="space-y-1">
-            <span className="text-[11px] font-semibold text-slate-400 block">
-              العروض المفعلة
-            </span>
-            <span className="text-2xl sm:text-3xl font-black text-emerald-400 block">
-              {stats.activeOffers}
-            </span>
-            <span className="text-[10px] text-emerald-500/80">جاهزة للطلب الآن</span>
-          </div>
-          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-            <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6" />
-          </div>
-        </div>
-
-        {/* Valid in Date Window */}
-        <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-sm flex items-center justify-between">
-          <div className="space-y-1">
-            <span className="text-[11px] font-semibold text-slate-400 block">
-              عروض سارية حالياً
-            </span>
-            <span className="text-2xl sm:text-3xl font-black text-blue-400 block">
-              {stats.currentlyValidOffers}
-            </span>
-            <span className="text-[10px] text-blue-500/80">ضمن النافذة الزمنية</span>
-          </div>
-          <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400">
-            <Calendar className="w-5 h-5 sm:w-6 sm:h-6" />
-          </div>
-        </div>
-
-        {/* Highest Discount */}
-        <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-sm flex items-center justify-between">
-          <div className="space-y-1">
-            <span className="text-[11px] font-semibold text-slate-400 block">
-              أعلى نسبة خصم
-            </span>
-            <span className="text-2xl sm:text-3xl font-black text-amber-400 block">
-              {stats.highestDiscount > 0 ? `${stats.highestDiscount}%` : '0%'}
-            </span>
-            <span className="text-[10px] text-amber-500/80">أكبر توفير للعميل</span>
-          </div>
-          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
-            <Percent className="w-5 h-5 sm:w-6 sm:h-6" />
-          </div>
-        </div>
       </div>
 
       {/* Filter and Search Bar */}
@@ -307,7 +228,7 @@ export function OffersContainer({ initialOffers }: OffersContainerProps) {
                 : 'bg-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-800'
             )}
           >
-            <span>مفعل حالياً</span>
+            <span>شغال</span>
             <span
               className={cn(
                 'px-1.5 py-0.2 rounded-md text-[10px]',
@@ -390,6 +311,7 @@ export function OffersContainer({ initialOffers }: OffersContainerProps) {
       </div>
 
       {/* Offers Grid */}
+      <div className="text-xs text-slate-500 mb-2">أول عروض هي اللي البوت بيعرضها الأول</div>
       {filteredOffers.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
           {filteredOffers.map((offer) => (
@@ -399,6 +321,7 @@ export function OffersContainer({ initialOffers }: OffersContainerProps) {
               onEdit={handleOpenEditModal}
               onDelete={handleDeleteOffer}
               onOfferUpdated={handleOfferUpdated}
+              onMove={handleMoveOffer}
             />
           ))}
         </div>
@@ -417,7 +340,7 @@ export function OffersContainer({ initialOffers }: OffersContainerProps) {
             </h3>
             <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
               {offers.length === 0
-                ? 'ابدأ بإضافة أول عرض ترويجي وبانر لزيادة مبيعات مطعم الخديوي وجذب العملاء عبر البوت'
+                ? 'ابدأ بإضافة أول عرض ترويجي وبانر لزيادة المبيعات وجذب العملاء عبر البوت'
                 : 'جرّب تعديل كلمات البحث أو التبديل إلى فلتر عرض آخر لإظهار النتائج'}
             </p>
           </div>

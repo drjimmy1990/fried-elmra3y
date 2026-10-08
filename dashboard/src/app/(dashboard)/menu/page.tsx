@@ -3,24 +3,18 @@ import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { MenuManager } from '@/components/menu/MenuManager';
-import {
-  MenuCategory,
-  MenuItem,
-  FullMenuSettings,
-} from '@/components/menu/types';
+import { FileText, Sparkles } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'إدارة قائمة الطعام والمنيو الرقمي | مطعم الخديوي',
-  description:
-    'إدارة أصناف وأطباق المنيو، الأقسام، الأسعار والعروض الترويجية والمنيو الكامل لمطعم الخديوي',
+  title: 'المنيو | لوحة التحكم',
+  description: 'إدارة المنيو، قائمة الأسعار، وملفات المنيو',
 };
 
-export const revalidate = 0; // Dynamic server component
+export const revalidate = 0;
 
 export default async function MenuPage() {
   const supabase = await createClient();
 
-  // 1. Authenticate user
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -29,68 +23,54 @@ export default async function MenuPage() {
     redirect('/login');
   }
 
-  // 2. Fetch categories, items, and bot settings in parallel
-  const [categoriesRes, itemsRes, botSettingsRes] = await Promise.all([
-    supabase
-      .from('menu_categories')
-      .select('*')
-      .order('sort_order', { ascending: true })
-      .order('created_at', { ascending: true }),
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role, is_active')
+    .eq('id', user.id)
+    .single();
 
-    supabase
-      .from('menu_items')
-      .select('*')
-      .order('sort_order', { ascending: true })
-      .order('created_at', { ascending: false }),
-
-    supabase
-      .from('bot_settings')
-      .select('menu_full_image_url, menu_full_pdf_url')
-      .limit(1)
-      .maybeSingle(),
-  ]);
-
-  if (categoriesRes.error) {
-    console.error('Failed to fetch menu categories:', categoriesRes.error);
+  if (!profile || profile.role !== 'admin' || !profile.is_active) {
+    redirect('/dashboard');
   }
 
-  if (itemsRes.error) {
-    console.error('Failed to fetch menu items:', itemsRes.error);
+  const { data: settings } = await supabase
+    .from('bot_settings')
+    .select('id, menu_images, menu_pdf_url, price_list')
+    .limit(1)
+    .maybeSingle();
+
+  if (!settings) {
+    return (
+      <div className="p-8 text-center text-slate-400">
+        الرجاء ضبط الإعدادات الأساسية للبوت أولاً من صفحة الإعدادات
+      </div>
+    );
   }
-
-  if (botSettingsRes.error) {
-    console.error('Failed to fetch bot settings for menu:', botSettingsRes.error);
-  }
-
-  const rawCategories = categoriesRes.data || [];
-  const rawItems = itemsRes.data || [];
-
-  // Calculate item counts for each category
-  const initialCategories: MenuCategory[] = rawCategories.map((cat) => ({
-    ...cat,
-    item_count: rawItems.filter((item) => item.category_id === cat.id).length,
-  }));
-
-  const categoryMap = new Map<string, MenuCategory>();
-  initialCategories.forEach((cat) => categoryMap.set(cat.id, cat));
-
-  const initialItems: MenuItem[] = rawItems.map((item) => ({
-    ...item,
-    category: categoryMap.get(item.category_id) || null,
-  }));
-
-  const initialFullMenu: FullMenuSettings = {
-    menu_full_image_url: botSettingsRes.data?.menu_full_image_url || null,
-    menu_full_pdf_url: botSettingsRes.data?.menu_full_pdf_url || null,
-  };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
-      <MenuManager
-        initialCategories={initialCategories}
-        initialItems={initialItems}
-        initialFullMenu={initialFullMenu}
-      />
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
+      {/* Header Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-800">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center justify-center shadow-lg shadow-rose-500/5">
+            <FileText className="w-6 h-6" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-black text-white tracking-tight">المنيو</h1>
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2.5 py-0.5 rounded-full">
+                <Sparkles className="w-3 h-3" />
+                تحكم المدير
+              </span>
+            </div>
+            <p className="text-sm text-slate-400 mt-1">
+              إدارة صور المنيو وملف الـ PDF وقائمة الأسعار للمحادثة
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <MenuManager initialSettings={settings} />
     </div>
   );
 }

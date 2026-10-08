@@ -3,8 +3,8 @@ export interface Offer {
   title: string;
   description: string | null;
   price_before: number | null;
-  price_after: number;
-  banner_url: string;
+  price_after: number | null;
+  banner_url: string | null;
   start_date: string | null;
   end_date: string | null;
   is_active: boolean;
@@ -17,8 +17,8 @@ export interface OfferFormInput {
   title: string;
   description: string | null;
   price_before: number | null;
-  price_after: number;
-  banner_url: string;
+  price_after: number | null;
+  banner_url: string | null;
   start_date: string | null;
   end_date: string | null;
   is_active: boolean;
@@ -47,13 +47,13 @@ export interface OfferStats {
  */
 export function calculateDiscount(
   priceBefore: number | null | undefined,
-  priceAfter: number
+  priceAfter: number | null | undefined
 ): {
   hasDiscount: boolean;
   discountPercentage: number;
   savingsAmount: number;
 } {
-  if (priceBefore && priceBefore > priceAfter && priceAfter >= 0) {
+  if (priceBefore && priceAfter && priceBefore > priceAfter && priceAfter >= 0) {
     const savings = priceBefore - priceAfter;
     const percentage = Math.round((savings / priceBefore) * 100);
     return {

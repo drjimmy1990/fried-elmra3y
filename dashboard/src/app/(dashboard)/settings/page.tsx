@@ -7,7 +7,7 @@ import { Sliders, Sparkles } from 'lucide-react';
 import { BotSettings } from '@/components/settings/types';
 
 export const metadata: Metadata = {
-  title: 'إعدادات البوت والتشغيل | مطعم الخديوي',
+  title: 'إعدادات البوت والتشغيل | لوحة التحكم',
   description: 'التحكم في أتمتة الرد الذكي، ساعات العمل، أسعار التوصيل وإشعارات التيليجرام',
 };
 
@@ -59,6 +59,7 @@ export default async function SettingsPage() {
         close_time: '02:00:00',
         currency: 'EGP',
         delivery_fee: 15.0,
+        restaurant_name: 'المطعم',
       })
       .select()
       .single();
@@ -77,16 +78,19 @@ export default async function SettingsPage() {
     notify_telegram: true,
     telegram_bot_token: null,
     telegram_chat_id: null,
-    facebook_page_id: null,
-    facebook_page_access_token: null,
     notify_dashboard: true,
     business_hours_enabled: false,
     open_time: '10:00:00',
     close_time: '02:00:00',
     off_hours_message: null,
     ai_system_prompt: null,
-    menu_full_image_url: null,
-    menu_full_pdf_url: null,
+    restaurant_name: 'المطعم',
+    menu_images: [],
+    menu_pdf_url: null,
+    price_list: null,
+    welcome_message: null,
+    human_handoff_message: null,
+    n8n_webhook_url: null,
     currency: 'EGP',
     delivery_fee: 15.0,
     updated_at: new Date().toISOString(),

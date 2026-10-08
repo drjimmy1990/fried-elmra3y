@@ -44,21 +44,20 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
   const [formData, setFormData] = useState<BotSettingsFormData>({
     bot_enabled: initialSettings.bot_enabled ?? true,
     auto_pause_on_complaint: initialSettings.auto_pause_on_complaint ?? true,
+    restaurant_name: initialSettings.restaurant_name || '',
     delivery_fee: Number(initialSettings.delivery_fee) || 0,
     currency: initialSettings.currency || 'EGP',
     business_hours_enabled: initialSettings.business_hours_enabled ?? false,
     open_time: formatTimeInput(initialSettings.open_time) || '10:00',
     close_time: formatTimeInput(initialSettings.close_time) || '02:00',
+    welcome_message: initialSettings.welcome_message || '',
+    human_handoff_message: initialSettings.human_handoff_message || '',
     off_hours_message: initialSettings.off_hours_message || DEFAULT_OFF_HOURS_MESSAGE,
     ai_system_prompt: initialSettings.ai_system_prompt || DEFAULT_AI_PROMPT,
     notify_telegram: initialSettings.notify_telegram ?? true,
     telegram_bot_token: initialSettings.telegram_bot_token || '',
     telegram_chat_id: initialSettings.telegram_chat_id || '',
-    facebook_page_id: (initialSettings as any).facebook_page_id || '',
-    facebook_page_access_token: (initialSettings as any).facebook_page_access_token || '',
     notify_dashboard: initialSettings.notify_dashboard ?? true,
-    menu_full_image_url: initialSettings.menu_full_image_url || '',
-    menu_full_pdf_url: initialSettings.menu_full_pdf_url || '',
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -100,7 +99,7 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             chat_id: formData.telegram_chat_id.trim(),
-            text: `👑 *مطعم الخديوي - اختبار إشعارات العمليات*\n\n✅ تم الاتصال بنجاح بنظام التنبيهات.\nسيتلقى هذا الشات إشعارات الطلبات الجديدة والشكاوى فور تسجيلها.\n\n⏰ الوقت: ${new Date().toLocaleTimeString('ar-EG')}`,
+            text: `🍗 *${formData.restaurant_name || 'المطعم'} - اختبار الإشعارات*\n\n✅ تم الاتصال بنجاح بنظام التنبيهات.\nسيتلقى هذا الشات إشعارات الطلبات الجديدة والشكاوى فور تسجيلها.\n\n⏰ الوقت: ${new Date().toLocaleTimeString('ar-EG')}`,
             parse_mode: 'Markdown',
           }),
         }
@@ -134,21 +133,20 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
         .update({
           bot_enabled: formData.bot_enabled,
           auto_pause_on_complaint: formData.auto_pause_on_complaint,
+          restaurant_name: formData.restaurant_name,
           delivery_fee: Number(formData.delivery_fee) || 0,
           currency: formData.currency,
           business_hours_enabled: formData.business_hours_enabled,
           open_time: formattedOpenTime,
           close_time: formattedCloseTime,
+          welcome_message: formData.welcome_message,
+          human_handoff_message: formData.human_handoff_message,
           off_hours_message: formData.off_hours_message,
           ai_system_prompt: formData.ai_system_prompt,
           notify_telegram: formData.notify_telegram,
           telegram_bot_token: formData.telegram_bot_token.trim() || null,
           telegram_chat_id: formData.telegram_chat_id.trim() || null,
-          facebook_page_id: formData.facebook_page_id.trim() || null,
-          facebook_page_access_token: formData.facebook_page_access_token.trim() || null,
           notify_dashboard: formData.notify_dashboard,
-          menu_full_image_url: formData.menu_full_image_url.trim() || null,
-          menu_full_pdf_url: formData.menu_full_pdf_url.trim() || null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', initialSettings.id);
@@ -604,135 +602,27 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
         )}
       </div>
 
-      {/* 7. Facebook & Messenger Integration */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-md">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-800">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center">
-              <Facebook className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-white">إعدادات ربط صفحة فيسبوك وماسنجر (Facebook Page & Messenger)</h3>
-              <p className="text-xs text-slate-400">معرف الصفحة ورمز الوصول للرد التلقائي على التعليقات ومراسلة العملاء عبر ماسنجر</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {formData.facebook_page_id && formData.facebook_page_access_token ? (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                تم إدخال البيانات بنجاح
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                <AlertTriangle className="w-3.5 h-3.5" />
-                وضع المعاينة التجريبي
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div className="space-y-5">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-2">
-                معرف صفحة فيسبوك (Facebook Page ID)
-              </label>
-              <input
-                type="text"
-                value={formData.facebook_page_id}
-                onChange={(e) => handleInputChange('facebook_page_id', e.target.value)}
-                placeholder="مثال: 104829384729104"
-                className="w-full bg-slate-950/70 border border-slate-700/80 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 rounded-xl px-4 py-2.5 text-white font-mono text-xs outline-none transition"
-              />
-              <span className="text-[11px] text-slate-500 mt-1 block">
-                تجد الـ Page ID في إعدادات صفحتك على فيسبوك تحت قسم "حول الصفحة (About)".
-              </span>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-2">
-                رمز وصول الصفحة (Page Access Token)
-              </label>
-              <div className="relative">
-                <input
-                  type={showFacebookToken ? 'text' : 'password'}
-                  value={formData.facebook_page_access_token}
-                  onChange={(e) => handleInputChange('facebook_page_access_token', e.target.value)}
-                  placeholder="EAA..."
-                  className="w-full bg-slate-950/70 border border-slate-700/80 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 rounded-xl px-4 py-2.5 text-white font-mono text-xs outline-none transition"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowFacebookToken(!showFacebookToken)}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition"
-                  title={showFacebookToken ? 'إخفاء الرمز' : 'إظهار الرمز'}
-                >
-                  {showFacebookToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-              <span className="text-[11px] text-slate-500 mt-1 block">
-                التوكن الدائم (Never Expire Token) من Meta for Developers لإرسال الرسائل واستعراض المنشورات.
-              </span>
-            </div>
-          </div>
-
-          <div className="p-3.5 bg-blue-500/5 border border-blue-500/20 rounded-xl text-xs text-blue-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <span>
-              💡 عند حفظ بيانات فيسبوك هنا، سيتم ربط ميزة <strong>استعراض المنشورات بصورها</strong> و<strong>إرسال الردود المباشرة في ماسنجر</strong> تلقائياً دون الحاجة لكتابة أي معرفات يدوياً أو تعديل ملفات البيئة.
-            </span>
-            <a
-              href="https://developers.facebook.com/apps"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-xs font-bold text-blue-400 hover:text-blue-300 whitespace-nowrap"
-            >
-              Meta Developers
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
-          </div>
-        </div>
-      </div>
-
-      {/* 8. Full Menu Media Assets */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-md">
-        <div className="flex items-center gap-3 mb-4 pb-3 border-b border-slate-800">
-          <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center">
-            <FileText className="w-5 h-5" />
+      {/* Link Card for Channels and Menu */}
+      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-md grid grid-cols-1 md:grid-cols-2 gap-4">
+        <a href="/dashboard/channels" className="flex items-center gap-4 p-4 rounded-xl border border-slate-700 hover:border-blue-500/50 bg-slate-950/50 transition group">
+          <div className="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center group-hover:bg-blue-500/20 transition">
+            <Facebook className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-white">روابط المنيو الكامل للعملاء (Menu Assets)</h3>
-            <p className="text-xs text-slate-400">ملفات المنيو الكاملة التي يرسلها البوت تلقائياً عند طلب العميل "المنيو كامل"</p>
+            <h4 className="font-bold text-white text-sm mb-1 group-hover:text-blue-400 transition">إعدادات فيسبوك وماسنجر</h4>
+            <p className="text-xs text-slate-400">انتقل لربط الصفحة والردود التلقائية</p>
           </div>
-        </div>
+        </a>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-2">
-              رابط صورة المنيو الكاملة (Image URL)
-            </label>
-            <input
-              type="url"
-              value={formData.menu_full_image_url}
-              onChange={(e) => handleInputChange('menu_full_image_url', e.target.value)}
-              placeholder="https://.../menu-full.jpg"
-              className="w-full bg-slate-950/70 border border-slate-700/80 focus:border-rose-500 focus:ring-1 focus:ring-rose-500/30 rounded-xl px-4 py-2.5 text-white text-xs outline-none transition"
-            />
+        <a href="/dashboard/menu" className="flex items-center gap-4 p-4 rounded-xl border border-slate-700 hover:border-rose-500/50 bg-slate-950/50 transition group">
+          <div className="w-12 h-12 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center group-hover:bg-rose-500/20 transition">
+            <FileText className="w-6 h-6" />
           </div>
-
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-2">
-              رابط ملف المنيو PDF (PDF URL)
-            </label>
-            <input
-              type="url"
-              value={formData.menu_full_pdf_url}
-              onChange={(e) => handleInputChange('menu_full_pdf_url', e.target.value)}
-              placeholder="https://.../khedewy-menu.pdf"
-              className="w-full bg-slate-950/70 border border-slate-700/80 focus:border-rose-500 focus:ring-1 focus:ring-rose-500/30 rounded-xl px-4 py-2.5 text-white text-xs outline-none transition"
-            />
+            <h4 className="font-bold text-white text-sm mb-1 group-hover:text-rose-400 transition">إعدادات المنيو والأسعار</h4>
+            <p className="text-xs text-slate-400">انتقل لرفع المنيو وتحديث قائمة الأسعار</p>
           </div>
-        </div>
+        </a>
       </div>
 
       {/* Save Action Sticky Footer */}

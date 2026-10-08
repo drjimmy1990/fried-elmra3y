@@ -67,7 +67,7 @@ export function OfferModal({
           ? offerToEdit.price_before.toString()
           : ''
       );
-      setPriceAfter(offerToEdit.price_after.toString());
+      setPriceAfter(offerToEdit.price_after != null ? offerToEdit.price_after.toString() : '');
       setBannerUrl(offerToEdit.banner_url || '');
       setStartDate(toDatetimeLocal(offerToEdit.start_date));
       setEndDate(toDatetimeLocal(offerToEdit.end_date));
@@ -193,27 +193,13 @@ export function OfferModal({
       return;
     }
 
-    if (!priceAfter.trim() || isNaN(parseFloat(priceAfter)) || parseFloat(priceAfter) < 0) {
-      setFormError('يرجى إدخال سعر العرض الترويجي الحالي بشكل صحيح');
-      return;
-    }
-
-    if (priceBefore) {
+    if (priceBefore && priceAfter) {
       const parsedBefore = parseFloat(priceBefore);
       const parsedAfter = parseFloat(priceAfter);
-      if (isNaN(parsedBefore) || parsedBefore < 0) {
-        setFormError('السعر السابق غير صالح');
-        return;
-      }
       if (parsedBefore <= parsedAfter) {
-        setFormError('السعر الأصلي قبل الخصم يجب أن يكون أكبر من سعر العرض الحالي');
-        return;
+        // Soft hint instead of hard error - just logs it or we let it pass.
+        console.warn('Hint: Old price should ideally be > new price');
       }
-    }
-
-    if (!bannerUrl.trim()) {
-      setFormError('يرجى رفع بانر للعرض الترويجي أو إدخال رابط الصورة');
-      return;
     }
 
     if (startDate && endDate) {
@@ -229,8 +215,8 @@ export function OfferModal({
 
     try {
       const supabase = createClient();
-      const parsedPriceAfter = parseFloat(priceAfter);
-      const parsedPriceBefore = priceBefore ? parseFloat(priceBefore) : null;
+      const parsedPriceAfter = priceAfter.trim() ? parseFloat(priceAfter) : null;
+      const parsedPriceBefore = priceBefore.trim() ? parseFloat(priceBefore) : null;
       const parsedStartDate = fromDatetimeLocal(startDate);
       const parsedEndDate = fromDatetimeLocal(endDate);
 
@@ -239,7 +225,7 @@ export function OfferModal({
         description: description.trim() || null,
         price_before: parsedPriceBefore,
         price_after: parsedPriceAfter,
-        banner_url: bannerUrl.trim(),
+        banner_url: bannerUrl.trim() || null,
         start_date: parsedStartDate,
         end_date: parsedEndDate,
         is_active: isActive,
@@ -344,7 +330,7 @@ export function OfferModal({
               <span>
                 عنوان العرض الترويجي <span className="text-rose-400">*</span>
               </span>
-              <span className="text-[11px] text-slate-500">مثال: عرض مكس مشاوي الخديوي العائلي</span>
+              <span className="text-[11px] text-slate-500">مثال: وجبة التوفير — 4 قطع بروستد + بطاطس + كولا</span>
             </label>
             <input
               type="text"
@@ -377,7 +363,7 @@ export function OfferModal({
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-emerald-400 flex items-center justify-between">
                 <span>
-                  السعر بعد الخصم (سعر العرض) <span className="text-rose-400">*</span>
+                  السعر بعد الخصم (سعر العرض)
                 </span>
                 <span className="text-[11px] text-slate-500">ج.م EGP</span>
               </label>
@@ -386,7 +372,6 @@ export function OfferModal({
                   type="number"
                   step="0.5"
                   min="0"
-                  required
                   value={priceAfter}
                   onChange={(e) => setPriceAfter(e.target.value)}
                   placeholder="0.00"
@@ -449,7 +434,7 @@ export function OfferModal({
               <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
                 <ImageIcon className="w-3.5 h-3.5 text-amber-400" />
                 <span>
-                  بانر العرض الترويجي <span className="text-rose-400">*</span>
+                  بانر العرض الترويجي
                 </span>
               </label>
               <button
@@ -561,39 +546,21 @@ export function OfferModal({
             )}
           </div>
 
-          {/* Date Window Row: Start Date & End Date */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
-                <span className="flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-blue-400" />
-                  <span>تاريخ وبداية العرض</span>
-                </span>
-                <span className="text-[11px] text-slate-500">اختياري</span>
-              </label>
-              <input
-                type="datetime-local"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-white text-xs focus:outline-none focus:border-amber-500/60"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
-                <span className="flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-rose-400" />
-                  <span>تاريخ ونهاية العرض</span>
-                </span>
-                <span className="text-[11px] text-slate-500">اختياري</span>
-              </label>
-              <input
-                type="datetime-local"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-white text-xs focus:outline-none focus:border-amber-500/60"
-              />
-            </div>
+          {/* Date Window Row: End Date Only */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-rose-400" />
+                <span>تاريخ ونهاية العرض (ينتهي في)</span>
+              </span>
+              <span className="text-[11px] text-slate-500">اختياري</span>
+            </label>
+            <input
+              type="datetime-local"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-white text-xs focus:outline-none focus:border-amber-500/60"
+            />
           </div>
 
           {/* Active Status & Sort Order */}

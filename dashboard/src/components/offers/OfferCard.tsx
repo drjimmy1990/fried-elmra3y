@@ -27,6 +27,7 @@ interface OfferCardProps {
   onEdit: (offer: Offer) => void;
   onDelete: (offerId: string) => void;
   onOfferUpdated: (updatedOffer: Offer) => void;
+  onMove?: (id: string, direction: 'up' | 'down') => void;
 }
 
 export function OfferCard({
@@ -34,6 +35,7 @@ export function OfferCard({
   onEdit,
   onDelete,
   onOfferUpdated,
+  onMove,
 }: OfferCardProps) {
   const [imageError, setImageError] = useState(false);
   const [isTogglingActive, setIsTogglingActive] = useState(false);
@@ -141,7 +143,7 @@ export function OfferCard({
             <div className="w-full h-full flex flex-col items-center justify-center bg-radial from-slate-800 to-slate-950 text-slate-600">
               <ImageIcon className="w-12 h-12 stroke-[1.5] text-slate-500 mb-1" />
               <span className="text-xs text-slate-400 font-medium">بانر العرض الترويجي</span>
-              <span className="text-[10px] text-slate-600">مطعم الخديوي</span>
+              <span className="text-[10px] text-slate-600">🍗</span>
             </div>
           )}
 
@@ -208,9 +210,9 @@ export function OfferCard({
               <span className="text-[11px] text-slate-400 font-medium">سعر العرض الترويجي</span>
               <div className="flex items-baseline gap-2">
                 <span className="text-xl font-black text-emerald-400">
-                  {formatCurrency(offer.price_after)}
+                  {offer.price_after != null ? formatCurrency(offer.price_after) : '-'}
                 </span>
-                {offer.price_before && offer.price_before > offer.price_after && (
+                {offer.price_before != null && offer.price_after != null && offer.price_before > offer.price_after && (
                   <del className="text-xs text-slate-500 font-medium">
                     {formatCurrency(offer.price_before)}
                   </del>
@@ -249,9 +251,19 @@ export function OfferCard({
 
         {/* Card Footer: Sort Order & Actions */}
         <div className="px-4 sm:px-5 py-2.5 bg-slate-950/60 border-t border-slate-800/80 flex items-center justify-between">
-          <span className="text-[11px] text-slate-500">
-            ترتيب الظهور: <strong className="text-slate-400">#{offer.sort_order}</strong>
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-slate-500">
+              ترتيب الظهور: <strong className="text-slate-400">#{offer.sort_order}</strong>
+            </span>
+            <div className="flex items-center gap-1 mr-2">
+              <button onClick={() => onMove?.(offer.id, 'up')} className="p-1 bg-slate-800 hover:bg-slate-700 rounded text-slate-300">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>
+              </button>
+              <button onClick={() => onMove?.(offer.id, 'down')} className="p-1 bg-slate-800 hover:bg-slate-700 rounded text-slate-300">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+              </button>
+            </div>
+          </div>
 
           <div className="flex items-center gap-1">
             <button
