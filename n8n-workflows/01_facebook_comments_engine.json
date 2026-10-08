@@ -1,0 +1,624 @@
+{
+  "name": "01 - Facebook Page Comments Auto-Reply & Private DM Engine",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "facebook-comments",
+        "responseMode": "onReceived",
+        "responseData": "OK",
+        "options": {}
+      },
+      "id": "e81d1111-0001-4000-8000-000000000001",
+      "name": "Facebook Feed Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        220,
+        340
+      ],
+      "webhookId": "facebook-comments-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract incoming Facebook Feed comment payload\nconst body = $input.first().json.body || $input.first().json;\n\n// Handle Webhook verification challenge if forwarded\nif ($input.first().json.query && $input.first().json.query['hub.challenge']) {\n  return [{ json: { challenge: $input.first().json.query['hub.challenge'], is_challenge: true } }];\n}\n\nconst entry = body.entry?.[0];\nconst change = entry?.changes?.[0];\nconst value = change?.value;\n\n// Verify event is an added comment\nif (change?.field !== 'feed' || value?.item !== 'comment' || value?.verb !== 'add') {\n  return [];\n}\n\n// Extract details\nconst postId = value.post_id || value.parent_id;\nconst commentId = value.comment_id;\nconst commenterId = value.from?.id;\nconst commenterName = value.from?.name || 'Customer';\nconst messageText = (value.message || '').trim();\n\n// Ignore empty comments or comments made by the page itself\nif (!commentId || !postId || value.from?.id === entry?.id) {\n  return [];\n}\n\nreturn [{\n  json: {\n    is_challenge: false,\n    post_id: postId,\n    comment_id: commentId,\n    commenter_id: commenterId,\n    commenter_name: commenterName,\n    comment_text: messageText,\n    created_time: value.created_time || Math.floor(Date.now() / 1000)\n  }\n}];"
+      },
+      "id": "e81d1111-0001-4000-8000-000000000002",
+      "name": "Parse Comment Event",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "post_rules",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "facebook_post_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.post_id }}"
+            },
+            {
+              "keyName": "is_active",
+              "condition": "eq",
+              "keyValue": "true"
+            }
+          ]
+        }
+      },
+      "id": "e81d1111-0001-4000-8000-000000000003",
+      "name": "Query Specific Post Rule",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        700,
+        340
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-creds",
+          "name": "Supabase Connection"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "has_post_rule",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "e81d1111-0001-4000-8000-000000000004",
+      "name": "Has Specific Rule?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        940,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Specific rule evaluator: checks match_type (any vs keywords) and picks random reply\nconst rule = $input.first().json;\nconst commentData = $('Parse Comment Event').first().json;\n\nconst matchType = rule.match_type || 'any';\nconst triggerKeywords = rule.trigger_keywords || [];\nconst commentText = (commentData.comment_text || '').toLowerCase();\n\nlet isMatch = false;\nif (matchType === 'any') {\n  isMatch = true;\n} else if (matchType === 'keywords') {\n  if (triggerKeywords.length === 0) {\n    isMatch = true;\n  } else {\n    isMatch = triggerKeywords.some(kw => commentText.includes(kw.trim().toLowerCase()));\n  }\n}\n\nif (!isMatch) {\n  return [];\n}\n\n// Pick random reply from variations to avoid Facebook anti-spam restrictions\nconst replies = rule.comment_replies || ['تم الرد في الخاص يا فندم ❤️'];\nconst selectedReply = replies[Math.floor(Math.random() * replies.length)];\n\nreturn [{\n  json: {\n    rule_id: rule.id,\n    comment_id: commentData.comment_id,\n    post_id: commentData.post_id,\n    commenter_id: commentData.commenter_id,\n    commenter_name: commentData.commenter_name,\n    public_reply: selectedReply,\n    auto_like: rule.auto_like_comment !== false,\n    dm_message: rule.dm_message,\n    dm_image_url: rule.dm_image_url,\n    dm_buttons: rule.dm_buttons || []\n  }\n}];"
+      },
+      "id": "e81d1111-0001-4000-8000-000000000005",
+      "name": "Evaluate Post Rule & Pick Reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $json.comment_id }}/comments",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"message\": {{ JSON.stringify($json.public_reply) }}\n}",
+        "options": {}
+      },
+      "id": "e81d1111-0001-4000-8000-000000000006",
+      "name": "Post Public Reply (Specific)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1440,
+        220
+      ],
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "fb-token-creds",
+          "name": "Facebook Page Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "should_auto_like",
+              "leftValue": "={{ $('Evaluate Post Rule & Pick Reply').item.json.auto_like }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "e81d1111-0001-4000-8000-000000000007",
+      "name": "Auto Like Comment? (Specific)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1680,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $('Evaluate Post Rule & Pick Reply').item.json.comment_id }}/likes",
+        "options": {}
+      },
+      "id": "e81d1111-0001-4000-8000-000000000008",
+      "name": "Like User Comment (Specific)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1920,
+        140
+      ],
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "fb-token-creds",
+          "name": "Facebook Page Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v21.0/me/messages",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"recipient\": {\n    \"comment_id\": \"{{ $('Evaluate Post Rule & Pick Reply').item.json.comment_id }}\"\n  },\n  \"message\": {\n    \"text\": {{ JSON.stringify($('Evaluate Post Rule & Pick Reply').item.json.dm_message) }}\n  }\n}",
+        "options": {}
+      },
+      "id": "e81d1111-0001-4000-8000-000000000009",
+      "name": "Send Private DM (Specific)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2160,
+        220
+      ],
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "fb-token-creds",
+          "name": "Facebook Page Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "post_rules",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('Evaluate Post Rule & Pick Reply').item.json.rule_id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "updated_at",
+              "fieldValue": "={{ new Date().toISOString() }}"
+            }
+          ]
+        }
+      },
+      "id": "e81d1111-0001-4000-8000-000000000010",
+      "name": "Record Trigger Activity",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2400,
+        220
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-creds",
+          "name": "Supabase Connection"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "global_comment_rules",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "is_enabled",
+              "condition": "eq",
+              "keyValue": "true"
+            }
+          ]
+        }
+      },
+      "id": "e81d1111-0001-4000-8000-000000000011",
+      "name": "Query Global Comment Rules",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        480
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-creds",
+          "name": "Supabase Connection"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "global_rule_enabled",
+              "leftValue": "={{ $json.is_enabled }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "e81d1111-0001-4000-8000-000000000012",
+      "name": "Global Rules Enabled?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1440,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Global rule reply generator\nconst globalRule = $input.first().json;\nconst commentData = $('Parse Comment Event').first().json;\n\nconst replies = globalRule.comment_replies || ['أهلاً بحضرتك! تم الرد في الخاص بكل التفاصيل 📩❤️'];\nconst selectedReply = replies[Math.floor(Math.random() * replies.length)];\n\nreturn [{\n  json: {\n    comment_id: commentData.comment_id,\n    post_id: commentData.post_id,\n    commenter_id: commentData.commenter_id,\n    commenter_name: commentData.commenter_name,\n    public_reply: selectedReply,\n    auto_like: globalRule.auto_like_comment !== false,\n    send_dm: globalRule.send_dm !== false,\n    dm_message: globalRule.dm_message || 'أهلاً بحضرتك في مطعم الخديوي! كيف نقدر نساعدك اليوم؟ 🌟',\n    dm_buttons: globalRule.dm_buttons || []\n  }\n}];"
+      },
+      "id": "e81d1111-0001-4000-8000-000000000013",
+      "name": "Pick Global Reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $json.comment_id }}/comments",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"message\": {{ JSON.stringify($json.public_reply) }}\n}",
+        "options": {}
+      },
+      "id": "e81d1111-0001-4000-8000-000000000014",
+      "name": "Post Public Reply (Global)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1920,
+        460
+      ],
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "fb-token-creds",
+          "name": "Facebook Page Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "global_auto_like",
+              "leftValue": "={{ $('Pick Global Reply').item.json.auto_like }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "e81d1111-0001-4000-8000-000000000015",
+      "name": "Auto Like? (Global)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2160,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $('Pick Global Reply').item.json.comment_id }}/likes",
+        "options": {}
+      },
+      "id": "e81d1111-0001-4000-8000-000000000016",
+      "name": "Like User Comment (Global)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2400,
+        380
+      ],
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "fb-token-creds",
+          "name": "Facebook Page Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v21.0/me/messages",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"recipient\": {\n    \"comment_id\": \"{{ $('Pick Global Reply').item.json.comment_id }}\"\n  },\n  \"message\": {\n    \"text\": {{ JSON.stringify($('Pick Global Reply').item.json.dm_message) }},\n    \"quick_replies\": [\n      {\"content_type\": \"text\", \"title\": \"قائمة المنيو 🍔\", \"payload\": \"VIEW_MENU\"},\n      {\"content_type\": \"text\", \"title\": \"العروض الحالية 🏷️\", \"payload\": \"VIEW_OFFERS\"},\n      {\"content_type\": \"text\", \"title\": \"تحدث مع موظف 👨‍💼\", \"payload\": \"HUMAN_AGENT\"}\n    ]\n  }\n}",
+        "options": {}
+      },
+      "id": "e81d1111-0001-4000-8000-000000000017",
+      "name": "Send Private DM (Global)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2640,
+        460
+      ],
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "fb-token-creds",
+          "name": "Facebook Page Token"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Facebook Feed Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Comment Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Comment Event": {
+      "main": [
+        [
+          {
+            "node": "Query Specific Post Rule",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Specific Post Rule": {
+      "main": [
+        [
+          {
+            "node": "Has Specific Rule?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Specific Rule?": {
+      "main": [
+        [
+          {
+            "node": "Evaluate Post Rule & Pick Reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Query Global Comment Rules",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluate Post Rule & Pick Reply": {
+      "main": [
+        [
+          {
+            "node": "Post Public Reply (Specific)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post Public Reply (Specific)": {
+      "main": [
+        [
+          {
+            "node": "Auto Like Comment? (Specific)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auto Like Comment? (Specific)": {
+      "main": [
+        [
+          {
+            "node": "Like User Comment (Specific)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Private DM (Specific)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Like User Comment (Specific)": {
+      "main": [
+        [
+          {
+            "node": "Send Private DM (Specific)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Private DM (Specific)": {
+      "main": [
+        [
+          {
+            "node": "Record Trigger Activity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Global Comment Rules": {
+      "main": [
+        [
+          {
+            "node": "Global Rules Enabled?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Global Rules Enabled?": {
+      "main": [
+        [
+          {
+            "node": "Pick Global Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pick Global Reply": {
+      "main": [
+        [
+          {
+            "node": "Post Public Reply (Global)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post Public Reply (Global)": {
+      "main": [
+        [
+          {
+            "node": "Auto Like? (Global)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auto Like? (Global)": {
+      "main": [
+        [
+          {
+            "node": "Like User Comment (Global)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Private DM (Global)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Like User Comment (Global)": {
+      "main": [
+        [
+          {
+            "node": "Send Private DM (Global)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
