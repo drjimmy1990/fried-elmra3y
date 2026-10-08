@@ -47,6 +47,8 @@ CREATE TABLE IF NOT EXISTS public.meta_apps (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+-- Facebook Login for Business apps use a Configuration ID instead of a scope list (NULL = classic scope login)
+ALTER TABLE public.meta_apps ADD COLUMN IF NOT EXISTS login_config_id TEXT;
 
 -- 2.2 Connected channels (one row per Facebook Page; Instagram/WhatsApp later)
 --     Public metadata only. Tokens live in channel_secrets.

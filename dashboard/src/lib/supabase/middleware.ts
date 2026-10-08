@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { NextResponse, type NextRequest } from 'next/server';
 import { Database, UserRole } from '@/types/database.types';
+import { homeRouteForRole, isRouteAllowed } from '@/lib/role-guard';
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -37,60 +38,33 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const pathname = request.nextUrl.pathname;
+  const redirectTo = (path: string, search = '') => {
+    const url = request.nextUrl.clone();
+    url.pathname = path;
+    url.search = search;
+    return NextResponse.redirect(url);
+  };
 
-  // Unauthenticated users accessing / or /dashboard/* are redirected to /login
-  if (!user && (pathname === '/' || pathname.startsWith('/dashboard'))) {
-    const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = '/login';
-    return NextResponse.redirect(redirectUrl);
-  }
+  // API routes do their own auth checks (and must return JSON, not redirects)
+  if (pathname.startsWith('/api/')) return supabaseResponse;
 
-  // Authenticated users on /login are redirected to /dashboard
-  if (user && pathname === '/login') {
-    const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = '/dashboard';
-    return NextResponse.redirect(redirectUrl);
-  }
-
-  // Role-Based Access Control (RBAC) Route Guards
-  if (user && pathname.startsWith('/dashboard')) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role, is_active')
-      .eq('id', user.id)
-      .single();
-
-    const role: UserRole = profile?.role || 'order_agent';
-    const isActive = profile?.is_active ?? true;
-
-    if (!isActive) {
-      const redirectUrl = request.nextUrl.clone();
-      redirectUrl.pathname = '/login?error=account_deactivated';
-      return NextResponse.redirect(redirectUrl);
+  if (pathname === '/login') {
+    // Signed-in users skip the login page, unless they were bounced for a deactivated account
+    if (user && request.nextUrl.searchParams.get('error') !== 'account_deactivated') {
+      return redirectTo('/dashboard');
     }
-
-    // Role Route Restrictions
-    if (role === 'order_agent') {
-      // Order agent can only access /dashboard/orders
-      const allowedPaths = ['/dashboard/orders'];
-      const isAllowed = allowedPaths.some((p) => pathname.startsWith(p));
-      if (!isAllowed) {
-        const redirectUrl = request.nextUrl.clone();
-        redirectUrl.pathname = '/dashboard/orders';
-        return NextResponse.redirect(redirectUrl);
-      }
-    } else if (role === 'support_agent') {
-      // Support agent can access /dashboard/complaints, /dashboard/chat
-      const allowedPaths = ['/dashboard/complaints', '/dashboard/chat'];
-      const isAllowed = allowedPaths.some((p) => pathname.startsWith(p));
-      if (!isAllowed) {
-        const redirectUrl = request.nextUrl.clone();
-        redirectUrl.pathname = '/dashboard/complaints';
-        return NextResponse.redirect(redirectUrl);
-      }
-    }
-    // Admin has access to everything
+    return supabaseResponse;
   }
+
+  // Every other matched path is a dashboard page. Pages are reachable both as /dashboard/x
+  // and directly as /x (next.config rewrite), so guard both forms.
+  if (!user) return redirectTo('/login');
+
+  const { data: profile } = await supabase.from('profiles').select('role, is_active').eq('id', user.id).single();
+  if (!profile || !profile.is_active) return redirectTo('/login', '?error=account_deactivated');
+
+  const role: UserRole = profile.role;
+  if (!isRouteAllowed(role, pathname, true)) return redirectTo(homeRouteForRole(role));
 
   return supabaseResponse;
 }

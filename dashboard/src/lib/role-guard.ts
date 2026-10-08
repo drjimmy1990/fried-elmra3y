@@ -10,14 +10,23 @@ export const VALID_DASHBOARD_ROUTES = [
   '/orders',
   '/complaints',
   '/chat',
+  '/comments',
   '/menu',
   '/offers',
   '/post-rules',
+  '/channels',
   '/team',
   '/settings',
 ] as const;
 
 export type DashboardRoute = (typeof VALID_DASHBOARD_ROUTES)[number];
+
+/** Where each role lands after login or when it opens a page it may not see. */
+export function homeRouteForRole(role: UserRole): string {
+  if (role === 'order_agent') return '/dashboard/orders';
+  if (role === 'support_agent') return '/dashboard/complaints';
+  return '/dashboard';
+}
 
 /**
  * Normalizes any route string (e.g. '/dashboard/orders?tab=active' -> '/orders', '/dashboard' -> '/')
@@ -37,9 +46,9 @@ export function normalizeDashboardRoute(pathname: string): string {
  *
  * RBAC Rules:
  * - inactive (is_active === false): Denied all routes regardless of role.
- * - admin: Full access to all dashboard routes ('/', '/orders', '/complaints', '/chat', '/menu', '/offers', '/post-rules', '/team', '/settings').
- * - order_agent: Allowed '/orders' only. Denied all others ('/', '/menu', '/offers', '/post-rules', '/team', '/settings', '/complaints', '/chat').
- * - support_agent: Allowed '/complaints', '/chat' only. Denied all others ('/', '/orders', '/menu', '/offers', '/post-rules', '/team', '/settings').
+ * - admin: Full access to all dashboard routes (VALID_DASHBOARD_ROUTES).
+ * - order_agent: Allowed '/orders' and '/chat' (to open the customer chat from an order card).
+ * - support_agent: Allowed '/complaints', '/chat' and '/comments' (comment inbox) only.
  */
 export function isRouteAllowed(
   role: UserRole,
@@ -58,19 +67,14 @@ export function isRouteAllowed(
     return true;
   }
 
-  // Order agent is restricted exclusively to /orders
+  // Order agent: orders + the customer chat opened from an order card
   if (role === 'order_agent') {
-    return route === '/orders' || route.startsWith('/orders/');
+    return ['/orders', '/chat'].some((r) => route === r || route.startsWith(`${r}/`));
   }
 
-  // Support agent is restricted exclusively to /complaints and /chat
+  // Support agent: complaints, live chat and the comment inbox
   if (role === 'support_agent') {
-    return (
-      route === '/complaints' ||
-      route.startsWith('/complaints/') ||
-      route === '/chat' ||
-      route.startsWith('/chat/')
-    );
+    return ['/complaints', '/chat', '/comments'].some((r) => route === r || route.startsWith(`${r}/`));
   }
 
   return false;

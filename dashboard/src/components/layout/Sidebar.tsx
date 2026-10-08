@@ -16,6 +16,7 @@ import {
   X,
   Utensils,
   Crown,
+  Radio,
 } from 'lucide-react';
 import { UserRole } from '@/types/database.types';
 
@@ -60,7 +61,7 @@ const NAV_ITEMS: NavItem[] = [
     title: 'المحادثات المباشرة',
     href: '/dashboard/chat',
     icon: MessageSquare,
-    roles: ['admin', 'support_agent'],
+    roles: ['admin', 'support_agent', 'order_agent'],
   },
   {
     title: 'قائمة الطعام (المنيو)',
@@ -78,6 +79,12 @@ const NAV_ITEMS: NavItem[] = [
     title: 'قواعد ردود البوستات',
     href: '/dashboard/post-rules',
     icon: Sliders,
+    roles: ['admin'],
+  },
+  {
+    title: 'القنوات وربط الصفحات',
+    href: '/dashboard/channels',
+    icon: Radio,
     roles: ['admin'],
   },
   {

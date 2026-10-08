@@ -7,6 +7,7 @@ import {
   normalizeDashboardRoute,
   type UserRole,
   VALID_DASHBOARD_ROUTES,
+  homeRouteForRole,
 } from '../lib/role-guard.ts';
 
 describe('Role-Based Access Control (RBAC) & Route Guard Tests', () => {
@@ -22,15 +23,17 @@ describe('Role-Based Access Control (RBAC) & Route Guard Tests', () => {
   });
 
   describe('3-Tier RBAC Route Permissions Table', () => {
-    // Expected route permission matrix according to project specifications:
+    // Expected route permission matrix (v2):
     // Route        | admin | order_agent | support_agent
     // /            | YES   | NO          | NO
     // /orders      | YES   | YES         | NO
     // /complaints  | YES   | NO          | YES
-    // /chat        | YES   | NO          | YES
+    // /chat        | YES   | YES         | YES   (order card -> customer chat)
+    // /comments    | YES   | NO          | YES   (comment inbox)
     // /menu        | YES   | NO          | NO
     // /offers      | YES   | NO          | NO
     // /post-rules  | YES   | NO          | NO
+    // /channels    | YES   | NO          | NO
     // /team        | YES   | NO          | NO
     // /settings    | YES   | NO          | NO
 
@@ -41,10 +44,12 @@ describe('Role-Based Access Control (RBAC) & Route Guard Tests', () => {
       '/': { admin: true, order_agent: false, support_agent: false },
       '/orders': { admin: true, order_agent: true, support_agent: false },
       '/complaints': { admin: true, order_agent: false, support_agent: true },
-      '/chat': { admin: true, order_agent: false, support_agent: true },
+      '/chat': { admin: true, order_agent: true, support_agent: true },
+      '/comments': { admin: true, order_agent: false, support_agent: true },
       '/menu': { admin: true, order_agent: false, support_agent: false },
       '/offers': { admin: true, order_agent: false, support_agent: false },
       '/post-rules': { admin: true, order_agent: false, support_agent: false },
+      '/channels': { admin: true, order_agent: false, support_agent: false },
       '/team': { admin: true, order_agent: false, support_agent: false },
       '/settings': { admin: true, order_agent: false, support_agent: false },
     };
@@ -67,11 +72,12 @@ describe('Role-Based Access Control (RBAC) & Route Guard Tests', () => {
       }
     });
 
-    it('verifies order_agent is allowed /orders only and denied all other routes', () => {
+    it('verifies order_agent is allowed /orders and /chat only and denied all other routes', () => {
       // Allowed routes
       assert.strictEqual(isRouteAllowed('order_agent', '/orders', true), true);
       assert.strictEqual(isRouteAllowed('order_agent', '/dashboard/orders', true), true);
       assert.strictEqual(isRouteAllowed('order_agent', '/dashboard/orders?tab=active', true), true);
+      assert.strictEqual(isRouteAllowed('order_agent', '/dashboard/chat?contactId=abc', true), true);
 
       // Explicitly denied routes
       const deniedRoutes = [
@@ -89,8 +95,10 @@ describe('Role-Based Access Control (RBAC) & Route Guard Tests', () => {
         '/dashboard/settings',
         '/complaints',
         '/dashboard/complaints',
-        '/chat',
-        '/dashboard/chat',
+        '/comments',
+        '/dashboard/channels',
+        '/channels',
+        '/chatty', // prefix lookalike must not match /chat
       ];
 
       for (const deniedRoute of deniedRoutes) {
@@ -102,12 +110,13 @@ describe('Role-Based Access Control (RBAC) & Route Guard Tests', () => {
       }
     });
 
-    it('verifies support_agent is allowed /complaints and /chat only, and denied all others', () => {
+    it('verifies support_agent is allowed /complaints, /chat and /comments only, and denied all others', () => {
       // Allowed routes
       assert.strictEqual(isRouteAllowed('support_agent', '/complaints', true), true);
       assert.strictEqual(isRouteAllowed('support_agent', '/dashboard/complaints', true), true);
       assert.strictEqual(isRouteAllowed('support_agent', '/chat', true), true);
       assert.strictEqual(isRouteAllowed('support_agent', '/dashboard/chat', true), true);
+      assert.strictEqual(isRouteAllowed('support_agent', '/dashboard/comments', true), true);
 
       // Explicitly denied routes
       const deniedRoutes = [
@@ -121,6 +130,8 @@ describe('Role-Based Access Control (RBAC) & Route Guard Tests', () => {
         '/dashboard/offers',
         '/post-rules',
         '/dashboard/post-rules',
+        '/channels',
+        '/dashboard/channels',
         '/team',
         '/dashboard/team',
         '/settings',
@@ -134,6 +145,16 @@ describe('Role-Based Access Control (RBAC) & Route Guard Tests', () => {
           `support_agent MUST be denied access to ${deniedRoute}`
         );
       }
+    });
+
+    it('sends each role to a landing page it is allowed to open', () => {
+      const roles: UserRole[] = ['admin', 'order_agent', 'support_agent'];
+      for (const role of roles) {
+        const home = homeRouteForRole(role);
+        assert.strictEqual(isRouteAllowed(role, home, true), true, `${role} home ${home} must be allowed`);
+      }
+      assert.strictEqual(homeRouteForRole('order_agent'), '/dashboard/orders');
+      assert.strictEqual(homeRouteForRole('support_agent'), '/dashboard/complaints');
     });
 
     it('validates entire route mapping table comprehensively across all 3 roles', () => {
