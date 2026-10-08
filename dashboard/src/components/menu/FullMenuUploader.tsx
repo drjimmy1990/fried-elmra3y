@@ -70,9 +70,30 @@ export function FullMenuUploader({
   // Upload handler for full menu file (image or pdf)
   const handleUpload = async (file: File, type: 'image' | 'pdf') => {
     const isImage = type === 'image';
+    setStatusMessage(null);
+
+    const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
+    const MAX_PDF_SIZE = 25 * 1024 * 1024; // 25MB
+
+    if (isImage && !file.type.startsWith('image/')) {
+      setStatusMessage({ type: 'error', text: 'يرجى اختيار ملف صورة صالح (JPG, PNG, WEBP)' });
+      return;
+    }
+    if (!isImage && file.type !== 'application/pdf') {
+      setStatusMessage({ type: 'error', text: 'يرجى اختيار ملف PDF صالح' });
+      return;
+    }
+    if (isImage && file.size > MAX_IMAGE_SIZE) {
+      setStatusMessage({ type: 'error', text: 'حجم الصورة يتجاوز الحد الأقصى (10 ميجابايت)' });
+      return;
+    }
+    if (!isImage && file.size > MAX_PDF_SIZE) {
+      setStatusMessage({ type: 'error', text: 'حجم ملف PDF يتجاوز الحد الأقصى (25 ميجابايت)' });
+      return;
+    }
+
     if (isImage) setIsUploadingImage(true);
     else setIsUploadingPdf(true);
-    setStatusMessage(null);
 
     try {
       const ext = file.name.split('.').pop() || (isImage ? 'webp' : 'pdf');

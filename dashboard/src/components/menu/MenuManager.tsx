@@ -68,6 +68,10 @@ export function MenuManager({
     };
   }, [items, categories]);
 
+  // Keep stable reference to categories for realtime events
+  const categoriesRef = React.useRef(categories);
+  categoriesRef.current = categories;
+
   // Realtime subscription to menu_items and menu_categories (optional live sync)
   useEffect(() => {
     const supabase = createClient();
@@ -82,7 +86,7 @@ export function MenuManager({
             const newItem = payload.new as MenuItem;
             setItems((prev) => {
               if (prev.some((item) => item.id === newItem.id)) return prev;
-              const cat = categories.find((c) => c.id === newItem.category_id);
+              const cat = categoriesRef.current.find((c) => c.id === newItem.category_id);
               return [{ ...newItem, category: cat }, ...prev];
             });
           } else if (payload.eventType === 'UPDATE') {
@@ -124,7 +128,7 @@ export function MenuManager({
     return () => {
       supabase.removeChannel(itemsChannel);
     };
-  }, [categories]);
+  }, []);
 
   // Handlers for Items
   const handleItemCreated = (newItem: MenuItem) => {

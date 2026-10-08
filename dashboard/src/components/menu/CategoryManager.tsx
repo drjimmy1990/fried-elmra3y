@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   FolderKanban,
   Plus,
@@ -88,6 +88,31 @@ export function CategoryManager({
     setFormError(null);
     setIsFormOpen(true);
   };
+
+  // Keyboard accessibility and body scroll lock
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (categoryToDelete) {
+          setCategoryToDelete(null);
+        } else if (isFormOpen) {
+          setIsFormOpen(false);
+        } else if (isManageModalOpen) {
+          setIsManageModalOpen(false);
+          resetForm();
+        }
+      }
+    };
+    const prevOverflow = document.body.style.overflow;
+    if (isManageModalOpen || categoryToDelete) {
+      window.addEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'hidden';
+    }
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [isManageModalOpen, categoryToDelete, isFormOpen]);
 
   // Image Upload Handler
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -361,7 +386,16 @@ export function CategoryManager({
 
       {/* Categories Management Modal */}
       {isManageModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs animate-in fade-in duration-200">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="manage-categories-modal-title"
+          onClick={() => {
+            setIsManageModalOpen(false);
+            resetForm();
+          }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs animate-in fade-in duration-200"
+        >
           <div
             className="w-full max-w-4xl max-h-[90vh] bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
@@ -373,7 +407,7 @@ export function CategoryManager({
                   <Layers className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-white">إدارة أقسام قائمة الطعام</h3>
+                  <h3 id="manage-categories-modal-title" className="text-lg font-bold text-white">إدارة أقسام قائمة الطعام</h3>
                   <p className="text-xs text-slate-400">
                     إضافة أقسام جديدة، تعديل أسمائها وصورها، وإعادة ترتيب ظهورها بالمنيو
                   </p>
@@ -738,8 +772,16 @@ export function CategoryManager({
 
       {/* Delete Confirmation Modal */}
       {categoryToDelete && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="w-full max-w-md bg-slate-900 border border-rose-500/30 rounded-2xl p-6 space-y-4 shadow-2xl">
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setCategoryToDelete(null)}
+          className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs animate-in fade-in duration-150"
+        >
+          <div
+            className="w-full max-w-md bg-slate-900 border border-rose-500/30 rounded-2xl p-6 space-y-4 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center gap-3 text-rose-400">
               <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20">
                 <AlertTriangle className="w-6 h-6" />

@@ -79,6 +79,7 @@ export function MenuItemCard({
         ...item,
         is_available: !newStatus,
       });
+      alert('تعذر تحديث حالة توفر الصنف في قاعدة البيانات. يرجى التحقق من الاتصال بالإنترنت.');
     } finally {
       setIsTogglingAvailability(false);
     }

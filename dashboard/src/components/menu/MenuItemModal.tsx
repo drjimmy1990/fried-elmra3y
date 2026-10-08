@@ -147,6 +147,24 @@ export function MenuItemModal({
     }
   };
 
+  // Keyboard accessibility and body scroll lock
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    const prevOverflow = document.body.style.overflow;
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'hidden';
+    }
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [isOpen, onClose]);
+
   // Calculate live discount percentage
   const numPrice = parseFloat(price);
   const numSalePrice = salePrice.trim() !== '' ? parseFloat(salePrice) : null;
@@ -260,7 +278,13 @@ export function MenuItemModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs animate-in fade-in duration-200">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="menu-item-modal-title"
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs animate-in fade-in duration-200"
+    >
       <div
         className="w-full max-w-2xl max-h-[92vh] bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
@@ -272,7 +296,7 @@ export function MenuItemModal({
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white">
+              <h3 id="menu-item-modal-title" className="text-lg font-bold text-white">
                 {initialItem ? 'تعديل بيانات الطبق' : 'إضافة طبق جديد للمنيو'}
               </h3>
               <p className="text-xs text-slate-400">
