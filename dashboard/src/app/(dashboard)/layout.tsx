@@ -66,7 +66,7 @@ export default async function DashboardLayout({
   };
 
   return (
-    <RealtimeAudioProvider>
+    <RealtimeAudioProvider role={userProfile.role}>
       <DashboardShell
         user={userProfile}
         botEnabled={botSettings?.bot_enabled ?? true}

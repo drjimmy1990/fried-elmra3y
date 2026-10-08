@@ -171,6 +171,7 @@ export function Sidebar({
                   key={item.href}
                   href={item.href}
                   onClick={onClose}
+                  aria-current={isActive ? 'page' : undefined}
                   className={`group relative flex items-center justify-between rounded-xl px-4 py-3 text-sm font-medium transition-colors ${
                     isActive
                       ? 'bg-amber-600 text-white shadow-md shadow-amber-600/30'

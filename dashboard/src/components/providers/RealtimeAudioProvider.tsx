@@ -3,8 +3,8 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { ShoppingBag, AlertTriangle, X, Volume2, VolumeX, CheckCircle2 } from 'lucide-react';
-import { Database } from '@/types/database.types';
+import { ShoppingBag, AlertTriangle, X } from 'lucide-react';
+import { Database, UserRole } from '@/types/database.types';
 
 type OrderRow = Database['public']['Tables']['orders']['Row'];
 type ComplaintRow = Database['public']['Tables']['complaints']['Row'];
@@ -36,15 +36,31 @@ export function useRealtimeAudio() {
   return context;
 }
 
-// Two-tone Web Audio chime synthesizer
+// Shared singleton AudioContext to prevent browser AudioContext limit exhaustion
+let sharedAudioCtx: AudioContext | null = null;
+
+function getSharedAudioContext(): AudioContext | null {
+  try {
+    if (typeof window === 'undefined') return null;
+    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!AudioCtx) return null;
+    if (!sharedAudioCtx || sharedAudioCtx.state === 'closed') {
+      sharedAudioCtx = new AudioCtx();
+    }
+    if (sharedAudioCtx.state === 'suspended') {
+      sharedAudioCtx.resume().catch(() => {});
+    }
+    return sharedAudioCtx;
+  } catch {
+    return null;
+  }
+}
+
+// Two-tone Web Audio chime synthesizer fallback
 function synthesizeChime() {
   try {
-    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    if (!AudioCtx) return;
-    const ctx = new AudioCtx();
-    if (ctx.state === 'suspended') {
-      ctx.resume();
-    }
+    const ctx = getSharedAudioContext();
+    if (!ctx) return;
 
     const now = ctx.currentTime;
 
@@ -53,7 +69,7 @@ function synthesizeChime() {
     const gain1 = ctx.createGain();
     osc1.type = 'sine';
     osc1.frequency.setValueAtTime(659.25, now);
-    gain1.gain.setValueAtTime(0.25, now);
+    gain1.gain.setValueAtTime(0.2, now);
     gain1.gain.exponentialRampToValueAtTime(0.0001, now + 0.3);
     osc1.connect(gain1);
     gain1.connect(ctx.destination);
@@ -65,7 +81,7 @@ function synthesizeChime() {
     const gain2 = ctx.createGain();
     osc2.type = 'sine';
     osc2.frequency.setValueAtTime(880.0, now + 0.15);
-    gain2.gain.setValueAtTime(0.3, now + 0.15);
+    gain2.gain.setValueAtTime(0.25, now + 0.15);
     gain2.gain.exponentialRampToValueAtTime(0.0001, now + 0.6);
     osc2.connect(gain2);
     gain2.connect(ctx.destination);
@@ -76,7 +92,13 @@ function synthesizeChime() {
   }
 }
 
-export function RealtimeAudioProvider({ children }: { children: React.ReactNode }) {
+export function RealtimeAudioProvider({
+  children,
+  role,
+}: {
+  children: React.ReactNode;
+  role?: UserRole;
+}) {
   const [isMuted, setIsMuted] = useState(false);
   const [notifications, setNotifications] = useState<AlertNotification[]>([]);
   const isMutedRef = useRef(isMuted);
@@ -85,18 +107,15 @@ export function RealtimeAudioProvider({ children }: { children: React.ReactNode 
   const playChime = useCallback(() => {
     if (isMutedRef.current) return;
 
-    // Primary: Synthesize two-tone melodious chime via Web Audio API
-    synthesizeChime();
-
-    // Secondary: Also try playing public HTML audio file if browser allows
     try {
       const audio = new Audio('/sounds/order-alert.mp3');
       audio.volume = 0.6;
       audio.play().catch(() => {
-        // Autoplay may be blocked before interaction, handled gracefully
+        // Fallback to Web Audio synthesis if MP3 fails to load or browser restricts it
+        synthesizeChime();
       });
     } catch {
-      // Audio element creation fallback
+      synthesizeChime();
     }
   }, []);
 
@@ -106,11 +125,14 @@ export function RealtimeAudioProvider({ children }: { children: React.ReactNode 
 
   useEffect(() => {
     const supabase = createClient();
+    const channel = supabase.channel('realtime-dashboard-alerts');
 
-    // Subscribe to Postgres Changes on orders and complaints
-    const channel = supabase
-      .channel('realtime-dashboard-alerts')
-      .on(
+    // Filter events based on staff role
+    const listenToOrders = role !== 'support_agent';
+    const listenToComplaints = role !== 'order_agent';
+
+    if (listenToOrders) {
+      channel.on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'orders' },
         (payload) => {
@@ -131,8 +153,11 @@ export function RealtimeAudioProvider({ children }: { children: React.ReactNode 
           setNotifications((prev) => [notification, ...prev.slice(0, 4)]);
           playChime();
         }
-      )
-      .on(
+      );
+    }
+
+    if (listenToComplaints) {
+      channel.on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'complaints' },
         (payload) => {
@@ -152,13 +177,15 @@ export function RealtimeAudioProvider({ children }: { children: React.ReactNode 
           setNotifications((prev) => [notification, ...prev.slice(0, 4)]);
           playChime();
         }
-      )
-      .subscribe();
+      );
+    }
+
+    channel.subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [playChime]);
+  }, [playChime, role]);
 
   // Auto-dismiss notifications after 9 seconds
   useEffect(() => {

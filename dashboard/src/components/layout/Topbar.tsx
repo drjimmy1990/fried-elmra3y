@@ -136,6 +136,7 @@ export function Topbar({ user, botEnabled = true, onToggleSidebar }: TopbarProps
               ? 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100'
               : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
           }`}
+          aria-label={isMuted ? 'تفعيل أصوات التنبيهات' : 'كتم أصوات التنبيهات'}
           title={isMuted ? 'تفعيل أصوات التنبيهات' : 'كتم أصوات التنبيهات'}
         >
           {isMuted ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
