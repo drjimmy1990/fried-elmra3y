@@ -71,7 +71,7 @@ export default async function SettingsPage() {
 
   // Fallback safe representation if database returned null
   const safeSettings: BotSettings = settings || {
-    id: 'default',
+    id: '00000000-0000-0000-0000-000000000001',
     bot_enabled: true,
     auto_pause_on_complaint: true,
     notify_telegram: true,

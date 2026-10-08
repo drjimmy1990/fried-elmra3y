@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Users,
   Crown,
@@ -50,6 +50,23 @@ export function TeamManager({ initialStaff, currentUserId }: TeamManagerProps) {
       setToastMessage(null);
     }, 4000);
   };
+
+  // Keyboard accessibility & body scroll lock for delete confirmation modal
+  useEffect(() => {
+    if (!staffToDelete) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setStaffToDelete(null);
+      }
+    };
+    const prevOverflow = document.body.style.overflow;
+    window.addEventListener('keydown', handleKeyDown);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [staffToDelete]);
 
   // 1. KPI Counts
   const stats = useMemo(() => {
@@ -568,9 +585,13 @@ export function TeamManager({ initialStaff, currentUserId }: TeamManagerProps) {
         <div
           role="dialog"
           aria-modal="true"
+          onClick={() => setStaffToDelete(null)}
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-150"
         >
-          <div className="w-full max-w-md bg-slate-900 border border-slate-700/80 rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 duration-150">
+          <div
+            className="w-full max-w-md bg-slate-900 border border-slate-700/80 rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center mb-4">
               <Trash2 className="w-6 h-6" />
             </div>
