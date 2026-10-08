@@ -1,0 +1,175 @@
+{
+  "name": "03 - Telegram Operations & Kitchen Alert Dispatcher",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "telegram-operations-alert",
+        "responseMode": "onReceived",
+        "responseData": "OK",
+        "options": {}
+      },
+      "id": "e83d3333-0003-4000-8000-000000000001",
+      "name": "Alert Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        300
+      ],
+      "webhookId": "telegram-operations-alert-webhook"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "bot_settings",
+        "returnAll": true,
+        "filters": {}
+      },
+      "id": "e83d3333-0003-4000-8000-000000000002",
+      "name": "Fetch Bot Settings",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        440,
+        300
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-creds",
+          "name": "Supabase Connection"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "telegram_enabled",
+              "leftValue": "={{ $json.notify_telegram }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "token_present",
+              "leftValue": "={{ $json.telegram_bot_token }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            },
+            {
+              "id": "chat_id_present",
+              "leftValue": "={{ $json.telegram_chat_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "e83d3333-0003-4000-8000-000000000003",
+      "name": "Is Telegram Alert Active?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format HTML message for Telegram based on payload type\nconst alertData = $('Alert Webhook').first().json.body || $('Alert Webhook').first().json;\nconst settings = $input.first().json;\n\nconst botToken = settings.telegram_bot_token;\nconst chatId = settings.telegram_chat_id;\nconst alertType = alertData.type || (alertData.order_number ? 'new_order' : 'new_complaint');\n\nlet htmlMessage = '';\n\nif (alertType === 'new_order') {\n  const orderNo = alertData.order_number || alertData.id?.slice(0, 8) || 'N/A';\n  const name = alertData.customer_name || 'عميل';\n  const phone = alertData.customer_phone || 'غير مسجل';\n  const address = alertData.delivery_address || 'استلام من الفرع';\n  const total = alertData.total_amount || alertData.subtotal || '0';\n  \n  let itemsList = '';\n  if (Array.isArray(alertData.items) && alertData.items.length > 0) {\n    itemsList = alertData.items.map(it => `• <b>${it.item_name || it.name}</b> x${it.quantity || 1} (${it.unit_price || it.price} ج)`).join('\\n');\n  } else {\n    itemsList = alertData.items_summary || '• أصناف متنوعة';\n  }\n\n  htmlMessage = `🛒 <b>أوردر جديد من فيسبوك بوت #ORD-${orderNo}</b>\\n` +\n    `━━━━━━━━━━━━━━━━━━\\n` +\n    `👤 <b>العميل:</b> ${name}\\n` +\n    `📞 <b>الهاتف:</b> <a href=\"tel:${phone}\">${phone}</a>\\n` +\n    `📍 <b>العنوان:</b> ${address}\\n\\n` +\n    `📋 <b>الأصناف المطلوبة:</b>\\n${itemsList}\\n\\n` +\n    `💰 <b>الإجمالي المطلوب:</b> <b>${total} ج.م</b> (شامل التوصيل)\\n` +\n    `⏰ <b>الوقت:</b> ${new Date().toLocaleTimeString('ar-EG')}\\n` +\n    `━━━━━━━━━━━━━━━━━━\\n` +\n    `👉 <i>يرجى المتابعة وتأكيد التحضير من شاشة الأوردرات</i>`;\n} else {\n  const ticketNo = alertData.ticket_number || alertData.id?.slice(0, 8) || '101';\n  const name = alertData.customer_name || 'عميل';\n  const phone = alertData.customer_phone || 'غير مسجل';\n  const priority = alertData.priority === 'urgent' ? '🔴 عاجل جداً' : (alertData.priority === 'high' ? '🟠 أولوية عالية' : '🟡 عادي');\n  const issue = alertData.issue_description || alertData.message || 'طلب مساعدة فورية';\n\n  htmlMessage = `⚠️ <b>تذكرة شكوى / طلب مساعدة #CMP-${ticketNo}</b>\\n` +\n    `━━━━━━━━━━━━━━━━━━\\n` +\n    `🚨 <b>درجة الأهمية:</b> ${priority}\\n` +\n    `👤 <b>العميل:</b> ${name}\\n` +\n    `📞 <b>الهاتف:</b> <a href=\"tel:${phone}\">${phone}</a>\\n\\n` +\n    `📝 <b>تفاصيل الشكوى:</b>\\n<i>${issue}</i>\\n\\n` +\n    `⏰ <b>الوقت:</b> ${new Date().toLocaleTimeString('ar-EG')}\\n` +\n    `━━━━━━━━━━━━━━━━━━\\n` +\n    `👉 <i>يرجى الدخول فوراً للداشبورد ومتابعة العميل</i>`;\n}\n\nreturn [{\n  json: {\n    bot_token: botToken,\n    chat_id: chatId,\n    formatted_message: htmlMessage\n  }\n}];"
+      },
+      "id": "e83d3333-0003-4000-8000-000000000004",
+      "name": "Format Telegram Notification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        920,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $json.bot_token }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"chat_id\": \"{{ $json.chat_id }}\",\n  \"text\": {{ JSON.stringify($json.formatted_message) }},\n  \"parse_mode\": \"HTML\",\n  \"disable_web_page_preview\": true\n}",
+        "options": {}
+      },
+      "id": "e83d3333-0003-4000-8000-000000000005",
+      "name": "Send Telegram Message",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1160,
+        280
+      ]
+    }
+  ],
+  "connections": {
+    "Alert Webhook": {
+      "main": [
+        [
+          {
+            "node": "Fetch Bot Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Bot Settings": {
+      "main": [
+        [
+          {
+            "node": "Is Telegram Alert Active?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Telegram Alert Active?": {
+      "main": [
+        [
+          {
+            "node": "Format Telegram Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Telegram Notification": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
