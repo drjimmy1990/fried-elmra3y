@@ -8,6 +8,8 @@ export interface ContactWithLatestMessage extends ContactRow {
   unread_count?: number;
 }
 
+export type ContactWithMeta = ContactWithLatestMessage;
+
 export type ChatFilter = 'all' | 'ai_active' | 'ai_paused';
 
 export interface QuickReply {

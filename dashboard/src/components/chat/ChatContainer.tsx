@@ -1,62 +1,69 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { ChatSidebar } from './ChatSidebar';
 import { ChatThread } from './ChatThread';
 import {
-  ChatContainerProps,
-  ContactWithLatestMessage,
-  ContactRow,
+  ContactWithMeta,
   MessageRow,
+  ContactRow,
   ChatFilter,
 } from './types';
+
+interface ChatContainerProps {
+  initialContacts: ContactWithMeta[];
+  initialActiveContact: ContactWithMeta | null;
+  initialMessages: MessageRow[];
+}
 
 export function ChatContainer({
   initialContacts,
   initialActiveContact,
   initialMessages,
 }: ChatContainerProps) {
-  // Contacts and active conversation states
-  const [contacts, setContacts] = useState<ContactWithLatestMessage[]>(initialContacts);
-  const [activeContact, setActiveContact] = useState<ContactRow | null>(
-    initialActiveContact || (initialContacts.length > 0 ? initialContacts[0] : null)
-  );
+  const [contacts, setContacts] = useState<ContactWithMeta[]>(initialContacts);
+  const [activeContact, setActiveContact] = useState<ContactWithMeta | null>(initialActiveContact);
   const [messages, setMessages] = useState<MessageRow[]>(initialMessages);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
-
-  // Search & Filter state
+  const [isSending, setIsSending] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<ChatFilter>('all');
 
-  // Mobile drawer toggle
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-
-  // Action pending states
-  const [isTogglingAi, setIsTogglingAi] = useState(false);
-  const [isSending, setIsSending] = useState(false);
-
-  // Referentially stable Supabase client
   const supabase = useMemo(() => createClient(), []);
 
-  // Sync initial props if they update on the server
-  useEffect(() => {
-    setContacts(initialContacts);
-  }, [initialContacts]);
+  // Stable ref to activeContact to prevent tearing down realtime channel on contact switch
+  const activeContactRef = useRef(activeContact);
+  activeContactRef.current = activeContact;
 
+  // Sync props if initialActiveContact changes externally (e.g. searchParams)
+  useEffect(() => {
+    if (initialActiveContact && initialActiveContact.id !== activeContact?.id) {
+      setActiveContact(initialActiveContact);
+      setMessages(initialMessages);
+    }
+  }, [initialActiveContact, initialMessages, activeContact?.id]);
+
+  // Mark active contact messages as read on initial mount
   useEffect(() => {
     if (initialActiveContact) {
-      setActiveContact(initialActiveContact);
+      supabase
+        .from('messages')
+        .update({ is_read: true })
+        .eq('contact_id', initialActiveContact.id)
+        .eq('is_read', false)
+        .then(() => {
+          setContacts((prev) =>
+            prev.map((c) => (c.id === initialActiveContact.id ? { ...c, unread_count: 0 } : c))
+          );
+        });
     }
-  }, [initialActiveContact]);
+  }, [initialActiveContact, supabase]);
 
-  useEffect(() => {
-    setMessages(initialMessages);
-  }, [initialMessages]);
-
-  // Handle switching active contact
+  // Select contact handler
   const handleSelectContact = useCallback(
-    async (contact: ContactWithLatestMessage) => {
+    async (contact: ContactWithMeta) => {
       if (activeContact?.id === contact.id) {
         setIsMobileSidebarOpen(false);
         return;
@@ -64,102 +71,105 @@ export function ChatContainer({
 
       setActiveContact(contact);
       setIsMobileSidebarOpen(false);
-
-      // Fetch messages for newly selected contact
       setIsLoadingMessages(true);
+
+      // Update URL query parameter without full page reload
+      if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        url.searchParams.set('contactId', contact.id);
+        window.history.replaceState({}, '', url.toString());
+      }
+
       try {
-        const { data, error } = await supabase
+        // 1. Fetch thread messages
+        const { data: threadMessages, error } = await supabase
           .from('messages')
           .select('*')
           .eq('contact_id', contact.id)
-          .order('created_at', { ascending: true });
+          .order('created_at', { ascending: true })
+          .limit(200);
 
-        if (error) {
-          console.error('Failed to fetch messages for contact:', error);
+        if (!error && threadMessages) {
+          setMessages(threadMessages);
         } else {
-          setMessages(data || []);
+          setMessages([]);
         }
-      } catch (err) {
-        console.error('Error fetching messages:', err);
-      } finally {
-        setIsLoadingMessages(false);
-      }
 
-      // Mark unread messages as read
-      try {
+        // 2. Mark unread messages as read in database
         await supabase
           .from('messages')
           .update({ is_read: true })
           .eq('contact_id', contact.id)
           .eq('is_read', false);
 
-        // Update local unread badge to 0
+        // 3. Clear unread badge in local contacts state
         setContacts((prev) =>
           prev.map((c) => (c.id === contact.id ? { ...c, unread_count: 0 } : c))
         );
       } catch (err) {
-        console.error('Error marking messages as read:', err);
-      }
-
-      // Reflect in URL without full page reload
-      if (typeof window !== 'undefined') {
-        const url = new URL(window.location.href);
-        url.searchParams.set('contactId', contact.id);
-        window.history.replaceState(null, '', url.toString());
+        console.error('Error loading chat messages:', err);
+      } finally {
+        setIsLoadingMessages(false);
       }
     },
     [activeContact?.id, supabase]
   );
 
-  // Handle toggling AI enabled on contact
+  // Toggle Bot AI for active contact
   const handleToggleAi = useCallback(
-    async (contactId: string, targetEnabled: boolean) => {
-      setIsTogglingAi(true);
+    async (contactId: string, enabled: boolean) => {
+      const current = activeContactRef.current;
+      const targetId = contactId || current?.id;
+      if (!targetId) return;
 
-      // Optimistic state updates
-      setActiveContact((prev) =>
-        prev && prev.id === contactId ? { ...prev, ai_enabled: targetEnabled } : prev
-      );
+      const previousStatus = current?.id === targetId ? current.ai_enabled : true;
+
+      // 1. Optimistic state update
+      setActiveContact((prev) => (prev?.id === targetId ? { ...prev, ai_enabled: enabled } : prev));
       setContacts((prev) =>
-        prev.map((c) => (c.id === contactId ? { ...c, ai_enabled: targetEnabled } : c))
+        prev.map((c) => (c.id === targetId ? { ...c, ai_enabled: enabled } : c))
       );
 
       try {
         const { error } = await supabase
           .from('contacts')
-          .update({ ai_enabled: targetEnabled })
-          .eq('id', contactId);
+          .update({ ai_enabled: enabled })
+          .eq('id', targetId);
 
         if (error) {
-          console.error('Failed to update AI enabled flag:', error);
-          // Revert optimistic updates
-          setActiveContact((prev) =>
-            prev && prev.id === contactId ? { ...prev, ai_enabled: !targetEnabled } : prev
-          );
+          console.error('Failed to toggle AI status in Supabase:', error);
+          // Rollback on failure
+          setActiveContact((prev) => (prev?.id === targetId ? { ...prev, ai_enabled: previousStatus } : prev));
           setContacts((prev) =>
-            prev.map((c) => (c.id === contactId ? { ...c, ai_enabled: !targetEnabled } : c))
+            prev.map((c) => (c.id === targetId ? { ...c, ai_enabled: previousStatus } : c))
           );
-          alert('تعذر تحديث وضع الرد الآلي للبوت، يرجى المحاولة مرة أخرى.');
+          alert('تعذر تغيير حالة الذكاء الاصطناعي للبوت. يرجى التحقق من الاتصال.');
         }
       } catch (err) {
-        console.error('Error toggling AI status:', err);
-      } finally {
-        setIsTogglingAi(false);
+        console.error('Unexpected error toggling AI:', err);
+        // Rollback
+        setActiveContact((prev) => (prev?.id === targetId ? { ...prev, ai_enabled: previousStatus } : prev));
+        setContacts((prev) =>
+          prev.map((c) => (c.id === targetId ? { ...c, ai_enabled: previousStatus } : c))
+        );
+        alert('حدث خطأ غير متوقع أثناء تغيير إعداد البوت.');
       }
     },
     [supabase]
   );
 
-  // Handle agent message sending
+  // Handle agent message sending with reconciliation to prevent duplicates
   const handleSendMessage = useCallback(
     async (content: string): Promise<boolean> => {
-      if (!activeContact) return false;
+      const current = activeContactRef.current;
+      if (!current) return false;
       setIsSending(true);
 
+      const previousContacts = contacts;
       const tempId = `temp-${Date.now()}`;
       const optimisticMessage: MessageRow = {
         id: tempId,
-        contact_id: activeContact.id,
+        contact_id: current.id,
         sender_type: 'agent',
         content,
         media_url: null,
@@ -174,7 +184,7 @@ export function ChatContainer({
       // 2. Optimistic sidebar update (last message & order)
       setContacts((prev) => {
         const updated = prev.map((c) => {
-          if (c.id === activeContact.id) {
+          if (c.id === current.id) {
             return {
               ...c,
               latest_message: optimisticMessage,
@@ -196,7 +206,7 @@ export function ChatContainer({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            contactId: activeContact.id,
+            contactId: current.id,
             content,
           }),
         });
@@ -208,28 +218,59 @@ export function ChatContainer({
         }
 
         const savedMessage = result.message as MessageRow;
-        setMessages((prev) =>
-          prev.map((m) => (m.id === tempId ? savedMessage : m))
-        );
+
+        // Reconcile: If Realtime already inserted the saved message, remove temp placeholder
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === savedMessage.id)) {
+            return prev.filter((m) => m.id !== tempId);
+          }
+          return prev.map((m) => (m.id === tempId ? savedMessage : m));
+        });
+
+        if (result.deliveryWarning) {
+          alert(`ملاحظة: تم حفظ الرد، ولكن ${result.deliveryWarning}`);
+        }
 
         return true;
-      } catch (err: any) {
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'خطأ غير متوقع';
         console.error('Error sending message via API:', err);
-        // Rollback optimistic message
+        // Rollback optimistic message & contacts state
         setMessages((prev) => prev.filter((m) => m.id !== tempId));
-        alert(`فشل إرسال الرسالة: ${err.message || 'خطأ غير متوقع'}`);
+        setContacts(previousContacts);
+        alert(`فشل إرسال الرسالة: ${message}`);
         return false;
       } finally {
         setIsSending(false);
       }
     },
-    [activeContact]
+    [contacts]
   );
 
-  // Supabase Realtime synchronization
+  // Persistent Supabase Realtime synchronization across all contacts
   useEffect(() => {
     const channel = supabase
       .channel('chat_realtime_sync')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'contacts',
+        },
+        (payload) => {
+          const newContact = payload.new as ContactRow;
+          setContacts((prev) => {
+            if (prev.some((c) => c.id === newContact.id)) return prev;
+            const contactWithMeta: ContactWithMeta = {
+              ...newContact,
+              latest_message: null,
+              unread_count: 0,
+            };
+            return [contactWithMeta, ...prev];
+          });
+        }
+      )
       .on(
         'postgres_changes',
         {
@@ -272,23 +313,34 @@ export function ChatContainer({
         },
         (payload) => {
           const newMsg = payload.new as MessageRow;
+          const currentActive = activeContactRef.current;
 
-          // If message belongs to active chat, append it
-          setActiveContact((current) => {
-            if (current && current.id === newMsg.contact_id) {
-              setMessages((prev) => {
-                if (prev.some((m) => m.id === newMsg.id)) return prev;
-                return [...prev, newMsg];
-              });
-            }
-            return current;
-          });
+          // If message belongs to active chat, append or reconcile with temp optimistic message
+          if (currentActive && currentActive.id === newMsg.contact_id) {
+            setMessages((prev) => {
+              if (prev.some((m) => m.id === newMsg.id)) return prev;
+
+              // Check if matching pending optimistic message exists
+              const tempMatch = prev.find(
+                (m) =>
+                  m.id.startsWith('temp-') &&
+                  m.sender_type === newMsg.sender_type &&
+                  m.content === newMsg.content
+              );
+
+              if (tempMatch) {
+                return prev.map((m) => (m.id === tempMatch.id ? newMsg : m));
+              }
+
+              return [...prev, newMsg];
+            });
+          }
 
           // Update contacts sidebar with latest message & unread status
           setContacts((prev) => {
             const nextList = prev.map((c) => {
               if (c.id === newMsg.contact_id) {
-                const isCurrentlyActive = activeContact?.id === c.id;
+                const isCurrentlyActive = currentActive?.id === c.id;
                 const shouldIncrementUnread =
                   !isCurrentlyActive && newMsg.sender_type === 'user';
                 return {
@@ -316,42 +368,33 @@ export function ChatContainer({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase, activeContact?.id]);
+  }, [supabase]);
 
   return (
-    <div className="flex h-[calc(100vh-7.5rem)] min-h-[580px] rounded-3xl border border-slate-800 bg-slate-900 shadow-2xl overflow-hidden relative">
-      {/* Sidebar for Desktop & Mobile Overlay */}
-      <div
-        className={`${
-          isMobileSidebarOpen ? 'block' : 'hidden'
-        } md:block md:relative z-30`}
-      >
-        <ChatSidebar
-          contacts={contacts}
-          selectedContactId={activeContact?.id || null}
-          onSelectContact={handleSelectContact}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          filter={filter}
-          onFilterChange={setFilter}
-          isMobileOpen={isMobileSidebarOpen}
-          onCloseMobile={() => setIsMobileSidebarOpen(false)}
-        />
-      </div>
+    <div className="flex h-[calc(100vh-5rem)] rounded-3xl bg-slate-900 border border-slate-800 shadow-2xl overflow-hidden relative">
+      {/* Sidebar: Contacts List */}
+      <ChatSidebar
+        contacts={contacts}
+        selectedContactId={activeContact?.id || null}
+        onSelectContact={handleSelectContact}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        filter={filter}
+        onFilterChange={setFilter}
+        isMobileOpen={isMobileSidebarOpen}
+        onCloseMobile={() => setIsMobileSidebarOpen(false)}
+      />
 
-      {/* Main Chat Thread */}
-      <div className="flex-1 flex flex-col min-w-0 h-full">
-        <ChatThread
-          contact={activeContact}
-          messages={messages}
-          isLoadingMessages={isLoadingMessages}
-          onToggleAi={handleToggleAi}
-          isTogglingAi={isTogglingAi}
-          onSendMessage={handleSendMessage}
-          isSending={isSending}
-          onBackToSidebar={() => setIsMobileSidebarOpen(true)}
-        />
-      </div>
+      {/* Main: Active Thread */}
+      <ChatThread
+        contact={activeContact}
+        messages={messages}
+        isLoadingMessages={isLoadingMessages}
+        isSending={isSending}
+        onSendMessage={handleSendMessage}
+        onToggleAi={handleToggleAi}
+        onBackToSidebar={() => setIsMobileSidebarOpen(true)}
+      />
     </div>
   );
 }

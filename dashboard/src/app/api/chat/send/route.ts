@@ -80,28 +80,13 @@ export async function POST(request: NextRequest) {
       .eq('id', contactId);
 
     // 6. If contact is on Messenger and has platform_user_id, send via Facebook Graph API
+    let deliveryWarning: string | null = null;
     const isMessenger =
       contact.platform === 'messenger' ||
       contact.platform.toLowerCase() === 'facebook';
 
     if (isMessenger && contact.platform_user_id) {
-      let pageAccessToken: string | null = null;
-
-      try {
-        const { data: botSettings } = await supabase
-          .from('bot_settings')
-          .select('*')
-          .limit(1)
-          .maybeSingle();
-
-        pageAccessToken =
-          (botSettings as any)?.facebook_page_access_token ||
-          process.env.FACEBOOK_PAGE_ACCESS_TOKEN ||
-          null;
-      } catch (settingsError) {
-        console.warn('Could not read bot_settings, checking env fallback:', settingsError);
-        pageAccessToken = process.env.FACEBOOK_PAGE_ACCESS_TOKEN || null;
-      }
+      const pageAccessToken = process.env.FACEBOOK_PAGE_ACCESS_TOKEN || null;
 
       if (pageAccessToken) {
         try {
@@ -122,18 +107,21 @@ export async function POST(request: NextRequest) {
           if (!fbResponse.ok) {
             const fbErrorData = await fbResponse.json().catch(() => null);
             console.error('Facebook Graph API error response:', fbResponse.status, fbErrorData);
+            deliveryWarning = fbErrorData?.error?.message || 'تعذر تسليم الرسالة لماسنجر (قد تكون نافذة الـ 24 ساعة للعميل منتهية)';
           }
         } catch (fbError) {
           console.error('Failed to dispatch Facebook Graph API message:', fbError);
+          deliveryWarning = 'تعذر الاتصال بخوادم Facebook Graph API';
         }
       } else {
-        console.warn('Facebook Page Access Token not configured in bot_settings or env.');
+        console.warn('Facebook Page Access Token not configured in env.');
       }
     }
 
     return NextResponse.json({
       success: true,
       message: insertedMessage,
+      deliveryWarning,
     });
   } catch (error: any) {
     console.error('Unexpected error in chat send route:', error);
