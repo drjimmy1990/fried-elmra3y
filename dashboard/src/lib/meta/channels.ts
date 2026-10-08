@@ -104,3 +104,22 @@ export function toPublicMetaApp(app: MetaAppRow, pagesCount = 0) {
   };
 }
 export type PublicMetaApp = ReturnType<typeof toPublicMetaApp>;
+
+export class ChannelCredentialsError extends Error {}
+
+/**
+ * Loads a connected page with its token and its app secret (for appsecret_proof).
+ * Service-role client only. Throws ChannelCredentialsError with an Arabic message.
+ */
+export async function loadChannelCredentials(db: Db, channelId: string | null | undefined) {
+  if (!channelId) throw new ChannelCredentialsError('لا توجد صفحة مرتبطة بهذا العنصر');
+  const { data: channel } = await db.from('channels').select('*').eq('id', channelId).maybeSingle();
+  if (!channel) throw new ChannelCredentialsError('الصفحة غير موجودة — اربطها من صفحة القنوات');
+  if (channel.status === 'disconnected') throw new ChannelCredentialsError(`الصفحة "${channel.name ?? channel.external_id}" غير متصلة`);
+
+  const { data: secret } = await db.from('channel_secrets').select('access_token').eq('channel_id', channelId).maybeSingle();
+  if (!secret?.access_token) throw new ChannelCredentialsError('لا يوجد رمز وصول للصفحة — أعد ربطها من صفحة القنوات');
+
+  const metaApp = await getMetaApp(db, channel.meta_app_id);
+  return { channel, token: secret.access_token, appSecret: metaApp?.app_secret || undefined };
+}

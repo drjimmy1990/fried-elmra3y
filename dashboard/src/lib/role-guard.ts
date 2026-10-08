@@ -13,7 +13,6 @@ export const VALID_DASHBOARD_ROUTES = [
   '/comments',
   '/menu',
   '/offers',
-  '/post-rules',
   '/channels',
   '/team',
   '/settings',

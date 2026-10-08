@@ -1,260 +1,195 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
 import {
-  evaluateCommentRule,
+  hasMeaningfulText,
+  isInDmCooldown,
   matchesKeywords,
   normalizeArabicText,
   pickRandomReply,
-  type PostRule,
-  type GlobalCommentRule,
+  pickReplyDelaySec,
+  resolveComment,
+  type MatchableRule,
+  type ResolveSettings,
 } from '../lib/rules-matcher.ts';
 
-describe('Rules Matcher Engine Tests', () => {
-  describe('Arabic Normalization & Keyword Matching', () => {
-    it('normalizes Arabic diacritics (tashkeel) and whitespace', () => {
-      const input = '  سِعْرُ   الْوَجْبَةِ  ';
-      const normalized = normalizeArabicText(input);
-      assert.strictEqual(normalized, 'سعر الوجبة');
+const settings: ResolveSettings = {
+  sensitive_keywords: ['شكوى', 'وحش', 'بارد', 'اتأخر', 'ني'],
+  ignore_nested_replies: true,
+  ignore_mentions_only: true,
+};
+
+let seq = 0;
+function rule(partial: Partial<MatchableRule>): MatchableRule {
+  seq += 1;
+  return {
+    id: `r${seq}`,
+    name: `rule ${seq}`,
+    scope: 'global',
+    facebook_post_id: null,
+    channel_id: null,
+    trigger_type: 'any',
+    keywords: [],
+    priority: 100,
+    is_active: true,
+    ...partial,
+  };
+}
+
+const POST = '111_222';
+
+describe('normalizeArabicText', () => {
+  it('strips tashkeel, tatweel and collapses whitespace', () => {
+    assert.strictEqual(normalizeArabicText('  سِعْرُ   الْوَجْبَـــةِ  '), 'سعر الوجبه');
+  });
+
+  it('unifies alef / yaa / taa marbuta forms and elongation', () => {
+    assert.strictEqual(normalizeArabicText('الأسعار'), normalizeArabicText('الاسعار'));
+    assert.strictEqual(normalizeArabicText('بكاااام'), normalizeArabicText('بكام'));
+    assert.strictEqual(normalizeArabicText('مستوى'), normalizeArabicText('مستوي'));
+  });
+
+  it('turns punctuation and emoji into spaces', () => {
+    assert.strictEqual(normalizeArabicText('بكام؟!🔥السعر'), 'بكام السعر');
+  });
+});
+
+describe('matchesKeywords', () => {
+  const kws = ['بكام', 'سعر', 'منيو', 'عرض'];
+
+  it('matches with punctuation, prefixes and suffixes', () => {
+    assert.strictEqual(matchesKeywords('بكام؟', kws).matchedKeyword, 'بكام');
+    assert.ok(matchesKeywords('السعر!', kws).isMatch);
+    assert.ok(matchesKeywords('ممكن المنيو لو سمحت', kws).isMatch);
+    assert.ok(matchesKeywords('سعرها كام', kws).isMatch);
+    assert.ok(matchesKeywords('والعرض ده لحد امتى', kws).isMatch);
+  });
+
+  it('does not match a short keyword inside an unrelated word', () => {
+    assert.strictEqual(matchesKeywords('عايز وجبه تانيه', ['ني']).isMatch, false);
+    assert.strictEqual(matchesKeywords('معرض الكتاب', ['عرض']).isMatch, false);
+  });
+
+  it('supports multi-word keywords', () => {
+    assert.ok(matchesKeywords('الفراخ مش مستويه خالص', ['مش مستوي']).isMatch);
+    assert.strictEqual(matchesKeywords('مستوي جدا', ['مش مستوي']).isMatch, false);
+  });
+
+  it('returns false when nothing matches or input is empty', () => {
+    for (const c of ['صباح الخير', 'تسلم ايديكم', 'العنوان فين']) {
+      assert.strictEqual(matchesKeywords(c, kws).isMatch, false, c);
+    }
+    assert.strictEqual(matchesKeywords('', kws).isMatch, false);
+    assert.strictEqual(matchesKeywords('سعر', []).isMatch, false);
+  });
+});
+
+describe('helpers', () => {
+  it('hasMeaningfulText detects emoji-only comments', () => {
+    assert.strictEqual(hasMeaningfulText('❤️🔥'), false);
+    assert.strictEqual(hasMeaningfulText('تمام ❤️'), true);
+  });
+
+  it('pickRandomReply returns variations and a fallback', () => {
+    const replies = ['a', 'b', 'c', 'd'];
+    const seen = new Set<string>();
+    for (let i = 0; i < 60; i++) seen.add(pickRandomReply(replies));
+    assert.ok(seen.size >= 3);
+    assert.ok(pickRandomReply([]).length > 0);
+    assert.ok(pickRandomReply(['  ', '']).length > 0);
+  });
+
+  it('pickReplyDelaySec stays within range', () => {
+    for (let i = 0; i < 50; i++) {
+      const d = pickReplyDelaySec(5, 40);
+      assert.ok(d >= 5 && d <= 40);
+    }
+    assert.strictEqual(pickReplyDelaySec(10, 10), 10);
+  });
+
+  it('isInDmCooldown respects the window', () => {
+    const now = new Date('2026-10-08T12:00:00Z');
+    assert.strictEqual(isInDmCooldown('2026-10-08T00:00:00Z', 24, now), true);
+    assert.strictEqual(isInDmCooldown('2026-10-06T00:00:00Z', 24, now), false);
+    assert.strictEqual(isInDmCooldown('2026-10-08T11:00:00Z', 0, now), false);
+    assert.strictEqual(isInDmCooldown(null, 24, now), false);
+  });
+});
+
+describe('resolveComment: pre-checks', () => {
+  const rules = [rule({ trigger_type: 'any' })];
+
+  it('ignores when the bot or the post is off', () => {
+    assert.deepStrictEqual(resolveComment({ text: 'hi', postId: POST, botEnabled: false }, rules, settings), {
+      decision: 'ignored',
+      reason: 'bot_off',
     });
-
-    it('normalizes Arabic and Latin punctuation marks', () => {
-      const input = 'بكام؟ السعر! منيو، عرض: هل متاح؟';
-      const normalized = normalizeArabicText(input);
-      assert.ok(normalized.includes('بكام'));
-      assert.ok(normalized.includes('السعر'));
-      assert.ok(normalized.includes('منيو'));
-      assert.ok(normalized.includes('عرض'));
-      assert.ok(!normalized.includes('؟'));
-      assert.ok(!normalized.includes('!'));
-    });
-
-    it('matches Arabic keywords like بكام, سعر, منيو, عرض with punctuation and whitespace', () => {
-      const keywords = ['بكام', 'سعر', 'منيو', 'عرض'];
-
-      // With question mark
-      const res1 = matchesKeywords('بكام؟', keywords);
-      assert.strictEqual(res1.isMatch, true);
-      assert.strictEqual(res1.matchedKeyword, 'بكام');
-
-      // With exclamation mark and prefix
-      const res2 = matchesKeywords('السعر!', keywords);
-      assert.strictEqual(res2.isMatch, true);
-
-      // Embedded in sentence with whitespace
-      const res3 = matchesKeywords('  ممكن   منيو   المطعم لو سمحت  ', keywords);
-      assert.strictEqual(res3.isMatch, true);
-
-      // Multiple words with 'عرض'
-      const res4 = matchesKeywords('إيه أقوى عرض النهاردة؟', keywords);
-      assert.strictEqual(res4.isMatch, true);
-    });
-
-    it('returns false when no keywords match the comment text', () => {
-      const keywords = ['بكام', 'سعر', 'منيو', 'عرض'];
-      const comments = [
-        'صباح الخير يا فندم',
-        'عاش يا شباب أكلكم ممتاز',
-        'شكرا على التوصيل السريع',
-        'العنوان فين بالتفصيل',
-      ];
-
-      for (const comment of comments) {
-        const result = matchesKeywords(comment, keywords);
-        assert.strictEqual(result.isMatch, false, `Expected no match for: "${comment}"`);
-      }
-    });
-
-    it('returns false for empty comments or empty keywords list', () => {
-      assert.strictEqual(matchesKeywords('', ['سعر']).isMatch, false);
-      assert.strictEqual(matchesKeywords('   ', ['سعر']).isMatch, false);
-      assert.strictEqual(matchesKeywords('سعر الوجبة', []).isMatch, false);
+    assert.deepStrictEqual(resolveComment({ text: 'hi', postId: POST, postBotEnabled: false }, rules, settings), {
+      decision: 'ignored',
+      reason: 'post_off',
     });
   });
 
-  describe('Post Rule match_type Evaluation', () => {
-    it("matches any non-empty comment text when match_type === 'any'", () => {
-      const postRule: PostRule = {
-        id: 'rule-any-1',
-        title: 'Any Comment Rule',
-        match_type: 'any',
-        is_active: true,
-        comment_replies: ['أهلاً بحضرتك يا فندم ❤️'],
-      };
-
-      const validComments = [
-        'تسلم ايديكم',
-        'ممكن المنيو',
-        '❤️',
-        'رقم التليفون كام؟',
-        'hello there',
-      ];
-
-      for (const comment of validComments) {
-        const result = evaluateCommentRule(comment, postRule);
-        assert.strictEqual(result.matched, true);
-        assert.strictEqual(result.ruleType, 'post_rule');
-        assert.strictEqual(result.selectedReply, 'أهلاً بحضرتك يا فندم ❤️');
-      }
-
-      // Empty comments should NOT match even with 'any'
-      const emptyResult = evaluateCommentRule('', postRule);
-      assert.strictEqual(emptyResult.matched, false);
-
-      const whitespaceResult = evaluateCommentRule('   \n  ', postRule);
-      assert.strictEqual(whitespaceResult.matched, false);
-    });
-
-    it("evaluates keywords strictly when match_type === 'keywords'", () => {
-      const postRule: PostRule = {
-        id: 'rule-kw-1',
-        title: 'Keyword Specific Rule',
-        match_type: 'keywords',
-        trigger_keywords: ['بكام', 'سعر', 'منيو', 'عرض'],
-        is_active: true,
-        comment_replies: ['السعر موضح لحضرتك في الخاص 📩'],
-      };
-
-      // Matched comments
-      assert.strictEqual(evaluateCommentRule('بكام الساندوتش؟', postRule).matched, true);
-      assert.strictEqual(evaluateCommentRule('عايز اشوف منيو اليوم', postRule).matched, true);
-      assert.strictEqual(evaluateCommentRule('في عرض جديد؟', postRule).matched, true);
-
-      // Unmatched comments
-      assert.strictEqual(evaluateCommentRule('الأكل كان جميل جداً', postRule).matched, false);
-      assert.strictEqual(evaluateCommentRule('مواعيد العمل إيه؟', postRule).matched, false);
-    });
-
-    it('ignores inactive post rules', () => {
-      const inactiveRule: PostRule = {
-        id: 'rule-inactive',
-        title: 'Inactive Rule',
-        match_type: 'any',
-        is_active: false,
-        comment_replies: ['رد'],
-      };
-
-      const result = evaluateCommentRule('أي تعليق', inactiveRule);
-      assert.strictEqual(result.matched, false);
-    });
+  it("ignores the page's own comments, nested replies and mentions-only", () => {
+    assert.strictEqual(resolveComment({ text: 'hi', postId: POST, isFromPage: true }, rules, settings).decision, 'ignored');
+    const nested = resolveComment({ text: 'hi', postId: POST, isNestedReply: true }, rules, settings);
+    assert.deepStrictEqual(nested, { decision: 'ignored', reason: 'nested_reply' });
+    const emoji = resolveComment({ text: '😍😍', postId: POST }, rules, settings);
+    assert.deepStrictEqual(emoji, { decision: 'ignored', reason: 'mentions_only' });
   });
 
-  describe('Randomized Anti-Spam Reply Selection', () => {
-    it('returns a reply from comment_replies', () => {
-      const replies = [
-        'شرفتنا يا فندم! بعتنالك التفاصيل في رسايل الصفحة 📩❤️',
-        'أهلاً بك! تم الرد على حضرتك في الخاص بكل التفاصيل 🌟',
-        'منورنا دائماً! شيك على رسايلك الخاصة بعتنالك كل التفاصيل 💬✨',
-      ];
+  it('processes nested replies / emoji when those settings are off', () => {
+    const loose = { ...settings, ignore_nested_replies: false, ignore_mentions_only: false };
+    assert.strictEqual(resolveComment({ text: '😍', postId: POST, isNestedReply: true }, rules, loose).decision, 'rule');
+  });
+});
 
-      const reply = pickRandomReply(replies);
-      assert.ok(replies.includes(reply));
-    });
+describe('resolveComment: order', () => {
+  const postKw = rule({ scope: 'post', facebook_post_id: POST, trigger_type: 'keywords', keywords: ['بكام'], priority: 10 });
+  const postAny = rule({ scope: 'post', facebook_post_id: POST, trigger_type: 'any', priority: 50 });
+  const globalKw = rule({ scope: 'global', trigger_type: 'keywords', keywords: ['منيو'], priority: 10 });
+  const globalAny = rule({ scope: 'global', trigger_type: 'any', priority: 1000 });
+  const all = [globalAny, globalKw, postAny, postKw];
 
-    it('returns variations over multiple calls (anti-spam verification)', () => {
-      const replies = [
-        'رد رقم 1: تم الرد في الخاص 📩',
-        'رد رقم 2: بعتنالك المنيو في الرسائل 🍔',
-        'رد رقم 3: شرفتنا يا فندم تابع رسايلك 🌟',
-        'رد رقم 4: كل التفاصيل عندك في الشات 💬',
-      ];
-
-      const selectedSet = new Set<string>();
-      // Execute 40 iterations to ensure stochastic variation
-      for (let i = 0; i < 40; i++) {
-        selectedSet.add(pickRandomReply(replies));
-      }
-
-      // With 4 distinct replies and 40 iterations, we must observe at least 3 distinct variations
-      assert.ok(
-        selectedSet.size >= 3,
-        `Expected at least 3 variations to prevent spam detection, but received ${selectedSet.size}`
-      );
-    });
-
-    it('returns default fallback when replies list is empty or null', () => {
-      const replyFromEmpty = pickRandomReply([]);
-      assert.strictEqual(typeof replyFromEmpty, 'string');
-      assert.ok(replyFromEmpty.length > 0);
-
-      const replyFromNull = pickRandomReply(null);
-      assert.strictEqual(typeof replyFromNull, 'string');
-      assert.ok(replyFromNull.length > 0);
-    });
+  it('complaint words win over every rule', () => {
+    const r = resolveComment({ text: 'الأكل كان بارد وبكام ده اصلا', postId: POST }, all, settings);
+    assert.deepStrictEqual(r, { decision: 'complaint', matchedKeyword: 'بارد' });
   });
 
-  describe('Global Comment Rule Fallback Mechanism', () => {
-    const globalRule: GlobalCommentRule = {
-      id: 'global-singleton',
-      is_enabled: true,
-      auto_like_comment: true,
-      send_dm: true,
-      comment_replies: [
-        'شرفتنا يا فندم! بعتنالك التفاصيل في رسايل الصفحة 📩❤️',
-        'أهلاً بك! تم الرد على حضرتك في الخاص 🌟',
-      ],
-      dm_message: 'أهلاً بحضرتك في مطعم الخديوي!',
-    };
+  it('post keyword rule first', () => {
+    const r = resolveComment({ text: 'بكام الوجبة؟', postId: POST }, all, settings);
+    assert.strictEqual(r.decision === 'rule' && r.rule.id, postKw.id);
+    assert.strictEqual(r.decision === 'rule' && r.level, 'post_keywords');
+  });
 
-    it('falls back to global comment rule when post rule keywords do not match', () => {
-      const postRule: PostRule = {
-        id: 'post-rule-burger',
-        match_type: 'keywords',
-        trigger_keywords: ['برجر', 'كومبو'],
-        comment_replies: ['تفاصيل البرجر في الخاص 🍔'],
-        is_active: true,
-      };
+  it('post "any" beats global keywords on that post', () => {
+    const r = resolveComment({ text: 'ممكن المنيو', postId: POST }, all, settings);
+    assert.strictEqual(r.decision === 'rule' && r.level, 'post_any');
+  });
 
-      // Unmatched for post rule keywords -> Falls back to global rule
-      const comment = 'العنوان فين في الزقازيق؟';
-      const result = evaluateCommentRule(comment, postRule, globalRule);
+  it('global keyword rule on other posts, then global fallback', () => {
+    const kw = resolveComment({ text: 'ممكن المنيو', postId: 'other' }, all, settings);
+    assert.strictEqual(kw.decision === 'rule' && kw.rule.id, globalKw.id);
+    const any = resolveComment({ text: 'تسلم ايديكم', postId: 'other' }, all, settings);
+    assert.strictEqual(any.decision === 'rule' && any.level, 'global_any');
+  });
 
-      assert.strictEqual(result.matched, true);
-      assert.strictEqual(result.ruleType, 'global_rule');
-      assert.ok(globalRule.comment_replies?.includes(result.selectedReply!));
-    });
+  it('returns no_rule when nothing applies', () => {
+    const r = resolveComment({ text: 'تسلم ايديكم', postId: 'other' }, [globalKw], settings);
+    assert.deepStrictEqual(r, { decision: 'ignored', reason: 'no_rule' });
+  });
 
-    it('uses post rule when keywords match, without invoking global rule', () => {
-      const postRule: PostRule = {
-        id: 'post-rule-burger',
-        match_type: 'keywords',
-        trigger_keywords: ['برجر', 'كومبو'],
-        comment_replies: ['تفاصيل البرجر في الخاص 🍔'],
-        is_active: true,
-      };
+  it('skips inactive rules and respects priority within a level', () => {
+    const a = rule({ trigger_type: 'keywords', keywords: ['عرض'], priority: 20 });
+    const b = rule({ trigger_type: 'keywords', keywords: ['عرض'], priority: 5 });
+    const off = rule({ trigger_type: 'keywords', keywords: ['عرض'], priority: 1, is_active: false });
+    const r = resolveComment({ text: 'في عرض؟', postId: null }, [a, b, off], settings);
+    assert.strictEqual(r.decision === 'rule' && r.rule.id, b.id);
+  });
 
-      const comment = 'عايز اطلب برجر كومبو';
-      const result = evaluateCommentRule(comment, postRule, globalRule);
-
-      assert.strictEqual(result.matched, true);
-      assert.strictEqual(result.ruleType, 'post_rule');
-      assert.strictEqual(result.selectedReply, 'تفاصيل البرجر في الخاص 🍔');
-    });
-
-    it('falls back to global rule when no post rule exists', () => {
-      const comment = 'السلام عليكم';
-      const result = evaluateCommentRule(comment, null, globalRule);
-
-      assert.strictEqual(result.matched, true);
-      assert.strictEqual(result.ruleType, 'global_rule');
-      assert.ok(globalRule.comment_replies?.includes(result.selectedReply!));
-    });
-
-    it('does not match anything when post rule fails and global rule is disabled', () => {
-      const disabledGlobalRule: GlobalCommentRule = {
-        ...globalRule,
-        is_enabled: false,
-      };
-
-      const postRule: PostRule = {
-        id: 'post-rule-1',
-        match_type: 'keywords',
-        trigger_keywords: ['عرض'],
-        is_active: true,
-      };
-
-      const result = evaluateCommentRule('مساء الخير', postRule, disabledGlobalRule);
-      assert.strictEqual(result.matched, false);
-      assert.strictEqual(result.ruleType, 'none');
-    });
+  it('skips rules bound to another page', () => {
+    const otherPage = rule({ trigger_type: 'any', channel_id: 'page-B', priority: 1 });
+    const anyPage = rule({ trigger_type: 'any', channel_id: null, priority: 2 });
+    const r = resolveComment({ text: 'اهلا', postId: null, channelId: 'page-A' }, [otherPage, anyPage], settings);
+    assert.strictEqual(r.decision === 'rule' && r.rule.id, anyPage.id);
   });
 });

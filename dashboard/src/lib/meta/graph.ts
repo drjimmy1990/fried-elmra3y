@@ -204,6 +204,89 @@ export async function unsubscribePageFromApp(pageId: string, pageToken: string, 
   await graph<{ success: boolean }>(`/${pageId}/subscribed_apps`, { method: 'DELETE', token: pageToken, appSecret });
 }
 
+// ---------------------------------------------------------------------------
+// Posts & comments (Comment Control Center)
+// ---------------------------------------------------------------------------
+export interface PagePost {
+  id: string;
+  message: string;
+  created_time: string;
+  full_picture: string | null;
+  permalink_url: string | null;
+}
+
+/** Latest page posts (newest first). Pass `after` from the previous call to load more. */
+export async function listPagePosts(
+  pageId: string,
+  pageToken: string,
+  appSecret?: string,
+  opts: { limit?: number; after?: string | null } = {}
+): Promise<{ posts: PagePost[]; nextCursor: string | null }> {
+  const r = await graph<{
+    data: Array<{ id: string; message?: string; created_time: string; full_picture?: string; permalink_url?: string }>;
+    paging?: { cursors?: { after?: string }; next?: string };
+  }>(`/${pageId}/posts`, {
+    token: pageToken,
+    appSecret,
+    params: {
+      fields: 'id,message,created_time,full_picture,permalink_url',
+      limit: opts.limit ?? 24,
+      after: opts.after ?? undefined,
+    },
+  });
+  return {
+    posts: r.data.map((p) => ({
+      id: p.id,
+      message: p.message ?? '',
+      created_time: p.created_time,
+      full_picture: p.full_picture ?? null,
+      permalink_url: p.permalink_url ?? null,
+    })),
+    nextCursor: r.paging?.next ? (r.paging.cursors?.after ?? null) : null,
+  };
+}
+
+type PageAuth = { token: string; appSecret?: string };
+
+/** Public reply under a comment, as the page. Returns the new comment id. */
+export async function replyToComment(commentId: string, message: string, auth: PageAuth) {
+  const r = await graph<{ id: string }>(`/${commentId}/comments`, {
+    method: 'POST',
+    token: auth.token,
+    appSecret: auth.appSecret,
+    params: { message },
+  });
+  return r.id;
+}
+
+/** Private Messenger reply to a comment (allowed once per comment, within 7 days). */
+export async function sendPrivateReply(pageId: string, commentId: string, text: string, auth: PageAuth) {
+  return graph<{ recipient_id?: string; message_id?: string }>(`/${pageId}/messages`, {
+    method: 'POST',
+    token: auth.token,
+    appSecret: auth.appSecret,
+    params: {
+      recipient: JSON.stringify({ comment_id: commentId }),
+      message: JSON.stringify({ text }),
+      messaging_type: 'RESPONSE',
+    },
+  });
+}
+
+export async function setCommentHidden(commentId: string, hidden: boolean, auth: PageAuth) {
+  await graph<{ success: boolean }>(`/${commentId}`, {
+    method: 'POST',
+    token: auth.token,
+    appSecret: auth.appSecret,
+    params: { is_hidden: hidden },
+  });
+}
+
+export async function likeComment(commentId: string, auth: PageAuth) {
+  await graph<{ success: boolean }>(`/${commentId}/likes`, { method: 'POST', token: auth.token, appSecret: auth.appSecret });
+}
+
+
 /** Arabic, owner-friendly explanation of common Graph API failures. */
 export function describeGraphError(err: unknown): string {
   if (!(err instanceof GraphError)) {
@@ -230,4 +313,22 @@ export function describeGraphError(err: unknown): string {
     default:
       return 'فشل الاتصال بفيسبوك' + raw;
   }
+}
+
+/**
+ * Like describeGraphError, plus Messenger / comment-specific limits
+ * (24h window, one private reply per comment, deleted comments...).
+ */
+export function describeMessagingError(err: unknown): string {
+  if (err instanceof GraphError) {
+    const raw = ` (Facebook #${err.code ?? '?'}${err.subcode ? `/${err.subcode}` : ''}: ${err.message})`;
+    if (err.subcode === 2018278 || err.subcode === 2018108) {
+      return 'لا يمكن الإرسال: مرّ أكثر من 24 ساعة على آخر رسالة من العميل (قيود فيسبوك)' + raw;
+    }
+    if (err.code === 10900) return 'تم إرسال رد خاص على هذا التعليق من قبل (فيسبوك يسمح برد خاص واحد فقط)' + raw;
+    if (err.code === 10903) return 'لا يمكن الرد الخاص: مرّ أكثر من 7 أيام على التعليق' + raw;
+    if (err.code === 551) return 'هذا الشخص غير متاح لاستقبال الرسائل حالياً' + raw;
+    if (err.code === 100 && err.subcode === 33) return 'التعليق غير موجود (ربما تم حذفه)' + raw;
+  }
+  return describeGraphError(err);
 }

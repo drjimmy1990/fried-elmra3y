@@ -10,7 +10,7 @@ import {
   MessageSquare,
   UtensilsCrossed,
   Sparkles,
-  Sliders,
+  MessagesSquare,
   Users,
   Settings,
   X,
@@ -64,6 +64,12 @@ const NAV_ITEMS: NavItem[] = [
     roles: ['admin', 'support_agent', 'order_agent'],
   },
   {
+    title: 'التعليقات',
+    href: '/dashboard/comments',
+    icon: MessagesSquare,
+    roles: ['admin', 'support_agent'],
+  },
+  {
     title: 'قائمة الطعام (المنيو)',
     href: '/dashboard/menu',
     icon: UtensilsCrossed,
@@ -73,12 +79,6 @@ const NAV_ITEMS: NavItem[] = [
     title: 'العروض الترويجية',
     href: '/dashboard/offers',
     icon: Sparkles,
-    roles: ['admin'],
-  },
-  {
-    title: 'قواعد ردود البوستات',
-    href: '/dashboard/post-rules',
-    icon: Sliders,
     roles: ['admin'],
   },
   {

@@ -7,7 +7,12 @@ import {
   PAGE_WEBHOOK_FIELDS,
   buildOAuthDialogUrl,
   describeGraphError,
+  describeMessagingError,
   listManagedPages,
+  listPagePosts,
+  replyToComment,
+  sendPrivateReply,
+  setCommentHidden,
   subscribePageToApp,
   verifyAppCredentials,
 } from '../lib/meta/graph.ts';
@@ -98,5 +103,53 @@ describe('Meta Graph client', () => {
     assert.match(describeGraphError(new GraphError('x', 200)), /صلاحيات ناقصة/);
     assert.match(describeGraphError(new GraphError('x', 4)), /حاول بعد دقائق/);
     assert.match(describeGraphError(new GraphError('x', 101)), /App Secret/);
+  });
+});
+
+describe('Meta Graph: posts & comment actions', () => {
+  const auth = { token: 'PAGE_TOKEN', appSecret: 'SECRET' };
+  const body = (c: Call) => new URLSearchParams(String(c.init?.body ?? ''));
+
+  it('lists page posts with paging cursor only when a next page exists', async () => {
+    const calls = mockFetch([
+      {
+        body: {
+          data: [{ id: '1_2', message: 'بروستد', created_time: '2026-10-01T00:00:00+0000', full_picture: 'https://img' }],
+          paging: { cursors: { after: 'CUR' }, next: 'https://graph/next' },
+        },
+      },
+      { body: { data: [], paging: { cursors: { after: 'X' } } } },
+    ]);
+    const first = await listPagePosts('1', 'T', undefined, { limit: 5 });
+    assert.match(calls[0].url, /\/1\/posts\?/);
+    assert.ok(new URL(calls[0].url).searchParams.get('fields')?.includes('full_picture'));
+    assert.strictEqual(first.posts[0].permalink_url, null);
+    assert.strictEqual(first.nextCursor, 'CUR');
+    const second = await listPagePosts('1', 'T', undefined, { after: 'CUR' });
+    assert.strictEqual(new URL(calls[1].url).searchParams.get('after'), 'CUR');
+    assert.strictEqual(second.nextCursor, null);
+  });
+
+  it('replies publicly, hides and sends a private reply via POST bodies', async () => {
+    const calls = mockFetch([{ body: { id: 'reply_1' } }, { body: { success: true } }, { body: { message_id: 'm1' } }]);
+    assert.strictEqual(await replyToComment('c_1', 'شكراً', auth), 'reply_1');
+    assert.match(calls[0].url, /\/c_1\/comments$/);
+    assert.strictEqual(body(calls[0]).get('message'), 'شكراً');
+    assert.ok(body(calls[0]).get('appsecret_proof'));
+
+    await setCommentHidden('c_1', true, auth);
+    assert.match(calls[1].url, /\/c_1$/);
+    assert.strictEqual(body(calls[1]).get('is_hidden'), 'true');
+
+    await sendPrivateReply('PAGE', 'c_1', 'أهلاً', auth);
+    assert.match(calls[2].url, /\/PAGE\/messages$/);
+    assert.deepStrictEqual(JSON.parse(body(calls[2]).get('recipient')!), { comment_id: 'c_1' });
+    assert.deepStrictEqual(JSON.parse(body(calls[2]).get('message')!), { text: 'أهلاً' });
+  });
+
+  it('explains messaging limits in Arabic and falls back to describeGraphError', () => {
+    assert.match(describeMessagingError(new GraphError('x', 10900)), /رد خاص واحد/);
+    assert.match(describeMessagingError(new GraphError('x', 10, 2018278)), /24 ساعة/);
+    assert.strictEqual(describeMessagingError(new GraphError('bad', 190)), describeGraphError(new GraphError('bad', 190)));
   });
 });

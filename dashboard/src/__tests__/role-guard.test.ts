@@ -32,7 +32,6 @@ describe('Role-Based Access Control (RBAC) & Route Guard Tests', () => {
     // /comments    | YES   | NO          | YES   (comment inbox)
     // /menu        | YES   | NO          | NO
     // /offers      | YES   | NO          | NO
-    // /post-rules  | YES   | NO          | NO
     // /channels    | YES   | NO          | NO
     // /team        | YES   | NO          | NO
     // /settings    | YES   | NO          | NO
@@ -48,7 +47,6 @@ describe('Role-Based Access Control (RBAC) & Route Guard Tests', () => {
       '/comments': { admin: true, order_agent: false, support_agent: true },
       '/menu': { admin: true, order_agent: false, support_agent: false },
       '/offers': { admin: true, order_agent: false, support_agent: false },
-      '/post-rules': { admin: true, order_agent: false, support_agent: false },
       '/channels': { admin: true, order_agent: false, support_agent: false },
       '/team': { admin: true, order_agent: false, support_agent: false },
       '/settings': { admin: true, order_agent: false, support_agent: false },
