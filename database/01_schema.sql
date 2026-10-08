@@ -45,6 +45,7 @@ BEGIN
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             email TEXT,
             raw_user_meta_data JSONB DEFAULT '{}'::jsonb,
+            raw_app_meta_data JSONB DEFAULT '{}'::jsonb,
             created_at TIMESTAMPTZ DEFAULT NOW()
         );
     END IF;
@@ -317,7 +318,7 @@ CREATE TRIGGER trg_complaints_updated_at
 CREATE OR REPLACE FUNCTION public.handle_complaint_status_update()
 RETURNS TRIGGER AS $$
 BEGIN
-    IF (NEW.status IN ('resolved', 'closed') AND (OLD.status IS NULL OR OLD.status NOT IN ('resolved', 'closed')) AND NEW.resolved_at IS NULL) THEN
+    IF (NEW.status IN ('resolved', 'closed') AND (TG_OP = 'INSERT' OR OLD.status NOT IN ('resolved', 'closed')) AND NEW.resolved_at IS NULL) THEN
         NEW.resolved_at = NOW();
     ELSIF (NEW.status NOT IN ('resolved', 'closed')) THEN
         NEW.resolved_at = NULL;
@@ -328,30 +329,58 @@ $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS trg_complaints_status_resolved ON public.complaints;
 CREATE TRIGGER trg_complaints_status_resolved
-    BEFORE UPDATE ON public.complaints
+    BEFORE INSERT OR UPDATE ON public.complaints
     FOR EACH ROW EXECUTE FUNCTION public.handle_complaint_status_update();
 
 -- 5.3 Auto-Profile Creation Trigger on Supabase Auth Signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER 
+LANGUAGE plpgsql 
+SECURITY DEFINER
+SET search_path = public, auth
+AS $$
+DECLARE
+    assigned_role public.user_role := 'order_agent'::public.user_role;
+    user_app_role TEXT;
+    user_meta_role TEXT;
 BEGIN
+    -- Extract roles from metadata
+    user_app_role := NEW.raw_app_meta_data->>'role';
+    user_meta_role := NEW.raw_user_meta_data->>'role';
+
+    -- Security: Only trusted raw_app_meta_data can assign 'admin'.
+    -- Client-supplied raw_user_meta_data is untrusted and strictly prevented from self-assigning 'admin'.
+    IF user_app_role = 'admin' THEN
+        assigned_role := 'admin'::public.user_role;
+    ELSIF user_app_role IN ('order_agent', 'support_agent') THEN
+        assigned_role := user_app_role::public.user_role;
+    ELSIF user_meta_role IN ('order_agent', 'support_agent') THEN
+        assigned_role := user_meta_role::public.user_role;
+    ELSE
+        assigned_role := 'order_agent'::public.user_role;
+    END IF;
+
     INSERT INTO public.profiles (id, full_name, role, avatar_url, phone)
     VALUES (
         NEW.id,
         COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'name', NEW.email, 'User'),
-        COALESCE((NEW.raw_user_meta_data->>'role')::public.user_role, 'order_agent'::public.user_role),
+        assigned_role,
         NEW.raw_user_meta_data->>'avatar_url',
         NEW.raw_user_meta_data->>'phone'
     )
     ON CONFLICT (id) DO UPDATE SET
         full_name = EXCLUDED.full_name,
-        role = EXCLUDED.role,
         avatar_url = COALESCE(EXCLUDED.avatar_url, public.profiles.avatar_url),
         phone = COALESCE(EXCLUDED.phone, public.profiles.phone),
         updated_at = NOW();
+
     RETURN NEW;
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE WARNING 'handle_new_user failed for user %: %', NEW.id, SQLERRM;
+        RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
@@ -362,12 +391,15 @@ CREATE TRIGGER on_auth_user_created
 -- 6. Indexes for Performance & Query Optimization
 -- ==============================================================================
 
+-- Singleton Integrity (Single-Row Configuration Tables)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_bot_settings_singleton ON public.bot_settings ((true));
+CREATE UNIQUE INDEX IF NOT EXISTS idx_global_comment_rules_singleton ON public.global_comment_rules ((true));
+
 -- Profiles
 CREATE INDEX IF NOT EXISTS idx_profiles_role ON public.profiles(role);
 CREATE INDEX IF NOT EXISTS idx_profiles_is_active ON public.profiles(is_active);
 
--- Post Rules
-CREATE INDEX IF NOT EXISTS idx_post_rules_facebook_post_id ON public.post_rules(facebook_post_id);
+-- Post Rules (facebook_post_id has UNIQUE constraint so it is already indexed)
 CREATE INDEX IF NOT EXISTS idx_post_rules_is_active ON public.post_rules(is_active);
 
 -- Offers
@@ -380,14 +412,12 @@ CREATE INDEX IF NOT EXISTS idx_menu_items_category_id ON public.menu_items(categ
 CREATE INDEX IF NOT EXISTS idx_menu_items_is_available ON public.menu_items(is_available);
 CREATE INDEX IF NOT EXISTS idx_menu_items_sort_order ON public.menu_items(sort_order);
 
--- Contacts
-CREATE INDEX IF NOT EXISTS idx_contacts_platform_user_id ON public.contacts(platform_user_id);
+-- Contacts (platform_user_id has UNIQUE constraint so it is already indexed)
 CREATE INDEX IF NOT EXISTS idx_contacts_ai_enabled ON public.contacts(ai_enabled);
 CREATE INDEX IF NOT EXISTS idx_contacts_last_interaction ON public.contacts(last_interaction_at DESC);
 
--- Messages
-CREATE INDEX IF NOT EXISTS idx_messages_contact_id ON public.messages(contact_id);
-CREATE INDEX IF NOT EXISTS idx_messages_created_at ON public.messages(created_at ASC);
+-- Messages (Composite Index for conversation history queries)
+CREATE INDEX IF NOT EXISTS idx_messages_contact_created ON public.messages(contact_id, created_at ASC);
 
 -- Orders
 CREATE INDEX IF NOT EXISTS idx_orders_contact_id ON public.orders(contact_id);
