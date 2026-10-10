@@ -24,6 +24,8 @@ import {
   ShoppingBag,
   CreditCard,
   Sparkles,
+  Building2,
+  Tag,
 } from 'lucide-react';
 import { formatCurrency, formatDateTime, getOrderStatusBadge, getWhatsAppLink } from '@/lib/utils';
 import { OrderWithItems, OrderStatus } from './types';
@@ -298,15 +300,24 @@ export function OrderDetailsModal({
                   {formatCurrency(Number(order.total_amount) || 0)}
                 </span>
               </div>
-              <div className="flex justify-between text-[11px] text-slate-400 pt-1">
-                <span>طريقة الدفع المقررة:</span>
-                <span className="font-medium text-slate-300 flex items-center gap-1">
-                  <CreditCard className="w-3.5 h-3.5 text-slate-400" />
-                  {order.payment_method === 'cash_on_delivery'
-                    ? 'نقدًا عند الاستلام (كاش)'
-                    : order.payment_method}
-                </span>
-              </div>
+              {order.branch?.name && (
+                <div className="flex justify-between text-[11px] text-slate-400 pt-1">
+                  <span>الفرع المسؤول:</span>
+                  <span className="font-medium text-blue-400 flex items-center gap-1">
+                    <Building2 className="w-3.5 h-3.5 text-blue-400" />
+                    {order.branch.name}
+                  </span>
+                </div>
+              )}
+              {order.offer?.title && (
+                <div className="flex justify-between text-[11px] text-slate-400 pt-1">
+                  <span>العرض المطبق:</span>
+                  <span className="font-medium text-amber-400 flex items-center gap-1">
+                    <Tag className="w-3.5 h-3.5 text-amber-400" />
+                    {order.offer.title}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -367,7 +378,7 @@ export function OrderDetailsModal({
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-bold text-white">#{c.ticket_number}</span>
                       <span className="text-xs text-slate-400">
-                        {c.status === 'open' ? 'مفتوحة' : c.status === 'in_progress' ? 'قيد المتابعة' : c.status === 'resolved' ? 'تم الحل' : 'مغلقة'}
+                        {c.status === 'open' ? 'مفتوحة' : 'تم الحل'}
                       </span>
                     </div>
                     <span className="text-xs text-rose-400 font-medium">عرض التفاصيل</span>
@@ -387,6 +398,20 @@ export function OrderDetailsModal({
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
+                onClick={() => handleStatusChange('pending')}
+                disabled={isChangingStatus || order.status === 'pending'}
+                className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all ${
+                  order.status === 'pending'
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 ring-2 ring-amber-500/20'
+                    : 'bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-800'
+                }`}
+              >
+                <Clock className="w-3.5 h-3.5" />
+                <span>قيد الانتظار</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => handleStatusChange('confirmed')}
                 disabled={isChangingStatus || order.status === 'confirmed'}
                 className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all ${
@@ -398,40 +423,7 @@ export function OrderDetailsModal({
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 <span>مؤكد</span>
               </button>
-
-              <button
-                type="button"
-                onClick={() => handleStatusChange('issue')}
-                disabled={isChangingStatus || order.status === 'issue'}
-                className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all ${
-                  order.status === 'issue'
-                    ? 'bg-orange-500/20 text-orange-300 border border-orange-500/40 ring-2 ring-orange-500/20'
-                    : 'bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-800'
-                }`}
-              >
-                <AlertTriangle className="w-3.5 h-3.5" />
-                <span>تسجيل مشكلة</span>
-              </button>
             </div>
-
-            {/* Cancel Action */}
-            {order.status !== 'cancelled' && (
-              <div className="mt-3 pt-3 border-t border-slate-800/80 flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (confirm('هل أنت متأكد من رغبتك في إلغاء هذا الطلب؟')) {
-                      handleStatusChange('cancelled');
-                    }
-                  }}
-                  disabled={isChangingStatus}
-                  className="flex items-center gap-1 text-xs text-rose-400 hover:text-rose-300 transition-colors"
-                >
-                  <Ban className="w-3.5 h-3.5" />
-                  <span>إلغاء هذا الطلب</span>
-                </button>
-              </div>
-            )}
           </div>
         </div>
 
@@ -456,28 +448,23 @@ export function OrderDetailsModal({
             </button>
 
             {/* Quick Next-Step Advance Button */}
-            {order.status === 'confirmed' && (
+            {order.status === 'pending' && (
               <button
                 type="button"
-                onClick={() => onAdvanceStatus(order.id, order.status)}
-                disabled={isChangingStatus}
-                className="flex items-center gap-2 px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-sm font-bold shadow-lg shadow-rose-600/30 transition-all hover:scale-102"
-              >
-                <AlertTriangle className="w-4 h-4" />
-                <span>تسجيل مشكلة</span>
-              </button>
-            )}
-
-            {order.status === 'issue' && (
-              <button
-                type="button"
-                onClick={() => onAdvanceStatus(order.id, order.status)}
+                onClick={() => onAdvanceStatus(order.id, 'pending')}
                 disabled={isChangingStatus}
                 className="flex items-center gap-2 px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-lg shadow-emerald-600/30 transition-all hover:scale-102"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                <span>تأكيد (حل المشكلة)</span>
+                <span>تأكيد الطلب وإبلاغ العميل</span>
               </button>
+            )}
+
+            {order.status === 'confirmed' && (
+              <span className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-500/10 text-emerald-400 text-sm font-bold border border-emerald-500/20">
+                <CheckCircle2 className="w-4 h-4" />
+                <span>الطلب مؤكد</span>
+              </span>
             )}
           </div>
         </div>

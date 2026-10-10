@@ -47,15 +47,37 @@ export default async function OrdersPage() {
     rawItems = items || [];
   }
 
-  // Combine orders with their associated order items
+  // Fetch active branches and active offers for filtering and display
+  const { data: branches } = await supabase
+    .from('branches')
+    .select('id, name')
+    .eq('is_active', true)
+    .order('name');
+
+  const { data: offers } = await supabase
+    .from('offers')
+    .select('id, title')
+    .eq('is_active', true)
+    .order('created_at', { ascending: false });
+
+  const activeBranches = branches || [];
+  const activeOffers = offers || [];
+
+  // Combine orders with their associated order items, branch, and offer
   const initialOrders: OrderWithItems[] = rawOrders.map((order) => ({
     ...order,
     order_items: rawItems.filter((item) => item.order_id === order.id),
+    branch: activeBranches.find((b) => b.id === order.branch_id) || null,
+    offer: activeOffers.find((o) => o.id === order.offer_id) || null,
   }));
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
-      <OrderKanban initialOrders={initialOrders} />
+      <OrderKanban
+        initialOrders={initialOrders}
+        branches={activeBranches}
+        offers={activeOffers}
+      />
     </div>
   );
 }

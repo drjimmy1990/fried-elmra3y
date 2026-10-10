@@ -45,7 +45,6 @@ export function OfferModal({
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [isActive, setIsActive] = useState(true);
-  const [sortOrder, setSortOrder] = useState<number>(0);
 
   // States for UX
   const [isUploading, setIsUploading] = useState(false);
@@ -72,7 +71,6 @@ export function OfferModal({
       setStartDate(toDatetimeLocal(offerToEdit.start_date));
       setEndDate(toDatetimeLocal(offerToEdit.end_date));
       setIsActive(offerToEdit.is_active);
-      setSortOrder(offerToEdit.sort_order ?? 0);
       setShowUrlFallback(Boolean(offerToEdit.banner_url));
     } else {
       setTitle('');
@@ -83,7 +81,6 @@ export function OfferModal({
       setStartDate('');
       setEndDate('');
       setIsActive(true);
-      setSortOrder(0);
       setShowUrlFallback(false);
     }
     setFormError(null);
@@ -229,7 +226,6 @@ export function OfferModal({
         start_date: parsedStartDate,
         end_date: parsedEndDate,
         is_active: isActive,
-        sort_order: Number(sortOrder) || 0,
         updated_at: new Date().toISOString(),
       };
 
@@ -546,26 +542,43 @@ export function OfferModal({
             )}
           </div>
 
-          {/* Date Window Row: End Date Only */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
-              <span className="flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-rose-400" />
-                <span>تاريخ ونهاية العرض (ينتهي في)</span>
-              </span>
-              <span className="text-[11px] text-slate-500">اختياري</span>
-            </label>
-            <input
-              type="datetime-local"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-white text-xs focus:outline-none focus:border-amber-500/60"
-            />
+          {/* Date Window Grid: Start Date & End Date */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>تاريخ ووقت بدء العرض</span>
+                </span>
+                <span className="text-[11px] text-slate-500">اختياري</span>
+              </label>
+              <input
+                type="datetime-local"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-white text-xs focus:outline-none focus:border-amber-500/60"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-rose-400" />
+                  <span>تاريخ ووقت انتهاء العرض</span>
+                </span>
+                <span className="text-[11px] text-slate-500">اختياري</span>
+              </label>
+              <input
+                type="datetime-local"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-white text-xs focus:outline-none focus:border-amber-500/60"
+              />
+            </div>
           </div>
 
-          {/* Active Status & Sort Order */}
-          <div className="p-4 rounded-xl bg-slate-950/50 border border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            {/* Active Toggle */}
+          {/* Active Status Toggle */}
+          <div className="p-4 rounded-xl bg-slate-950/50 border border-slate-800/80 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <button
                 type="button"
@@ -590,24 +603,10 @@ export function OfferModal({
                 </span>
                 <span className="text-[11px] text-slate-400 block">
                   {isActive
-                    ? 'يظهر العرض لعملاء المنيو والبوت'
+                    ? 'يظهر العرض لعملاء المنيو وبوت الماسنجر'
                     : 'لن يتمكن العملاء من رؤية العرض حتى يتم تفعيله'}
                 </span>
               </div>
-            </div>
-
-            {/* Sort Order */}
-            <div className="flex items-center gap-2 sm:self-center">
-              <label className="text-xs text-slate-400 font-medium shrink-0">
-                ترتيب العرض:
-              </label>
-              <input
-                type="number"
-                min="0"
-                value={sortOrder}
-                onChange={(e) => setSortOrder(parseInt(e.target.value, 10) || 0)}
-                className="w-20 px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-white text-xs text-center font-bold focus:outline-none focus:border-amber-500/60"
-              />
             </div>
           </div>
 

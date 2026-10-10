@@ -86,6 +86,80 @@ export type Database = {
         }
         Relationships: []
       }
+      branches: {
+        Row: {
+          id: string
+          name: string
+          phone: string | null
+          address: string
+          google_maps_url: string | null
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          phone?: string | null
+          address: string
+          google_maps_url?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          phone?: string | null
+          address?: string
+          google_maps_url?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      branch_delivery_zones: {
+        Row: {
+          id: string
+          branch_id: string
+          zone_name: string
+          delivery_fee: number
+          estimated_delivery_time: string | null
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          branch_id: string
+          zone_name: string
+          delivery_fee?: number
+          estimated_delivery_time?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          branch_id?: string
+          zone_name?: string
+          delivery_fee?: number
+          estimated_delivery_time?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "branch_delivery_zones_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       channel_secrets: {
         Row: {
           channel_id: string
@@ -310,6 +384,9 @@ export type Database = {
           hide_comment: boolean
           create_complaint: boolean
           notify_staff: boolean
+          comment_image_url: string | null
+          delete_keywords: string[]
+          auto_delete: boolean
           is_active: boolean
           total_triggers: number
           last_triggered_at: string | null
@@ -337,6 +414,9 @@ export type Database = {
           hide_comment?: boolean
           create_complaint?: boolean
           notify_staff?: boolean
+          comment_image_url?: string | null
+          delete_keywords?: string[]
+          auto_delete?: boolean
           is_active?: boolean
           total_triggers?: number
           last_triggered_at?: string | null
@@ -364,6 +444,9 @@ export type Database = {
           hide_comment?: boolean
           create_complaint?: boolean
           notify_staff?: boolean
+          comment_image_url?: string | null
+          delete_keywords?: string[]
+          auto_delete?: boolean
           is_active?: boolean
           total_triggers?: number
           last_triggered_at?: string | null
@@ -396,6 +479,11 @@ export type Database = {
           reply_delay_max_sec: number
           ignore_nested_replies: boolean
           ignore_mentions_only: boolean
+          branches_image_url: string | null
+          menu_image_url: string | null
+          offers_image_url: string | null
+          action_assets: Json
+          fallback_dm_message: string | null
           updated_at: string
         }
         Insert: {
@@ -413,6 +501,11 @@ export type Database = {
           reply_delay_max_sec?: number
           ignore_nested_replies?: boolean
           ignore_mentions_only?: boolean
+          branches_image_url?: string | null
+          menu_image_url?: string | null
+          offers_image_url?: string | null
+          action_assets?: Json
+          fallback_dm_message?: string | null
           updated_at?: string
         }
         Update: {
@@ -430,6 +523,11 @@ export type Database = {
           reply_delay_max_sec?: number
           ignore_nested_replies?: boolean
           ignore_mentions_only?: boolean
+          branches_image_url?: string | null
+          menu_image_url?: string | null
+          offers_image_url?: string | null
+          action_assets?: Json
+          fallback_dm_message?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -442,7 +540,6 @@ export type Database = {
           customer_name: string
           customer_phone: string | null
           issue_description: string
-          priority: Database["public"]["Enums"]["complaint_priority"]
           status: Database["public"]["Enums"]["complaint_status"]
           assigned_to: string | null
           resolution_notes: string | null
@@ -460,7 +557,6 @@ export type Database = {
           customer_name: string
           customer_phone?: string | null
           issue_description: string
-          priority?: Database["public"]["Enums"]["complaint_priority"]
           status?: Database["public"]["Enums"]["complaint_status"]
           assigned_to?: string | null
           resolution_notes?: string | null
@@ -478,7 +574,6 @@ export type Database = {
           customer_name?: string
           customer_phone?: string | null
           issue_description?: string
-          priority?: Database["public"]["Enums"]["complaint_priority"]
           status?: Database["public"]["Enums"]["complaint_status"]
           assigned_to?: string | null
           resolution_notes?: string | null
@@ -686,7 +781,6 @@ export type Database = {
           start_date: string | null
           end_date: string | null
           is_active: boolean
-          sort_order: number
           created_at: string
           updated_at: string
         }
@@ -700,7 +794,6 @@ export type Database = {
           start_date?: string | null
           end_date?: string | null
           is_active?: boolean
-          sort_order?: number
           created_at?: string
           updated_at?: string
         }
@@ -714,7 +807,6 @@ export type Database = {
           start_date?: string | null
           end_date?: string | null
           is_active?: boolean
-          sort_order?: number
           created_at?: string
           updated_at?: string
         }
@@ -770,13 +862,15 @@ export type Database = {
           delivery_fee: number
           total_amount: number
           status: Database["public"]["Enums"]["order_status"]
-          payment_method: string
+          payment_method: string | null
           internal_notes: string | null
           source: string
           created_at: string
           updated_at: string
           channel_id: string | null
           customer_notes: string | null
+          branch_id: string | null
+          offer_id: string | null
         }
         Insert: {
           id?: string
@@ -789,13 +883,15 @@ export type Database = {
           delivery_fee?: number
           total_amount?: number
           status?: Database["public"]["Enums"]["order_status"]
-          payment_method?: string
+          payment_method?: string | null
           internal_notes?: string | null
           source?: string
           created_at?: string
           updated_at?: string
           channel_id?: string | null
           customer_notes?: string | null
+          branch_id?: string | null
+          offer_id?: string | null
         }
         Update: {
           id?: string
@@ -808,13 +904,15 @@ export type Database = {
           delivery_fee?: number
           total_amount?: number
           status?: Database["public"]["Enums"]["order_status"]
-          payment_method?: string
+          payment_method?: string | null
           internal_notes?: string | null
           source?: string
           created_at?: string
           updated_at?: string
           channel_id?: string | null
           customer_notes?: string | null
+          branch_id?: string | null
+          offer_id?: string | null
         }
         Relationships: [
           {
@@ -829,6 +927,20 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
             referencedColumns: ["id"]
           },
         ]
@@ -932,9 +1044,8 @@ export type Database = {
       }
     }
     Enums: {
-      complaint_priority: 'low' | 'medium' | 'high' | 'urgent'
-      complaint_status: 'open' | 'in_progress' | 'resolved' | 'closed'
-      order_status: 'confirmed' | 'issue' | 'cancelled'
+      complaint_status: 'open' | 'resolved'
+      order_status: 'pending' | 'confirmed'
       rule_match_type: 'any' | 'keywords'
       user_role: 'admin' | 'order_agent' | 'support_agent'
     }
@@ -954,7 +1065,6 @@ export type Enums<T extends keyof PublicSchema["Enums"]> = PublicSchema["Enums"]
 export type UserRole = Enums<"user_role">
 export type OrderStatus = Enums<"order_status">
 export type ComplaintStatus = Enums<"complaint_status">
-export type ComplaintPriority = Enums<"complaint_priority">
 export type RuleMatchType = Enums<"rule_match_type">
 export type CommentDecision = Tables<"comment_events">["decision"]
 export type ChannelStatus = Tables<"channels">["status"]

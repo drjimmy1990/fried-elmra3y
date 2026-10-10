@@ -6,8 +6,8 @@ import { sendMessengerMessage } from '@/lib/meta/messenger';
 
 export async function POST(request: NextRequest) {
   try {
-    // 1. Verify authenticated user
-    const staff = await requireStaff(['admin', 'support_agent', 'order_agent']);
+    // 1. Verify authenticated user (admin only per owner requirement)
+    const staff = await requireStaff(['admin']);
     if (!staff.ok) {
       return staff.response;
     }

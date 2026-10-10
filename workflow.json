@@ -1,0 +1,3733 @@
+{
+    "nodes": [
+        {
+            "parameters": {
+                "path": "meta-router",
+                "responseMode": "responseNode",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2.1,
+            "position": [
+                -352,
+                -896
+            ],
+            "id": "0a561782-cd6d-4091-9dec-86a09da48d92",
+            "name": "Webhook",
+            "webhookId": "2e29874b-0ba9-479e-ac43-8958ab37d8b5"
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ $json.query.hub_challenge }}",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1.5,
+            "position": [
+                352,
+                -928
+            ],
+            "id": "ef769e4e-4b51-4dfb-bcdf-14bb5a49b185",
+            "name": "Respond to Webhook"
+        },
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "meta-router",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2.1,
+            "position": [
+                -400,
+                352
+            ],
+            "id": "c2867ce3-4532-40c4-bd06-3edc28150a75",
+            "name": "Webhook1",
+            "webhookId": "2e29874b-0ba9-479e-ac43-8958ab37d8b5"
+        },
+        {
+            "parameters": {
+                "jsCode": "const router = $('Build Event Context').first().json;\nconst settings = $input.first()?.json || {};\n\nconst event = router.event || {};\nconst channel = router.channel || {};\n\nconst commentText = (event.message || '').trim();\nconst commenterName = event.from?.name || 'العميل';\nconst commenterId = event.from?.id || '';\nconst systemPrompt = settings.ai_system_prompt || '';\n\n// 1. Dynamic action assets from dashboard\nconst actionAssets = Array.isArray(settings.action_assets) ? settings.action_assets : [];\nconst actionsDescriptions = actionAssets\n  .map(a => `- \"${a.name}\": ${a.description || a.label}`)\n  .join('\\n');\nconst allowedActionKeys = ['\"normal\"', ...actionAssets.map(a => `\"${a.name}\"`)].join(' | ');\n\n// 2. Fallback DM message from dashboard\nconst fallbackDmMessage = settings.fallback_dm_message || 'أهلاً بحضرتك يا فندم نورتنا! 🍗 تقدر تطلب أو تستفسر عن أي حاجة من هنا مباشرة 🛵';\n\n// 3. Anti-spam delay\nconst minDelay = settings.reply_delay_min_sec || 5;\nconst maxDelay = settings.reply_delay_max_sec || 40;\nconst delaySeconds = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;\n\nreturn [{\n  json: {\n    token: channel.token,\n    page_id: channel.page_id,\n    post_id: event.post_id,\n    comment_id: event.comment_id,\n    commenter_id: commenterId,\n    commenter_name: commenterName,\n    comment_text: commentText,\n    \n    system_prompt: systemPrompt,\n    action_assets: actionAssets,\n    fallback_dm_message: fallbackDmMessage,\n    available_actions_text: actionsDescriptions,\n    allowed_actions_keys: allowedActionKeys,\n    reply_delay_sec: delaySeconds,\n    ai_enabled: Boolean(settings.ai_enabled),\n  }\n}];"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                3808,
+                -1264
+            ],
+            "id": "83f9fc97-923d-40f6-9499-bb32b6c1c0ad",
+            "name": "Code in JavaScript2"
+        },
+        {
+            "parameters": {
+                "jsCode": "const item = $input.first();\nlet raw = '';\ntry { if (item.binary?.data) raw = (await this.helpers.getBinaryDataBuffer(0, 'data')).toString('utf8'); } catch (e) {}\nlet body = item.json.body;\nif (!body || typeof body !== 'object' || !body.object) {\n  try { body = JSON.parse(raw || '{}'); } catch (e) { body = {}; }\n}\n\n// Ignore anything not from a Facebook Page\nif (body.object !== 'page') return [];\n\nconst signature = item.json.headers?.['x-hub-signature-256'] || '';\nconst out = [];\n\nfor (const entry of body.entry || []) {\n  const page_id = String(entry.id);\n\n  // 1. Post Comments\n  for (const ch of entry.changes || []) {\n    if (ch.field === 'feed' && ch.value?.item === 'comment' && ch.value?.verb === 'add') {\n      out.push({\n        json: {\n          kind: 'comment',\n          page_id,\n          payload: ch.value,\n          signature,\n          raw_body: raw,\n        },\n      });\n    }\n  }\n\n  // 2. Messenger Chats & Postbacks\n  for (const m of entry.messaging || []) {\n    out.push({\n      json: {\n        kind: 'messaging',\n        page_id,\n        payload: m,\n        signature,\n        raw_body: raw,\n      },\n    });\n  }\n}\n\nreturn out;"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                -16,
+                352
+            ],
+            "id": "2dcf74df-50d6-4731-a116-bf984c220c20",
+            "name": "Split Events"
+        },
+        {
+            "parameters": {
+                "operation": "getAll",
+                "tableId": "channels",
+                "filters": {
+                    "conditions": [
+                        {
+                            "keyName": "external_id",
+                            "condition": "eq",
+                            "keyValue": "={{ $json.page_id }}"
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                560,
+                336
+            ],
+            "id": "ee9458a5-52d7-4a06-b3a0-fdfbe932cfbb",
+            "name": "Get Channel",
+            "credentials": {
+                "supabaseApi": {
+                    "id": "lHat8Ea0pmCtW6WD",
+                    "name": "dr.gimy11 messnenger"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "get",
+                "tableId": "channel_secrets",
+                "filters": {
+                    "conditions": [
+                        {
+                            "keyName": "channel_id",
+                            "keyValue": "={{ $json.id }}"
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                864,
+                336
+            ],
+            "id": "84e6f29d-0310-4ac0-a374-e014ebabafda",
+            "name": "Get Channel Secret",
+            "credentials": {
+                "supabaseApi": {
+                    "id": "lHat8Ea0pmCtW6WD",
+                    "name": "dr.gimy11 messnenger"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "const ev = $('Split Events').first().json;\nconst ch = $('Get Channel').first().json;\nconst sec = $input.first().json;\n\nreturn [{\n  json: {\n    kind: ev.kind,\n    channel: {\n      id: ch.id,\n      page_id: ch.external_id,\n      name: ch.name,\n      token: sec.access_token,\n    },\n    event: ev.payload,\n  }\n}];"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1216,
+                320
+            ],
+            "id": "ec867266-6492-4484-8d66-29b9fad6c9a0",
+            "name": "Build Event Context"
+        },
+        {
+            "parameters": {
+                "rules": {
+                    "values": [
+                        {
+                            "conditions": {
+                                "options": {
+                                    "caseSensitive": true,
+                                    "leftValue": "",
+                                    "typeValidation": "strict",
+                                    "version": 3
+                                },
+                                "conditions": [
+                                    {
+                                        "leftValue": "={{ $json.kind }}",
+                                        "rightValue": "comment",
+                                        "operator": {
+                                            "type": "string",
+                                            "operation": "equals"
+                                        },
+                                        "id": "bac86b86-a70a-4fca-8ad7-683d51bbe7c3"
+                                    }
+                                ],
+                                "combinator": "and"
+                            },
+                            "renameOutput": true,
+                            "outputKey": "comment"
+                        },
+                        {
+                            "conditions": {
+                                "options": {
+                                    "caseSensitive": true,
+                                    "leftValue": "",
+                                    "typeValidation": "strict",
+                                    "version": 3
+                                },
+                                "conditions": [
+                                    {
+                                        "id": "d64ae2cc-a676-4853-98c5-c9f150b5aca2",
+                                        "leftValue": "={{ $json.kind }}",
+                                        "rightValue": "messaging",
+                                        "operator": {
+                                            "type": "string",
+                                            "operation": "equals"
+                                        }
+                                    }
+                                ],
+                                "combinator": "and"
+                            },
+                            "renameOutput": true,
+                            "outputKey": "messaging"
+                        }
+                    ]
+                },
+                "options": {
+                    "fallbackOutput": "extra"
+                }
+            },
+            "type": "n8n-nodes-base.switch",
+            "typeVersion": 3.4,
+            "position": [
+                1456,
+                288
+            ],
+            "id": "5b752b86-971c-481e-a44f-f4604f0c3ac9",
+            "name": "Route by Kind"
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict",
+                        "version": 3
+                    },
+                    "conditions": [
+                        {
+                            "id": "0645ed96-1c7e-4b80-8d88-0ab3a852f8c4",
+                            "leftValue": "={{ $json.event.from.id }}",
+                            "rightValue": "={{ $json.channel.page_id }}",
+                            "operator": {
+                                "type": "string",
+                                "operation": "notEquals"
+                            }
+                        },
+                        {
+                            "id": "ddf5b173-24d4-4ac9-b54e-be72d0412913",
+                            "leftValue": "={{ $json.event.parent_id }}",
+                            "rightValue": "={{ $json.event.post_id }}",
+                            "operator": {
+                                "type": "string",
+                                "operation": "equals"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2.3,
+            "position": [
+                1600,
+                -560
+            ],
+            "id": "2bbe89f2-5c76-43fa-806a-86595e13155d",
+            "name": "Check Valid Comment"
+        },
+        {
+            "parameters": {
+                "operation": "getAll",
+                "tableId": "comment_settings",
+                "returnAll": true
+            },
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                3216,
+                -1264
+            ],
+            "id": "4f08057d-6e89-4c0e-abcf-8f93e2a4cb3e",
+            "name": "Get Comment Settings",
+            "credentials": {
+                "supabaseApi": {
+                    "id": "lHat8Ea0pmCtW6WD",
+                    "name": "dr.gimy11 messnenger"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "getAll",
+                "tableId": "comment_rules",
+                "returnAll": true,
+                "filters": {
+                    "conditions": [
+                        {
+                            "keyName": "facebook_post_id",
+                            "condition": "eq",
+                            "keyValue": "={{ $('Build Event Context').first().json.event.post_id }}"
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                2160,
+                -1376
+            ],
+            "id": "e8dc2b24-7816-4dd6-b32a-263d6ff28772",
+            "name": "Get Post Rules",
+            "alwaysOutputData": true,
+            "credentials": {
+                "supabaseApi": {
+                    "id": "lHat8Ea0pmCtW6WD",
+                    "name": "dr.gimy11 messnenger"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "const context = $('Build Event Context').first().json;\nconst rules = $input.all().map(i => i.json).filter(r => r && r.id);\n\nconst commentText = (context.event?.message || '').toLowerCase().trim();\nlet matchedRule = null;\nlet isToxic = false;\n\n// 1. Find active rule for this post\nfor (const rule of rules) {\n  if (rule.is_active === false) continue;\n\n  // Check toxic / forbidden words first\n  if (Array.isArray(rule.delete_keywords) && rule.delete_keywords.length > 0) {\n    const hasToxic = rule.delete_keywords.some(kw => kw && commentText.includes(kw.trim().toLowerCase()));\n    if (hasToxic) {\n      matchedRule = rule;\n      isToxic = true;\n      break;\n    }\n  }\n\n  // Check trigger condition\n  if (rule.trigger_type === 'any') {\n    matchedRule = rule;\n    break;\n  } else if (rule.trigger_type === 'keywords' && Array.isArray(rule.keywords)) {\n    const hasKeyword = rule.keywords.some(kw => kw && commentText.includes(kw.trim().toLowerCase()));\n    if (hasKeyword) {\n      matchedRule = rule;\n      break;\n    }\n  }\n}\n\n// 2. If a rule matched\nif (matchedRule) {\n  if (isToxic) {\n    return [{\n      json: {\n        rule_matched: true,\n        action: 'delete',\n        token: context.channel.token,\n        page_id: context.channel.page_id,\n        comment_id: context.event.comment_id,\n        commenter_name: context.event?.from?.name || 'العميل',\n        comment_text: context.event?.message || '',\n        auto_delete: Boolean(matchedRule.auto_delete),\n        should_hide: !Boolean(matchedRule.auto_delete),\n        send_dm: Boolean(matchedRule.dm_enabled && matchedRule.dm_message),\n        dm_message: matchedRule.dm_message || null,\n      }\n    }];\n  }\n\n  // Normal rule execution (single or randomized variations)\n  const replies = Array.isArray(matchedRule.reply_variations) && matchedRule.reply_variations.length > 0\n    ? matchedRule.reply_variations\n    : [];\n  const selectedReply = replies.length > 0\n    ? replies[Math.floor(Math.random() * replies.length)]\n    : null;\n\n  return [{\n    json: {\n      rule_matched: true,\n      action: 'normal',\n      token: context.channel.token,\n      page_id: context.channel.page_id,\n      comment_id: context.event.comment_id,\n      commenter_name: context.event?.from?.name || 'العميل',\n      comment_text: context.event?.message || '',\n      send_public_reply: Boolean(matchedRule.reply_enabled !== false && selectedReply),\n      public_reply: selectedReply,\n      comment_image_url: matchedRule.comment_image_url || null,\n      auto_like: Boolean(matchedRule.like_comment !== false),\n      send_dm: Boolean(matchedRule.dm_enabled && matchedRule.dm_message),\n      dm_message: matchedRule.dm_message || null,\n    }\n  }];\n}\n\n// 3. No rule matched -> Proceed to AI branch!\nreturn [{\n  json: {\n    rule_matched: false,\n  }\n}];"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                2432,
+                -1376
+            ],
+            "id": "d329edb9-8046-4942-b590-7684f2999aae",
+            "name": "Check Post Rule Match"
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict",
+                        "version": 3
+                    },
+                    "conditions": [
+                        {
+                            "id": "baa5742e-f82b-492f-aea2-131e9be2121e",
+                            "leftValue": "={{ $json.rule_matched }}",
+                            "rightValue": false,
+                            "operator": {
+                                "type": "boolean",
+                                "operation": "true",
+                                "singleValue": true
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2.3,
+            "position": [
+                2896,
+                -1712
+            ],
+            "id": "876b21ba-22ee-4a1e-9376-402e9a08c45d",
+            "name": "If"
+        },
+        {
+            "parameters": {
+                "promptType": "define",
+                "text": "=ممكن المنيو",
+                "messages": {
+                    "messageValues": [
+                        {
+                            "message": "={{ $json.system_prompt }}\n\n### قائمة الإجراءات والصور المتاحة حالياً:\n- \"normal\": لأي استفسار عام، شكر، أو تعليق عادي لا يتطلب صورة مرفقة.\n\n{{ $json.available_actions_text }}\n\n### صيغة الإخراج الإلزامية (JSON فقط بدون أي كود أو Markdown خارجي):\n{\n  \"decision\": \"KEEP\" | \"DELETE\",\n  \"action\": {{ $json.allowed_actions_keys }},\n  \"is_complaint\": true | false,\n  \"public_reply\": \"نص الرد العام هنا\",\n  \"dm_message\": \"نص الرسالة الخاصة الترحيبية هنا\"\n}"
+                        }
+                    ]
+                },
+                "batching": {}
+            },
+            "type": "@n8n/n8n-nodes-langchain.chainLlm",
+            "typeVersion": 1.9,
+            "position": [
+                4256,
+                -1296
+            ],
+            "id": "0c71f845-cdfc-4c10-924d-601d5dfa0915",
+            "name": "Basic LLM Chain"
+        },
+        {
+            "parameters": {
+                "jsCode": "const prev = $('Code in JavaScript2').first().json;\n\nlet inputItem = $input.first()?.json || {};\nlet raw = \"\";\n\nif (typeof inputItem === 'string') {\n  raw = inputItem;\n} else if (inputItem.text) {\n  raw = typeof inputItem.text === 'string' ? inputItem.text : JSON.stringify(inputItem.text);\n} else if (inputItem.output) {\n  raw = typeof inputItem.output === 'string' ? inputItem.output : JSON.stringify(inputItem.output);\n} else if (inputItem.message?.content) {\n  raw = typeof inputItem.message.content === 'string' ? inputItem.message.content : JSON.stringify(inputItem.message.content);\n} else if (inputItem.decision || inputItem.action || inputItem.public_reply) {\n  raw = JSON.stringify(inputItem);\n} else {\n  raw = JSON.stringify(inputItem);\n}\n\n// 1. Clean markdown blocks\nraw = raw.replace(/```json/gi, \"\").replace(/```/g, \"\").trim();\n\n// 2. Fallback DM message loaded directly from your Dashboard settings\nconst dashboardFallbackDm = (prev.fallback_dm_message || \"\").trim() || \"أهلاً بحضرتك يا فندم نورتنا! 🍗 تقدر تطلب أو تستفسر عن أي حاجة من هنا مباشرة 🛵\";\n\n// 3. Extract JSON object\nconst match = raw.match(/\\{[\\s\\S]*\\}/);\nif (!match) {\n  const isDelete = raw.toUpperCase().includes(\"DELETE\");\n  return [{\n    json: {\n      token: prev.token,\n      page_id: prev.page_id,\n      post_id: prev.post_id,\n      comment_id: prev.comment_id,\n      commenter_id: prev.commenter_id,\n      commenter_name: prev.commenter_name,\n      comment_text: prev.comment_text,\n      reply_delay_sec: prev.reply_delay_sec,\n\n      decision: isDelete ? \"DELETE\" : \"KEEP\",\n      action: \"normal\",\n      is_complaint: false,\n      public_reply: raw,\n      send_dm: !isDelete,\n      dm_message: dashboardFallbackDm\n    }\n  }];\n}\n\nlet jsonString = match[0];\n\n// 4. Fix unescaped newlines inside strings\nlet fixed = \"\";\nlet inString = false;\nlet escaped = false;\n\nfor (let i = 0; i < jsonString.length; i++) {\n  const ch = jsonString[i];\n  if (!inString) {\n    fixed += ch;\n    if (ch === '\"') inString = true;\n  } else {\n    if (escaped) {\n      fixed += ch;\n      escaped = false;\n    } else if (ch === \"\\\\\") {\n      fixed += ch;\n      escaped = true;\n    } else if (ch === '\"') {\n      fixed += ch;\n      inString = false;\n    } else if (ch === \"\\n\") {\n      fixed += \"\\\\n\";\n    } else if (ch === \"\\r\") {\n      // ignore CR\n    } else {\n      fixed += ch;\n    }\n  }\n}\n\nlet parsed = {};\ntry {\n  parsed = JSON.parse(fixed);\n} catch (err) {\n  try {\n    parsed = JSON.parse(jsonString);\n  } catch (err2) {\n    parsed = {\n      decision: \"KEEP\",\n      action: \"normal\",\n      is_complaint: false,\n      public_reply: raw,\n      dm_message: \"\"\n    };\n  }\n}\n\nconst isKeep = parsed.decision !== \"DELETE\";\nconst action = String(parsed.action || \"normal\").toLowerCase().trim();\n\n// Use AI dm_message if provided, otherwise use the dashboard fallback message\nconst finalDmMessage = (parsed.dm_message && parsed.dm_message.trim().length > 0)\n  ? parsed.dm_message.trim()\n  : dashboardFallbackDm;\n\nreturn [{\n  json: {\n    token: prev.token,\n    page_id: prev.page_id,\n    post_id: prev.post_id,\n    comment_id: prev.comment_id,\n    commenter_id: prev.commenter_id,\n    commenter_name: prev.commenter_name,\n    comment_text: prev.comment_text,\n    reply_delay_sec: prev.reply_delay_sec,\n\n    // Decision & Action Fields\n    decision: isKeep ? \"KEEP\" : \"DELETE\",\n    action: action,\n    is_complaint: Boolean(parsed.is_complaint),\n    public_reply: parsed.public_reply || \"\",\n    \n    // Always send DM for any KEEP comment using dashboard fallback if needed\n    send_dm: isKeep,\n    dm_message: isKeep ? finalDmMessage : \"\"\n  }\n}];"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                4784,
+                -1232
+            ],
+            "id": "5c1e6f19-62c2-4232-a4c3-747faff96ad3",
+            "name": "Code in JavaScript"
+        },
+        {
+            "parameters": {
+                "model": {
+                    "__rl": true,
+                    "value": "qwen3.8-flash",
+                    "mode": "list",
+                    "cachedResultName": "qwen3.8-flash"
+                },
+                "builtInTools": {},
+                "options": {
+                    "textFormat": {
+                        "textOptions": {
+                            "type": "json_object"
+                        }
+                    }
+                }
+            },
+            "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+            "typeVersion": 1.3,
+            "position": [
+                4240,
+                -976
+            ],
+            "id": "6c39c932-632a-44bc-a947-82e32f57c197",
+            "name": "OpenAI Chat Model2",
+            "credentials": {
+                "openAiApi": {
+                    "id": "Arwid7CTslrXwpfL",
+                    "name": "OpenAI account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "rules": {
+                    "values": [
+                        {
+                            "conditions": {
+                                "options": {
+                                    "caseSensitive": true,
+                                    "leftValue": "",
+                                    "typeValidation": "loose",
+                                    "version": 3
+                                },
+                                "conditions": [
+                                    {
+                                        "leftValue": "={{ $json.decision }}",
+                                        "rightValue": "KEEP",
+                                        "operator": {
+                                            "type": "string",
+                                            "operation": "equals"
+                                        },
+                                        "id": "2b4031b6-e887-4218-860e-72940aad724e"
+                                    }
+                                ],
+                                "combinator": "and"
+                            },
+                            "renameOutput": true,
+                            "outputKey": "KEEP"
+                        },
+                        {
+                            "conditions": {
+                                "options": {
+                                    "caseSensitive": true,
+                                    "leftValue": "",
+                                    "typeValidation": "loose",
+                                    "version": 3
+                                },
+                                "conditions": [
+                                    {
+                                        "id": "bad49a03-1208-4f04-98d6-48615ec02b4f",
+                                        "leftValue": "={{ $json.decision }}",
+                                        "rightValue": "DELETE",
+                                        "operator": {
+                                            "type": "string",
+                                            "operation": "equals",
+                                            "name": "filter.operator.equals"
+                                        }
+                                    }
+                                ],
+                                "combinator": "and"
+                            },
+                            "renameOutput": true,
+                            "outputKey": "DELETE"
+                        }
+                    ]
+                },
+                "looseTypeValidation": true,
+                "options": {}
+            },
+            "type": "n8n-nodes-base.switch",
+            "typeVersion": 3.4,
+            "position": [
+                5104,
+                -1376
+            ],
+            "id": "3986e0bb-480a-4d16-a078-ecbd6d3c2e24",
+            "name": "Switch"
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict",
+                        "version": 3
+                    },
+                    "conditions": [
+                        {
+                            "id": "1ac0c083-b9d1-43cb-b178-35f6cb1cc499",
+                            "leftValue": "={{ $json.action }}",
+                            "rightValue": "normal",
+                            "operator": {
+                                "type": "string",
+                                "operation": "equals"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2.3,
+            "position": [
+                5440,
+                -1472
+            ],
+            "id": "d257d211-03da-4f74-b451-7314453915a2",
+            "name": "If1"
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "=https://graph.facebook.com/v24.0/{{ $('If1').item.json.comment_id }}/comments",
+                "sendBody": true,
+                "contentType": "form-urlencoded",
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "access_token",
+                            "value": "={{ $('If1').item.json.token }}"
+                        },
+                        {
+                            "name": "message",
+                            "value": "={{ $('If1').item.json.public_reply }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                6128,
+                -1600
+            ],
+            "id": "d546c388-0572-4b2f-afcf-8701c5b5b46e",
+            "name": "reply comment",
+            "retryOnFail": true,
+            "waitBetweenTries": 5000
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "=https://graph.facebook.com/v24.0/{{ $json.page_id }}/messages",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "access_token",
+                            "value": "={{ $json.token }}"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"recipient\": {\n    \"comment_id\": \"{{ $json.comment_id }}\"\n  },\n  \"message\": {\n    \"text\": \"{{ $json.dm_message }}\"\n  },\n  \"messaging_type\": \"RESPONSE\"\n}",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                5824,
+                -1600
+            ],
+            "id": "8254b40c-ea3d-4863-89e4-88edcedd9602",
+            "name": "private reply1",
+            "retryOnFail": true,
+            "waitBetweenTries": 3000
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "=https://graph.facebook.com/v24.0/{{ $('If1').item.json.comment_id }}/likes",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "access_token",
+                            "value": "={{ $('If1').item.json.token }}"
+                        }
+                    ]
+                },
+                "options": {
+                    "response": {
+                        "response": {
+                            "fullResponse": true
+                        }
+                    }
+                }
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                6416,
+                -1600
+            ],
+            "id": "704624dc-a75f-4332-a158-994f61193965",
+            "name": "HTTP Request9",
+            "retryOnFail": true
+        },
+        {
+            "parameters": {
+                "jsCode": "const prev = $('If1').item.json;\nconst settings = $('Get Comment Settings').first()?.json || {};\nconst action = (prev.action || '').toLowerCase().trim();\n\nconst assets = Array.isArray(settings.action_assets) ? settings.action_assets : [];\nconst matched = assets.find(a => (a.name || '').toLowerCase().trim() === action);\n\nconst imageUrl = matched?.image_url || null;\n\nreturn [{\n  json: {\n    ...prev,\n    image_url: imageUrl,\n    has_image: Boolean(imageUrl)\n  }\n}];"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                6192,
+                -1344
+            ],
+            "id": "9afe8232-aaa0-4a69-ad0a-598d6a50d65b",
+            "name": "Code in JavaScript5"
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "=https://graph.facebook.com/v24.0/{{ $json.comment_id }}/comments",
+                "sendBody": true,
+                "contentType": "form-urlencoded",
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "access_token",
+                            "value": "={{ $('Code in JavaScript5').item.json.token }}"
+                        },
+                        {
+                            "name": "message",
+                            "value": "={{ $('Code in JavaScript5').item.json.public_reply }}"
+                        },
+                        {
+                            "name": "attachment_url",
+                            "value": "={{ $('Code in JavaScript5').item.json.image_url }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.4,
+            "position": [
+                6720,
+                -1344
+            ],
+            "id": "24a3cb08-5929-44ec-8f41-dca1971c5312",
+            "name": "HTTP Request1"
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "=https://graph.facebook.com/v24.0/{{ $('If1').item.json.comment_id }}/likes",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "access_token",
+                            "value": "={{ $('If1').item.json.token }}"
+                        }
+                    ]
+                },
+                "options": {
+                    "response": {
+                        "response": {
+                            "fullResponse": true
+                        }
+                    }
+                }
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                6944,
+                -1344
+            ],
+            "id": "7cec7562-e705-4527-95f1-71d6a0dfbd9d",
+            "name": "HTTP Request10",
+            "retryOnFail": true
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "=https://graph.facebook.com/v23.0/{{ $json.page_id }}/messages",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "access_token",
+                            "value": "={{ $json.token }}"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"recipient\": {\n    \"comment_id\": \"{{ $json.comment_id }}\"\n  },\n  \"message\": {\n    \"text\": \"{{ $json.dm_message || 'معك إدارة المطعم.. نعتذر لحضرتك جداً وممكن توضحلنا تفاصيل المشكلة لحلها فوراً؟' }}\"\n  },\n  \"messaging_type\": \"RESPONSE\"\n}",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                5360,
+                -1136
+            ],
+            "id": "48fcb4d9-5dc8-411e-a814-688bbd7d03c7",
+            "name": "private reply (delete path)",
+            "onError": "continueRegularOutput"
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "=https://graph.facebook.com/v23.0/{{ $('Switch').item.json.comment_id }}",
+                "sendBody": true,
+                "contentType": "form-urlencoded",
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "access_token",
+                            "value": "={{ $('Switch').item.json.token }}"
+                        },
+                        {
+                            "name": "is_hidden",
+                            "value": "true"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                5872,
+                -1120
+            ],
+            "id": "99aadff2-8fbc-4018-b2f4-1706b0d5a840",
+            "name": "hide comment",
+            "retryOnFail": true
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "=https://graph.facebook.com/v24.0/{{ $json.page_id }}/messages",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "access_token",
+                            "value": "={{ $json.token }}"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"recipient\": {\n    \"comment_id\": \"{{ $json.comment_id }}\"\n  },\n  \"message\": {\n    \"text\": \"{{ $json.dm_message }}\"\n  },\n  \"messaging_type\": \"RESPONSE\"\n}",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                6448,
+                -1328
+            ],
+            "id": "4e6d448f-776a-41a3-8f6b-0f95e5033372",
+            "name": "private reply",
+            "retryOnFail": true,
+            "waitBetweenTries": 3000
+        },
+        {
+            "parameters": {
+                "jsCode": "const context = $('Build Event Context').first().json;\nconst rules = $input.all().map(i => i.json).filter(r => r && r.id);\n\nconst commentText = (context.event?.message || '').toLowerCase().trim();\nlet matchedRule = null;\n\n// Check if any rule for this post matches\nfor (const rule of rules) {\n  if (rule.is_active === false) continue;\n\n  if (rule.trigger_type === 'any') {\n    matchedRule = rule;\n    break;\n  } else if (rule.trigger_type === 'keywords' && Array.isArray(rule.keywords)) {\n    const hasKeyword = rule.keywords.some(kw => kw && commentText.includes(kw.trim().toLowerCase()));\n    if (hasKeyword) {\n      matchedRule = rule;\n      break;\n    }\n  }\n}\n\n// 1. If a rule matched on this post (NO AI!):\nif (matchedRule) {\n  const replies = Array.isArray(matchedRule.reply_variations) && matchedRule.reply_variations.length > 0\n    ? matchedRule.reply_variations\n    : ['تم الرد في الخاص يا فندم ❤️'];\n  const selectedReply = replies[Math.floor(Math.random() * replies.length)];\n\n  return [{\n    json: {\n      rule_matched: true,\n      rule_name: matchedRule.name,\n      token: context.channel.token,\n      page_id: context.channel.page_id,\n      comment_id: context.event.comment_id,\n      commenter_name: context.event?.from?.name || 'العميل',\n      comment_text: context.event?.message || '',\n      public_reply: matchedRule.reply_enabled !== false ? selectedReply : null,\n      auto_like: matchedRule.like_comment !== false,\n      should_hide: Boolean(matchedRule.hide_comment),\n      send_dm: Boolean(matchedRule.dm_enabled),\n      dm_message: matchedRule.dm_message || null,\n    }\n  }];\n}\n\n// 2. No rule matched for this post -> proceed to AI!\nreturn [{\n  json: {\n    rule_matched: false,\n  }\n}];"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                2480,
+                -1520
+            ],
+            "id": "5309c531-d9e7-414d-81f3-2b37012480f1",
+            "name": "Check Post Rule Match1"
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict",
+                        "version": 3
+                    },
+                    "conditions": [
+                        {
+                            "id": "d5b209bb-d087-4b0c-a65f-1caf037fba2c",
+                            "leftValue": "={{ $json.send_dm }}",
+                            "rightValue": true,
+                            "operator": {
+                                "type": "boolean",
+                                "operation": "equals"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2.3,
+            "position": [
+                3392,
+                -1936
+            ],
+            "id": "29e50473-fcda-47f2-b3ad-382141b8de4c",
+            "name": "If2"
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "=https://graph.facebook.com/v24.0/{{ $json.page_id }}/messages",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "access_token",
+                            "value": "={{ $json.token }}"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"recipient\": {\n    \"comment_id\": \"{{ $json.comment_id }}\"\n  },\n  \"message\": {\n    \"text\": \"{{ $json.dm_message }}\"\n  },\n  \"messaging_type\": \"RESPONSE\"\n}",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                3824,
+                -2080
+            ],
+            "id": "f8062e1e-6775-41a7-9e64-3535237165e1",
+            "name": "private reply2",
+            "retryOnFail": true,
+            "waitBetweenTries": 3000
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "=https://graph.facebook.com/v24.0/{{ $('Check Post Rule Match').item.json.comment_id }}/comments",
+                "sendBody": true,
+                "contentType": "form-urlencoded",
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "access_token",
+                            "value": "={{ $('Check Post Rule Match').item.json.token }}"
+                        },
+                        {
+                            "name": "message",
+                            "value": "={{ $('Check Post Rule Match').item.json.public_reply }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                4656,
+                -2144
+            ],
+            "id": "4a0f67e3-ffb7-4153-b593-0a3f35391959",
+            "name": "reply comment1",
+            "retryOnFail": true,
+            "waitBetweenTries": 5000
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict",
+                        "version": 3
+                    },
+                    "conditions": [
+                        {
+                            "id": "7fdbbb7f-0f58-408a-bd8e-937c3ceee3a8",
+                            "leftValue": "={{ $('Check Post Rule Match').item.json.send_public_reply }}",
+                            "rightValue": "false",
+                            "operator": {
+                                "type": "boolean",
+                                "operation": "true",
+                                "singleValue": true
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2.3,
+            "position": [
+                4224,
+                -1936
+            ],
+            "id": "8550adc6-0edc-4de5-a5dc-3eadc8da55ac",
+            "name": "If Public Reply"
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict",
+                        "version": 3
+                    },
+                    "conditions": [
+                        {
+                            "id": "b6330359-4cd2-483d-9f96-59413ce9fa4c",
+                            "leftValue": "={{ $('Check Post Rule Match').item.json.auto_like }}",
+                            "rightValue": true,
+                            "operator": {
+                                "type": "boolean",
+                                "operation": "equals"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2.3,
+            "position": [
+                5328,
+                -1936
+            ],
+            "id": "7226949b-c47a-4a9f-93cb-2bd0f36f20ec",
+            "name": "If Auto Like"
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "=https://graph.facebook.com/v24.0/{{ $('Check Post Rule Match').item.json.comment_id }}/likes",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "access_token",
+                            "value": "={{ $('Check Post Rule Match').item.json.token }}"
+                        }
+                    ]
+                },
+                "options": {
+                    "response": {
+                        "response": {
+                            "fullResponse": true
+                        }
+                    }
+                }
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                5648,
+                -2112
+            ],
+            "id": "7a3bbb58-3486-4d11-ae51-e093aa0f90fd",
+            "name": "Like Comment",
+            "retryOnFail": true
+        },
+        {
+            "parameters": {
+                "jsCode": "const item = $input.first().json;\nconst ev = item.event;\nconst ch = item.channel;\n\n// 1. Drop echoes, delivery receipts, read receipts, and messages from the page itself\nif (ev.message?.is_echo || ev.delivery || ev.read || ev.sender?.id === ch.page_id) {\n  return []; // Stops execution cleanly in n8n\n}\n\nconst psid = ev.sender?.id;\nif (!psid) return [];\n\nconst mid = ev.message?.mid || null;\nconst attachment = ev.message?.attachments?.[0];\nconst attachmentType = attachment?.type || null;\nconst attachmentUrl = attachment?.payload?.url || null;\n\nconst isAudio = attachmentType === \"audio\";\nconst isImage = attachmentType === \"image\";\n\nconst audioUrl = isAudio ? attachmentUrl : null;\nconst imageUrl = isImage ? attachmentUrl : null;\n\nconst text = (ev.message?.text || ev.postback?.title || \"\").trim();\nconst payload = ev.postback?.payload || ev.message?.quick_reply?.payload || null;\n\n// 2. Drop if no audio, no image, no text, no quick reply, and no attachment\nif (!isAudio && !isImage && !text && !payload && !attachmentUrl) {\n  return [];\n}\n\nconst messageType = isAudio ? \"audio\" : (isImage ? \"image\" : \"text\");\n\nreturn [{\n  json: {\n    message_type: messageType,\n    is_audio: Boolean(isAudio),\n    audio_url: audioUrl,\n    is_image: Boolean(isImage),\n    image_url: imageUrl,\n    attachment_type: attachmentType,\n    attachment_url: attachmentUrl,\n    text: text || payload || (isImage ? \"[صورة من العميل]\" : \"\"),\n    payload: payload,\n    psid,\n    page_id: ch.page_id,\n    channel_id: ch.id,\n    token: ch.token,\n    mid,\n    timestamp: ev.timestamp || Date.now(),\n  }\n}];"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1664,
+                320
+            ],
+            "id": "parse-messenger-event-id",
+            "name": "Parse Messenger Event"
+        },
+        {
+            "parameters": {
+                "url": "={{ $json.audio_url }}",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                9952,
+                -448
+            ],
+            "id": "download-voice-note-id",
+            "name": "Download Voice Note",
+            "onError": "continueRegularOutput"
+        },
+        {
+            "parameters": {
+                "jsCode": "const items = $input.all();\nfor (let i = 0; i < items.length; i++) {\n  const item = items[i];\n  try {\n    const buffer = await this.helpers.getBinaryDataBuffer(i, \"data\");\n    item.json.audioBase64 = buffer.toString(\"base64\");\n  } catch (e) {\n    item.json.audioBase64 = null;\n  }\n}\nreturn items;"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                10192,
+                -448
+            ],
+            "id": "audio-to-base64-id",
+            "name": "Voice to Base64"
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+                "authentication": "predefinedCredentialType",
+                "nodeCredentialType": "googlePalmApi",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\\n  \\\"contents\\\": [{\\n    \\\"parts\\\":[\\n      {\\\"text\\\": \\\"Transcribe this audio تماما كما ينطقها العميل بالمصرية بدون أي مقدمات أو شروحات\\\"},\\n      {\\\"inlineData\\\": {\\n        \\\"mimeType\\\": \\\"audio/mp4\\\",\\n        \\\"data\\\": \\\"{{ $json.audioBase64 }}\\\"\\n      }}\\n    ]\\n  }]\\n}",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                10448,
+                -448
+            ],
+            "id": "transcribe-voice-note-id",
+            "name": "Transcribe Voice Note",
+            "retryOnFail": true,
+            "credentials": {
+                "googlePalmApi": {
+                    "id": "f5qzhIMAaSz2uchi",
+                    "name": "paid tier1"
+                }
+            },
+            "onError": "continueRegularOutput"
+        },
+        {
+            "parameters": {
+                "jsCode": "const res = $input.first().json;\nconst original = $(\"Parse Messenger Event\").first().json;\nconst transcribed = res.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || \"\";\n\nreturn [{\n  json: {\n    ...original,\n    text: transcribed || original.text || \"[رسالة صوتية]\",\n  }\n}];"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                10704,
+                -448
+            ],
+            "id": "extract-transcribed-text-id",
+            "name": "Extract Transcribed Text"
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "INSERT INTO public.messages (contact_id, sender_type, content, platform_message_id)\nVALUES ('{{ $json.contact_id }}', 'user', '{{ $('Extract Transcribed Text').item ? $('Extract Transcribed Text').item.json.text : $('Parse Messenger Event').item.json.text }}', '{{ $('Parse Messenger Event').item.json.mid }}')\nON CONFLICT (platform_message_id) DO UPDATE SET content = EXCLUDED.content\nRETURNING id AS message_log_id, contact_id, (SELECT ai_enabled FROM public.contacts WHERE id = public.messages.contact_id) AS ai_enabled, (SELECT name FROM public.contacts WHERE id = public.messages.contact_id) AS customer_name;",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.5,
+            "position": [
+                12288,
+                -304
+            ],
+            "id": "store-user-message-id",
+            "name": "Store User Message",
+            "credentials": {
+                "postgres": {
+                    "id": "04KoYjDIxvd2lSQ5",
+                    "name": "messenger project drgimy11"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "loose",
+                        "version": 3
+                    },
+                    "conditions": [
+                        {
+                            "leftValue": "={{ $json.ai_enabled }}",
+                            "rightValue": true,
+                            "operator": {
+                                "type": "boolean",
+                                "operation": "true",
+                                "singleValue": true
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2.3,
+            "position": [
+                12560,
+                -304
+            ],
+            "id": "if-ai-enabled-id",
+            "name": "If AI Enabled"
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "INSERT INTO public.queue (sender_id, message)\nVALUES ('{{ $('Parse Messenger Event').item.json.psid }}', '{{ $('Extract Transcribed Text').item ? $('Extract Transcribed Text').item.json.text : $('Parse Messenger Event').item.json.text }}')\nRETURNING id AS queue_msg_id;",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.5,
+            "position": [
+                12832,
+                -304
+            ],
+            "id": "add-to-queue-id",
+            "name": "Add to Queue",
+            "credentials": {
+                "postgres": {
+                    "id": "04KoYjDIxvd2lSQ5",
+                    "name": "messenger project drgimy11"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "amount": 10
+            },
+            "type": "n8n-nodes-base.wait",
+            "typeVersion": 1.1,
+            "position": [
+                13088,
+                -304
+            ],
+            "id": "wait-10s-id",
+            "name": "Wait 10s Queue",
+            "webhookId": "881aa3f9-b94b-4eda-af98-501455f4aae2"
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "SELECT id, message FROM public.queue\nWHERE sender_id = '{{ $('Parse Messenger Event').item.json.psid }}'\nORDER BY id DESC;",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.5,
+            "position": [
+                13360,
+                -304
+            ],
+            "id": "fetch-queue-id",
+            "name": "Fetch User Queue",
+            "credentials": {
+                "postgres": {
+                    "id": "04KoYjDIxvd2lSQ5",
+                    "name": "messenger project drgimy11"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "loose",
+                        "version": 3
+                    },
+                    "conditions": [
+                        {
+                            "leftValue": "={{ $json.id }}",
+                            "rightValue": "={{ $('Add to Queue').item.json.queue_msg_id }}",
+                            "operator": {
+                                "type": "string",
+                                "operation": "equals"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2.3,
+            "position": [
+                13632,
+                -304
+            ],
+            "id": "if-latest-in-queue-id",
+            "name": "If Latest in Queue"
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "DELETE FROM public.queue WHERE sender_id = '{{ $('Parse Messenger Event').item.json.psid }}';",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.5,
+            "position": [
+                13888,
+                -304
+            ],
+            "id": "clean-queue-id",
+            "name": "Clean User Queue",
+            "credentials": {
+                "postgres": {
+                    "id": "04KoYjDIxvd2lSQ5",
+                    "name": "messenger project drgimy11"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "const allItems = $(\"Fetch User Queue\").all().map(i => i.json);\nconst messages = allItems.map(i => i.message).filter(Boolean).reverse();\nconst combined = messages.join(\"  \");\n\nconst context = $(\"Parse Messenger Event\").first().json;\nlet customerName = \"عميل\";\nlet contactId = null;\n\ntry {\n  const storeMsg = $('Store User Message').first().json;\n  contactId = storeMsg.contact_id;\n  customerName = storeMsg.customer_name || customerName;\n} catch (e) {}\n\nif (!contactId) {\n  try {\n    const created = $('Create Contact with Name').first().json;\n    contactId = created.contact_id;\n    customerName = created.name || customerName;\n  } catch (e) {\n    try {\n      const updated = $('Update Contact Timestamp').first().json;\n      contactId = updated.contact_id;\n      customerName = updated.name || customerName;\n    } catch (e2) {}\n  }\n}\n\nreturn [{\n  json: {\n    combined_message: combined || context.text,\n    psid: context.psid,\n    page_id: context.page_id,\n    token: context.token,\n    contact_id: contactId,\n    customer_name: customerName,\n    channel_id: context.channel_id\n  }\n}];"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                14160,
+                -304
+            ],
+            "id": "combine-messages-id",
+            "name": "Combine Messages"
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "SELECT id AS contact_id, name, phone, address, ai_enabled, needs_human, total_orders\nFROM public.contacts \nWHERE platform_user_id = '{{ $json.psid }}'\nLIMIT 1;",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.5,
+            "position": [
+                10896,
+                -304
+            ],
+            "id": "check-contact-id",
+            "name": "Check Existing Contact",
+            "alwaysOutputData": true,
+            "credentials": {
+                "postgres": {
+                    "id": "04KoYjDIxvd2lSQ5",
+                    "name": "messenger project drgimy11"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "loose",
+                        "version": 3
+                    },
+                    "conditions": [
+                        {
+                            "leftValue": "={{ $json.contact_id }}",
+                            "rightValue": "",
+                            "operator": {
+                                "type": "string",
+                                "operation": "isEmpty",
+                                "singleValue": true
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2.3,
+            "position": [
+                11152,
+                -304
+            ],
+            "id": "if-new-contact-id",
+            "name": "If New Contact"
+        },
+        {
+            "parameters": {
+                "url": "=https://graph.facebook.com/v24.0/{{ $('Parse Messenger Event').item.json.page_id }}/conversations",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "platform",
+                            "value": "messenger"
+                        },
+                        {
+                            "name": "user_id",
+                            "value": "={{ $('Parse Messenger Event').item.json.psid }}"
+                        },
+                        {
+                            "name": "fields",
+                            "value": "id,participants"
+                        },
+                        {
+                            "name": "access_token",
+                            "value": "={{ $('Parse Messenger Event').item.json.token }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                11392,
+                -400
+            ],
+            "id": "get-fb-name-id",
+            "name": "Get FB Profile Name",
+            "onError": "continueRegularOutput"
+        },
+        {
+            "parameters": {
+                "jsCode": "const res = $input.first().json;\nconst context = $('Parse Messenger Event').first().json;\n\nlet customerName = \"عميل ماسنجر\";\ntry {\n  const parts = res.data?.[0]?.participants?.data || res.body?.data?.[0]?.participants?.data || [];\n  const user = parts.find(p => String(p.id) !== String(context.page_id)) || parts[0];\n  if (user?.name) customerName = user.name;\n} catch (e) {}\n\nreturn [{\n  json: {\n    ...context,\n    customer_name: customerName\n  }\n}];"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                11648,
+                -400
+            ],
+            "id": "extract-fb-name-id",
+            "name": "Extract FB Name"
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "UPDATE public.contacts \nSET last_interaction_at = NOW() \nWHERE platform_user_id = '{{ $('Parse Messenger Event').item.json.psid }}'\nRETURNING id AS contact_id, name, phone, address, ai_enabled, needs_human, total_orders;",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.5,
+            "position": [
+                11904,
+                -208
+            ],
+            "id": "update-contact-node-id",
+            "name": "Update Contact Timestamp",
+            "credentials": {
+                "postgres": {
+                    "id": "04KoYjDIxvd2lSQ5",
+                    "name": "messenger project drgimy11"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "promptType": "define",
+                "text": "=الوقت الحالي (مصر): {{ DateTime.now().setZone(\"Africa/Cairo\").format('M/dd/yyyy H:mm') }}\n\nرسالة العميل: {{ $json.combined_message }}\nاسم العميل: {{ $json.customer_name }}\n\nIMPORTANT: If this message requests the menu, branch locations, or has a complaint, call the matching tool immediately. Always reply in friendly Egyptian Arabic. Never output an empty response.",
+                "options": {
+                    "systemMessage": "=أنت المساعد الذكي الرسمي لمطعم فراخ مقلية (بروستد وكريسبي واسترسبس). تتحدث مع العملاء في الرسائل الخاصة بلهجة مصرية ودودة ومختصرة ومحترفة (يا فندم، تحت أمرك، بالهنا والشفا، منورنا).\n\n## 1. قواعد الأدوات (أولوية قصوى):\n- عند طلب المنيو أو الأسعار: استدعِ أداة Menu Tool فوراً لإرسال صورة المنيو للعميل على ماسنجر.\n- عند الاستفسار عن الفروع وأماكن التواجد: استدعِ أداة Branches Tool لإرسال الفروع وأرقام التواصل.\n- عند وجود شكوى بخصوص أوردر أو جودة طعام: اجمع تفاصيل المشكلة ورقم موبايل العميل ثم استدعِ أداة Complaints Tool فوراً لتسجيل الشكوى لإدارة المطعم.\n\n## 2. مواعيد العمل والتوصيل:\n- مواعيد خدمة التوصيل والدليفري من 10:00 صباحاً حتى 3:00 فجراً (بتوقيت القاهرة).\n- الوقت الحالي: {{ DateTime.now().setZone(\"Africa/Cairo\").format('M/dd/yyyy h:mm a') }}\n- لو الوقت خارج مواعيد العمل (بين 3:01 فجراً و 9:59 صباحاً): اعتذر بلطف وأخبر العميل أن خدمة الدليفري مغلقة حالياً وستعاود العمل الساعة 10:00 صباحاً.\n\n## 3. تعليمات عامة:\n- لا تُخرج رداً فارغاً أبداً، اكتب دائماً رداً نصياً ودوداً ومباشراً بعد استدعاء الأدوات.\n- عند الاعتذار لأي عميل، لا تستخدم أبداً عبارة \"تجربة سيئة\"، بل اعتذر بأدب واهتمام واعداً بحل المشكلة فوراً."
+                }
+            },
+            "type": "@n8n/n8n-nodes-langchain.agent",
+            "typeVersion": 3.1,
+            "position": [
+                14496,
+                -304
+            ],
+            "id": "a1b2c3d4-agent-4020-ae52-483b2172a899",
+            "name": "AI Agent"
+        },
+        {
+            "parameters": {
+                "model": {
+                    "__rl": true,
+                    "value": "qwen3.8-flash",
+                    "mode": "list",
+                    "cachedResultName": "qwen3.8-flash"
+                },
+                "builtInTools": {},
+                "options": {}
+            },
+            "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+            "typeVersion": 1.3,
+            "position": [
+                14336,
+                -32
+            ],
+            "id": "b2c3d4e5-model-4020-ae52-483b2172a899",
+            "name": "OpenAI Chat Model",
+            "credentials": {
+                "openAiApi": {
+                    "id": "Arwid7CTslrXwpfL",
+                    "name": "OpenAI account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "sessionIdType": "customKey",
+                "sessionKey": "={{ $('Combine Messages').item.json.psid }}",
+                "tableName": "chat_histories",
+                "contextWindowLength": 30
+            },
+            "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+            "typeVersion": 1.3,
+            "position": [
+                14656,
+                -32
+            ],
+            "id": "c3d4e5f6-memory-4020-ae52-483b2172a899",
+            "name": "Postgres Chat Memory",
+            "credentials": {
+                "postgres": {
+                    "id": "04KoYjDIxvd2lSQ5",
+                    "name": "messenger project drgimy11"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "toolDescription": "Sends the restaurant menu image directly to the customer on Facebook Messenger. Use this tool whenever the customer asks for the menu, prices, or catalog (المنيو، قائمة الطعام، الأسعار). Requires no input.",
+                "method": "POST",
+                "url": "=https://graph.facebook.com/v24.0/{{ $('Combine Messages').item.json.page_id }}/messages",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "access_token",
+                            "value": "={{ $('Combine Messages').item.json.token }}"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $('Combine Messages').item.json.psid }}\"\n  },\n  \"messaging_type\": \"RESPONSE\",\n  \"message\": {\n    \"attachment\": {\n      \"type\": \"image\",\n      \"payload\": {\n        \"url\": \"https://i.postimg.cc/mr9Mwqjn/branches.jpg\",\n        \"is_reusable\": true\n      }\n    }\n  }\n}",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequestTool",
+            "typeVersion": 4.2,
+            "position": [
+                14176,
+                160
+            ],
+            "id": "d4e5f6a1-menu-4020-ae52-483b2172a899",
+            "name": "Menu Tool"
+        },
+        {
+            "parameters": {
+                "toolDescription": "Sends the list of official restaurant branches and locations. Use this tool whenever the customer asks about branches, locations, addresses, or where we are located (الفروع، أماكنكم فين، العنوان). Requires no input.",
+                "method": "POST",
+                "url": "=https://graph.facebook.com/v24.0/{{ $('Combine Messages').item.json.page_id }}/messages",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "access_token",
+                            "value": "={{ $('Combine Messages').item.json.token }}"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $('Combine Messages').item.json.psid }}\"\n  },\n  \"messaging_type\": \"RESPONSE\",\n  \"message\": {\n    \"attachment\": {\n      \"type\": \"image\",\n      \"payload\": {\n        \"url\": \"https://i.postimg.cc/mr9Mwqjn/branches.jpg\",\n        \"is_reusable\": true\n      }\n    }\n  }\n}",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequestTool",
+            "typeVersion": 4.2,
+            "position": [
+                14496,
+                160
+            ],
+            "id": "e5f6a1b2-branches-4020-ae52-483b2172a899",
+            "name": "Branches Tool"
+        },
+        {
+            "parameters": {
+                "toolDescription": "Sends an urgent complaint notification to restaurant management. Call this tool when the customer has a complaint about food quality, missing items, or service, AND you have the complaint details and their mobile phone number. Input: Body — Arabic summary with customer name, phone number, branch name, and complaint details.",
+                "method": "POST",
+                "url": "https://ntfy.pr-media.forum/ALERTS",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Title",
+                            "value": "NEW COMPLAINT - FRIED CHICKEN"
+                        },
+                        {
+                            "name": "Priority",
+                            "value": "urgent"
+                        },
+                        {
+                            "name": "Tags",
+                            "value": "warning,poultry_leg"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "contentType": "raw",
+                "rawContentType": "text/plain",
+                "body": "=Customer: {{ $('Combine Messages').item.json.customer_name }}\nPSID: {{ $('Combine Messages').item.json.psid }}\n{{ $fromAI('Body', 'ملخص تفصيلي للشكوى بالعربي ورقم موبايل العميل', 'string') }}",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequestTool",
+            "typeVersion": 4.2,
+            "position": [
+                14816,
+                160
+            ],
+            "id": "f6a1b2c3-complaints-4020-ae52-483b2172a899",
+            "name": "Complaints Tool"
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "INSERT INTO public.messages (contact_id, sender_type, content)\nVALUES ('{{ $('Combine Messages').item.json.contact_id }}', 'bot', '{{ $json.output }}')\nRETURNING id AS bot_msg_id;",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.5,
+            "position": [
+                14976,
+                -304
+            ],
+            "id": "a2b3c4d5-save-4020-ae52-483b2172a899",
+            "name": "Save Bot Message",
+            "credentials": {
+                "postgres": {
+                    "id": "04KoYjDIxvd2lSQ5",
+                    "name": "messenger project drgimy11"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "=https://graph.facebook.com/v24.0/{{ $('Combine Messages').item.json.page_id }}/messages",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "access_token",
+                            "value": "={{ $('Combine Messages').item.json.token }}"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $('Combine Messages').item.json.psid }}\"\n  },\n  \"message\": {\n    \"text\": \"{{ $('AI Agent').item.json.output }}\"\n  },\n  \"messaging_type\": \"RESPONSE\"\n}",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                15312,
+                -304
+            ],
+            "id": "b3c4d5e6-send-4020-ae52-483b2172a899",
+            "name": "Send Messenger Reply"
+        },
+        {
+            "parameters": {
+                "rules": {
+                    "values": [
+                        {
+                            "conditions": {
+                                "options": {
+                                    "caseSensitive": true,
+                                    "leftValue": "",
+                                    "typeValidation": "loose",
+                                    "version": 3
+                                },
+                                "conditions": [
+                                    {
+                                        "leftValue": "={{ $json.MESSAGE_TYPE }}",
+                                        "rightValue": "audio",
+                                        "operator": {
+                                            "type": "string",
+                                            "operation": "equals"
+                                        },
+                                        "id": "3293bfdb-ba96-4a83-b3fc-3fe079314c9f"
+                                    }
+                                ],
+                                "combinator": "and"
+                            },
+                            "renameOutput": true,
+                            "outputKey": "audio"
+                        },
+                        {
+                            "conditions": {
+                                "options": {
+                                    "caseSensitive": true,
+                                    "leftValue": "",
+                                    "typeValidation": "loose",
+                                    "version": 3
+                                },
+                                "conditions": [
+                                    {
+                                        "leftValue": "={{ $json.MESSAGE_TYPE }}",
+                                        "rightValue": "image",
+                                        "operator": {
+                                            "type": "string",
+                                            "operation": "equals"
+                                        },
+                                        "id": "9ca12713-9ece-4bf8-b0ee-071dff5f51cf"
+                                    }
+                                ],
+                                "combinator": "and"
+                            },
+                            "renameOutput": true,
+                            "outputKey": "image"
+                        },
+                        {
+                            "conditions": {
+                                "options": {
+                                    "caseSensitive": true,
+                                    "leftValue": "",
+                                    "typeValidation": "loose",
+                                    "version": 3
+                                },
+                                "conditions": [
+                                    {
+                                        "id": "26f28169-5a00-4648-8b01-c697dc285e78",
+                                        "leftValue": "={{ $json.MESSAGE_TYPE }}",
+                                        "rightValue": "text",
+                                        "operator": {
+                                            "type": "string",
+                                            "operation": "equals",
+                                            "name": "filter.operator.equals"
+                                        }
+                                    }
+                                ],
+                                "combinator": "and"
+                            },
+                            "renameOutput": true,
+                            "outputKey": "text"
+                        }
+                    ]
+                },
+                "looseTypeValidation": true,
+                "options": {
+                    "fallbackOutput": "extra",
+                    "renameFallbackOutput": "FALLBACK"
+                }
+            },
+            "type": "n8n-nodes-base.switch",
+            "typeVersion": 3.4,
+            "position": [
+                3920,
+                768
+            ],
+            "id": "switch-msg-type-4020-ae52-483b2172a899",
+            "name": "Switch Message Type"
+        },
+        {
+            "parameters": {
+                "operation": "getAll",
+                "tableId": "contacts",
+                "filters": {
+                    "conditions": [
+                        {
+                            "keyName": "platform_user_id",
+                            "condition": "eq",
+                            "keyValue": "={{ $json.psid }}"
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                2032,
+                496
+            ],
+            "id": "0191f7b7-43e9-4b26-bf3f-24425280807c",
+            "name": "Supabase7",
+            "alwaysOutputData": true,
+            "retryOnFail": true,
+            "maxTries": 5,
+            "credentials": {
+                "supabaseApi": {
+                    "id": "lHat8Ea0pmCtW6WD",
+                    "name": "dr.gimy11 messnenger"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "loose",
+                        "version": 2
+                    },
+                    "conditions": [
+                        {
+                            "id": "5484e68b-7fb5-4d24-9df7-d34c575fc807",
+                            "leftValue": "={{ $('Supabase7').item.json.isEmpty()}}",
+                            "rightValue": "",
+                            "operator": {
+                                "type": "boolean",
+                                "operation": "true",
+                                "singleValue": true
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "looseTypeValidation": true,
+                "options": {}
+            },
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2.2,
+            "position": [
+                2256,
+                592
+            ],
+            "id": "e33ed637-eba5-4735-b831-c088474f608b",
+            "name": "If6"
+        },
+        {
+            "parameters": {
+                "assignments": {
+                    "assignments": [
+                        {
+                            "id": "b2be1936-4832-4628-b97a-80d0573e3091",
+                            "name": "contact_uuid",
+                            "value": "={{ $json.id }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "f79e3551-5df7-41ad-978e-185cf81894e1",
+                            "name": "ai_enabled",
+                            "value": "={{ $json.ai_enabled }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "bca39d34-ab87-4b70-886a-cb1a83c0012e",
+                            "name": "MESSAGE_TYPE",
+                            "value": "={{ $('Parse Messenger Event').item.json.message_type }}",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "includeOtherFields": true,
+                "options": {}
+            },
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.4,
+            "position": [
+                3312,
+                800
+            ],
+            "id": "72ee1541-c50f-4185-90ea-57239f6a4f94",
+            "name": "Edit Fields4"
+        },
+        {
+            "parameters": {
+                "url": "=https://graph.facebook.com/v23.0/me/conversations?platform=messenger&user_id={{ $('Edit Fields5').item.json.platform_user_id }}&fields=id,participants",
+                "authentication": "predefinedCredentialType",
+                "nodeCredentialType": "facebookGraphApi",
+                "options": {
+                    "response": {
+                        "response": {
+                            "fullResponse": true
+                        }
+                    }
+                }
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                9744,
+                -352
+            ],
+            "id": "1fa98ba9-8b82-4f30-a187-ea528c0358a8",
+            "name": "get name3",
+            "credentials": {
+                "facebookGraphApi": {
+                    "id": "5ZSzLHlUnNsbKUxP",
+                    "name": "Facebook Graph account 2"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "tableId": "contacts",
+                "fieldsUi": {
+                    "fieldValues": [
+                        {
+                            "fieldId": "platform",
+                            "fieldValue": "=messenger"
+                        },
+                        {
+                            "fieldId": "platform_user_id",
+                            "fieldValue": "={{ $json.data[0].participants.data[0].id }}"
+                        },
+                        {
+                            "fieldId": "name",
+                            "fieldValue": "={{ $json.data[0].participants.data[0].name }}"
+                        },
+                        {
+                            "fieldId": "last_interaction_at",
+                            "fieldValue": "={{ $now.toISO() }}"
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                2928,
+                688
+            ],
+            "id": "6c6a2382-31b2-46e3-832e-d934ffb476d0",
+            "name": "Create a row2",
+            "credentials": {
+                "supabaseApi": {
+                    "id": "ohPooHYcVYK399RU",
+                    "name": "Supabase account"
+                }
+            },
+            "onError": "continueErrorOutput"
+        },
+        {
+            "parameters": {
+                "url": "=https://graph.facebook.com/v24.0/{{ $('Parse Messenger Event').item.json.page_id }}/conversations",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "platform",
+                            "value": "messenger"
+                        },
+                        {
+                            "name": "user_id",
+                            "value": "={{ $('Parse Messenger Event').item.json.psid }}"
+                        },
+                        {
+                            "name": "fields",
+                            "value": "id,participants"
+                        },
+                        {
+                            "name": "access_token",
+                            "value": "={{ $('Parse Messenger Event').item.json.token }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                2720,
+                576
+            ],
+            "id": "5fd0fd66-755f-4ff2-9860-e9e56bf3d4c2",
+            "name": "Get FB Profile Name1",
+            "onError": "continueRegularOutput"
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "INSERT INTO public.contacts (platform, platform_user_id, channel_id, name, last_interaction_at)\nVALUES ('messenger', '{{ $json.psid }}', '{{ $json.channel_id }}', '{{ $json.customer_name }}', NOW())\nON CONFLICT (platform_user_id) \nDO UPDATE SET last_interaction_at = NOW(), name = COALESCE(public.contacts.name, EXCLUDED.name)\nRETURNING id AS contact_id, name, phone, address, ai_enabled, needs_human, total_orders;",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.5,
+            "position": [
+                11936,
+                -432
+            ],
+            "id": "17d74ebd-7e39-40b4-bee9-c721c33b17c4",
+            "name": "Create Contact with Name",
+            "credentials": {
+                "postgres": {
+                    "id": "04KoYjDIxvd2lSQ5",
+                    "name": "messenger project drgimy11"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "url": "={{ $('If2').item.json.body.entry[0].messaging[0].message.attachments[0].payload.url }}",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                5744,
+                -160
+            ],
+            "id": "e0a12393-2a55-469e-aa72-f726364f6f64",
+            "name": "download audio"
+        },
+        {
+            "parameters": {
+                "url": "={{ $json.attachment_url_for_dashboard }}",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                5728,
+                112
+            ],
+            "id": "0d6340f9-52c8-4a7c-a5f5-9f7d68f6a43d",
+            "name": "download image",
+            "retryOnFail": true
+        },
+        {
+            "parameters": {
+                "modelName": "models/gemini-3.1-flash-lite",
+                "options": {}
+            },
+            "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+            "typeVersion": 1,
+            "position": [
+                5936,
+                256
+            ],
+            "id": "9242f84f-339c-42cb-b064-6ca39baca6a0",
+            "name": "Google Gemini Chat Model",
+            "credentials": {
+                "googlePalmApi": {
+                    "id": "f5qzhIMAaSz2uchi",
+                    "name": "paid tier1"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "amount": 0
+            },
+            "type": "n8n-nodes-base.wait",
+            "typeVersion": 1.1,
+            "position": [
+                5152,
+                1232
+            ],
+            "id": "e0fa6174-4cf8-426e-a5e9-324f64ab832b",
+            "name": "Wait",
+            "webhookId": "58ab43b0-e963-47e2-b492-1a891539504a"
+        },
+        {
+            "parameters": {
+                "tableId": "queue",
+                "fieldsUi": {
+                    "fieldValues": [
+                        {
+                            "fieldId": "sender_id",
+                            "fieldValue": "={{ $('Switch1').item.json.platform_user_id }}"
+                        },
+                        {
+                            "fieldId": "message",
+                            "fieldValue": "={{ $json.text_content }}"
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                6640,
+                80
+            ],
+            "id": "af27f113-d8a3-4b48-89af-bef8638a9696",
+            "name": "Supabase",
+            "retryOnFail": true,
+            "maxTries": 5,
+            "credentials": {
+                "supabaseApi": {
+                    "id": "ohPooHYcVYK399RU",
+                    "name": "Supabase account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "tableId": "messages",
+                "fieldsUi": {
+                    "fieldValues": [
+                        {
+                            "fieldId": "contact_id",
+                            "fieldValue": "={{ $('Edit Fields8').item.json.id }}"
+                        },
+                        {
+                            "fieldId": "message_platform_id",
+                            "fieldValue": "={{ $('Edit Fields5').item.json.message_platform_id }}"
+                        },
+                        {
+                            "fieldId": "sender_type",
+                            "fieldValue": "user"
+                        },
+                        {
+                            "fieldId": "content_type",
+                            "fieldValue": "={{ $('download audio').item.json.content_type }}"
+                        },
+                        {
+                            "fieldId": "attachment_url",
+                            "fieldValue": "={{ $('Edit Fields8').item.json.attachment_url_for_dashboard }}"
+                        },
+                        {
+                            "fieldId": "platform_timestamp",
+                            "fieldValue": "={{ $('download audio').item.json.message_platform_timestamp }}"
+                        },
+                        {
+                            "fieldId": "text_content",
+                            "fieldValue": "={{ $json.candidates[0].content.parts[0].text }}"
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                6272,
+                -144
+            ],
+            "id": "db675f28-588a-4b0b-a989-3c8fc94f0769",
+            "name": "Supabase14",
+            "retryOnFail": true,
+            "maxTries": 5,
+            "credentials": {
+                "supabaseApi": {
+                    "id": "ohPooHYcVYK399RU",
+                    "name": "Supabase account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "tableId": "messages",
+                "fieldsUi": {
+                    "fieldValues": [
+                        {
+                            "fieldId": "contact_id",
+                            "fieldValue": "={{ $('Edit Fields7').item.json.contact_uuid }}"
+                        },
+                        {
+                            "fieldId": "message_platform_id",
+                            "fieldValue": "={{ $('Edit Fields7').item.json.message_platform_id }}"
+                        },
+                        {
+                            "fieldId": "sender_type",
+                            "fieldValue": "user"
+                        },
+                        {
+                            "fieldId": "content_type",
+                            "fieldValue": "={{ $('Edit Fields7').item.json.content_type }}"
+                        },
+                        {
+                            "fieldId": "attachment_url",
+                            "fieldValue": "={{ $('Edit Fields7').item.json.attachment_url_for_dashboard }}"
+                        },
+                        {
+                            "fieldId": "platform_timestamp",
+                            "fieldValue": "={{ $('Edit Fields5').item.json.message_platform_timestamp }}"
+                        },
+                        {
+                            "fieldId": "text_content",
+                            "fieldValue": "={{ $json.text }}"
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                6464,
+                80
+            ],
+            "id": "5915d922-5bb9-4f92-9b70-ffcd9f0f55ff",
+            "name": "Supabase12",
+            "executeOnce": false,
+            "retryOnFail": true,
+            "maxTries": 5,
+            "credentials": {
+                "supabaseApi": {
+                    "id": "ohPooHYcVYK399RU",
+                    "name": "Supabase account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict",
+                        "version": 2
+                    },
+                    "conditions": [
+                        {
+                            "id": "a5d0d964-730f-4e01-99f0-cecb4fea5c2f",
+                            "leftValue": "={{ $('Edit Fields4').item.json.ai_enabled }}",
+                            "rightValue": "true",
+                            "operator": {
+                                "type": "string",
+                                "operation": "equals",
+                                "name": "filter.operator.equals"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2.2,
+            "position": [
+                7136,
+                912
+            ],
+            "id": "a4200a16-5029-4a22-8810-1c1c59bc592e",
+            "name": "If4"
+        },
+        {
+            "parameters": {
+                "tableId": "queue",
+                "fieldsUi": {
+                    "fieldValues": [
+                        {
+                            "fieldId": "sender_id",
+                            "fieldValue": "={{ $('Webhook1').item.json.body.entry[0].messaging[0].sender.id }}"
+                        },
+                        {
+                            "fieldId": "message",
+                            "fieldValue": "={{ $('transcribe1').item.json.candidates[0].content.parts[0].text }}"
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                6432,
+                -144
+            ],
+            "id": "0980a3e9-7e37-46e0-a978-8e497157d770",
+            "name": "Create a row1",
+            "retryOnFail": true,
+            "maxTries": 5,
+            "credentials": {
+                "supabaseApi": {
+                    "id": "ohPooHYcVYK399RU",
+                    "name": "Supabase account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+                "authentication": "predefinedCredentialType",
+                "nodeCredentialType": "googlePalmApi",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"contents\": [{\n    \"parts\":[\n      {\"text\": \"Transcribe this audio تماما كما ينطقها العميل\"},\n      {\"inlineData\": {\n        \"mimeType\": \"audio/mp4\",\n        \"data\": \"{{ $json.audioBase64 }}\"\n      }}\n    ]\n  }]\n}",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                6096,
+                -160
+            ],
+            "id": "496c8482-f582-4926-8c0a-00ae42d11aa9",
+            "name": "transcribe1",
+            "retryOnFail": true,
+            "credentials": {
+                "googlePalmApi": {
+                    "id": "f5qzhIMAaSz2uchi",
+                    "name": "paid tier1"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "// Loop over all items\nconst items = $input.all();\nfor (let i = 0; i < items.length; i++) {\n  const item = items[i];\n  \n  // 'data' is the name of your binary property (from your screenshot)\n  // We read the file buffer from n8n's internal storage\n  const buffer = await this.helpers.getBinaryDataBuffer(i, 'data');\n  \n  // Convert the buffer to a Base64 string and save it to a new JSON field\n  item.json.audioBase64 = buffer.toString('base64');\n}\n\nreturn items;"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                5920,
+                -160
+            ],
+            "id": "d2744f91-fe07-4242-b8ee-036bcfaa90a4",
+            "name": "Code in JavaScript1"
+        },
+        {
+            "parameters": {
+                "model": {
+                    "__rl": true,
+                    "value": "qwen3.8-flash",
+                    "mode": "list",
+                    "cachedResultName": "qwen3.8-flash"
+                },
+                "builtInTools": {},
+                "options": {}
+            },
+            "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+            "typeVersion": 1.3,
+            "position": [
+                6144,
+                256
+            ],
+            "id": "70996812-4efb-44cd-bf35-b2b8d2c4f7fc",
+            "name": "OpenAI Chat Model1",
+            "credentials": {
+                "openAiApi": {
+                    "id": "Arwid7CTslrXwpfL",
+                    "name": "OpenAI account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict",
+                        "version": 3
+                    },
+                    "conditions": [
+                        {
+                            "id": "c120482d-e264-45a7-b04c-758818a57e08",
+                            "leftValue": "={{ $('Webhook1').item.json.body.entry[0].messaging[0].message.attachments[1].type }}",
+                            "rightValue": "sticker",
+                            "operator": {
+                                "type": "string",
+                                "operation": "equals"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2.3,
+            "position": [
+                5024,
+                80
+            ],
+            "id": "37316952-04c1-4df9-bcf4-e72bbd8f5449",
+            "name": "If8"
+        },
+        {
+            "parameters": {
+                "promptType": "define",
+                "text": "describe what you see in the image in details باللغه العربيه فقط .  رد بهذه الصيغه : \"ارسل العميل صوره و هذا وصفها : ",
+                "messages": {
+                    "messageValues": [
+                        {
+                            "message": " "
+                        },
+                        {
+                            "type": "HumanMessagePromptTemplate",
+                            "messageType": "imageBinary"
+                        }
+                    ]
+                }
+            },
+            "type": "@n8n/n8n-nodes-langchain.chainLlm",
+            "typeVersion": 1.5,
+            "position": [
+                6032,
+                96
+            ],
+            "id": "8e50d32b-6674-4fea-b26e-8b097eb8d98e",
+            "name": "Basic LLM Chain1"
+        },
+        {
+            "parameters": {
+                "tableId": "messages",
+                "fieldsUi": {
+                    "fieldValues": [
+                        {
+                            "fieldId": "contact_id",
+                            "fieldValue": "={{ $json.contact_uuid }}"
+                        },
+                        {
+                            "fieldId": "sender_type",
+                            "fieldValue": "user"
+                        },
+                        {
+                            "fieldId": "content",
+                            "fieldValue": "={{ $('Parse Messenger Event').item.json.text }}"
+                        },
+                        {
+                            "fieldId": "platform_message_id",
+                            "fieldValue": "={{ $('Parse Messenger Event').item.json.mid }}"
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                5712,
+                1264
+            ],
+            "id": "b64c2641-1187-4d6e-be0a-bfbc661d1c1a",
+            "name": "Create a row3",
+            "credentials": {
+                "supabaseApi": {
+                    "id": "lHat8Ea0pmCtW6WD",
+                    "name": "dr.gimy11 messnenger"
+                }
+            },
+            "onError": "continueRegularOutput"
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "INSERT INTO public.messages (contact_id, sender_type, content, platform_message_id)\nVALUES ('{{ $json.contact_id }}', 'user', '{{ $('Extract Transcribed Text').item ? $('Extract Transcribed Text').item.json.text : $('Parse Messenger Event').item.json.text }}', '{{ $('Parse Messenger Event').item.json.mid }}')\nON CONFLICT (platform_message_id) DO UPDATE SET content = EXCLUDED.content\nRETURNING id AS message_log_id, contact_id, (SELECT ai_enabled FROM public.contacts WHERE id = public.messages.contact_id) AS ai_enabled, (SELECT name FROM public.contacts WHERE id = public.messages.contact_id) AS customer_name;",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.5,
+            "position": [
+                4672,
+                1216
+            ],
+            "id": "bd959bbb-8bd9-4bb5-a667-84a5d16b72ca",
+            "name": "Store User Message1",
+            "credentials": {
+                "postgres": {
+                    "id": "04KoYjDIxvd2lSQ5",
+                    "name": "messenger project drgimy11"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "tableId": "queue",
+                "fieldsUi": {
+                    "fieldValues": [
+                        {
+                            "fieldId": "sender_id",
+                            "fieldValue": "={{ $('Webhook1').item.json.body.entry[0].messaging[0].sender.id }}"
+                        },
+                        {
+                            "fieldId": "message",
+                            "fieldValue": "={{ $('Webhook1').item.json.body.entry[0].messaging[0].message.text }}"
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                6400,
+                1264
+            ],
+            "id": "db334504-76c7-49ed-815d-b60637c9a438",
+            "name": "Create a row",
+            "retryOnFail": true,
+            "waitBetweenTries": 2000,
+            "maxTries": 5,
+            "credentials": {
+                "supabaseApi": {
+                    "id": "lHat8Ea0pmCtW6WD",
+                    "name": "dr.gimy11 messnenger"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "amount": 10
+            },
+            "type": "n8n-nodes-base.wait",
+            "typeVersion": 1.1,
+            "position": [
+                8256,
+                880
+            ],
+            "id": "6e09af95-6a4e-4bc8-83da-a4525353401e",
+            "name": "Wait1",
+            "webhookId": "74edc2c0-8856-4f9e-9bf7-6e6008151c2b"
+        },
+        {
+            "parameters": {
+                "sortFieldsUi": {
+                    "sortField": [
+                        {
+                            "fieldName": "id"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.sort",
+            "typeVersion": 1,
+            "position": [
+                8672,
+                880
+            ],
+            "id": "443e75a0-2368-4459-8943-0f9fcca482d9",
+            "name": "Sort"
+        },
+        {
+            "parameters": {
+                "fieldsToAggregate": {
+                    "fieldToAggregate": [
+                        {
+                            "fieldToAggregate": "message"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.aggregate",
+            "typeVersion": 1,
+            "position": [
+                9344,
+                800
+            ],
+            "id": "79cba504-33c7-47b2-8e78-07074ad87c33",
+            "name": "Aggregate"
+        },
+        {
+            "parameters": {
+                "jsCode": "return [\n  {\n    json: {\n      body: $('Aggregate').first().json.message.join(\"  \") // Directly assign the joined string\n    }\n  }\n];"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                9776,
+                800
+            ],
+            "id": "207f8533-3ee4-47a2-a6bb-d45518fbe4d2",
+            "name": "Code1"
+        },
+        {
+            "parameters": {
+                "operation": "getAll",
+                "tableId": "queue",
+                "returnAll": true,
+                "filters": {
+                    "conditions": [
+                        {
+                            "keyName": "sender_id",
+                            "condition": "eq",
+                            "keyValue": "={{ $('Parse Messenger Event').item.json.psid }}"
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                8464,
+                880
+            ],
+            "id": "c781502f-763b-4304-ac7b-3251e9583785",
+            "name": "Supabase2",
+            "retryOnFail": true,
+            "waitBetweenTries": 2000,
+            "maxTries": 5,
+            "credentials": {
+                "supabaseApi": {
+                    "id": "lHat8Ea0pmCtW6WD",
+                    "name": "dr.gimy11 messnenger"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "assignments": {
+                    "assignments": [
+                        {
+                            "id": "728b2c0a-ef62-4d3a-868e-164b68053a78",
+                            "name": "usermessage",
+                            "value": "={{ $json.message }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "64e819e2-0d0b-4af0-b5c1-13885de2c092",
+                            "name": "id",
+                            "value": "={{ $('Webhook1').item.json.body.entry[0].messaging[0].sender.id }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "9c70d4d4-52dd-429e-9a3b-69fb33c7c965",
+                            "name": "contact_uuid",
+                            "value": "={{ $('Edit Fields2').item.json.uuid }}",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.4,
+            "position": [
+                9552,
+                800
+            ],
+            "id": "94a810ba-a6cd-46f4-80bb-e1f7e7b98f58",
+            "name": "Edit Fields1"
+        },
+        {
+            "parameters": {
+                "assignments": {
+                    "assignments": [
+                        {
+                            "id": "1c4c4875-71b4-4638-b0c5-91eefeec85c5",
+                            "name": "message_id",
+                            "value": "={{ $json.id }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "bac0da0b-a426-48fe-8605-937c4a2cb12b",
+                            "name": "uuid",
+                            "value": "={{ $('Edit Fields4').item.json.contact_uuid }}",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.4,
+            "position": [
+                8080,
+                880
+            ],
+            "id": "0d78890b-3694-44fe-9b6e-0e3e31c7c8bc",
+            "name": "Edit Fields2"
+        },
+        {
+            "parameters": {
+                "operation": "delete",
+                "tableId": "queue",
+                "matchType": "allFilters",
+                "filters": {
+                    "conditions": [
+                        {
+                            "keyName": "sender_id",
+                            "condition": "eq",
+                            "keyValue": "={{ $json.sender_id }}"
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                9120,
+                800
+            ],
+            "id": "48858e59-56a7-47c2-a657-6ae10469ca04",
+            "name": "Supabase1",
+            "retryOnFail": true,
+            "waitBetweenTries": 2000,
+            "maxTries": 5,
+            "credentials": {
+                "supabaseApi": {
+                    "id": "lHat8Ea0pmCtW6WD",
+                    "name": "dr.gimy11 messnenger"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "content": "## التأخير بالثواني\n"
+            },
+            "type": "n8n-nodes-base.stickyNote",
+            "position": [
+                8192,
+                704
+            ],
+            "typeVersion": 1,
+            "id": "63e93037-0d97-4979-b4a3-4afc9928d044",
+            "name": "Sticky Note3"
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "loose",
+                        "version": 2
+                    },
+                    "conditions": [
+                        {
+                            "id": "4e2d4eee-1aaf-40d5-a6b4-0e7ee44acd1e",
+                            "leftValue": "={{ $json.id }}",
+                            "rightValue": "={{ $('Edit Fields2').item.json.message_id }}",
+                            "operator": {
+                                "type": "string",
+                                "operation": "equals",
+                                "name": "filter.operator.equals"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "looseTypeValidation": true,
+                "options": {}
+            },
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2.2,
+            "position": [
+                8880,
+                880
+            ],
+            "id": "d713ecef-238b-45f9-afec-160118085c51",
+            "name": "If3"
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "loose",
+                        "version": 2
+                    },
+                    "conditions": [
+                        {
+                            "id": "4e2d4eee-1aaf-40d5-a6b4-0e7ee44acd1e",
+                            "leftValue": "={{ $json.id }}",
+                            "rightValue": "={{ $('Edit Fields2').item.json.message_id }}",
+                            "operator": {
+                                "type": "string",
+                                "operation": "equals",
+                                "name": "filter.operator.equals"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "looseTypeValidation": true,
+                "options": {}
+            },
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2.2,
+            "position": [
+                9440,
+                1504
+            ],
+            "id": "d47a9e15-5aee-4c0f-bee2-195a776607ab",
+            "name": "If5"
+        }
+    ],
+    "connections": {
+        "Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Respond to Webhook",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Webhook1": {
+            "main": [
+                [
+                    {
+                        "node": "Split Events",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Code in JavaScript2": {
+            "main": [
+                [
+                    {
+                        "node": "Basic LLM Chain",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Split Events": {
+            "main": [
+                [
+                    {
+                        "node": "Get Channel",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Get Channel": {
+            "main": [
+                [
+                    {
+                        "node": "Get Channel Secret",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Get Channel Secret": {
+            "main": [
+                [
+                    {
+                        "node": "Build Event Context",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Build Event Context": {
+            "main": [
+                [
+                    {
+                        "node": "Route by Kind",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Route by Kind": {
+            "main": [
+                [
+                    {
+                        "node": "Check Valid Comment",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Parse Messenger Event",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Check Valid Comment": {
+            "main": [
+                [
+                    {
+                        "node": "Get Post Rules",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Get Comment Settings": {
+            "main": [
+                [
+                    {
+                        "node": "Code in JavaScript2",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Get Post Rules": {
+            "main": [
+                [
+                    {
+                        "node": "Check Post Rule Match",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Check Post Rule Match": {
+            "main": [
+                [
+                    {
+                        "node": "If",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "If": {
+            "main": [
+                [
+                    {
+                        "node": "If2",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Get Comment Settings",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Basic LLM Chain": {
+            "main": [
+                [
+                    {
+                        "node": "Code in JavaScript",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Code in JavaScript": {
+            "main": [
+                [
+                    {
+                        "node": "Switch",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "OpenAI Chat Model2": {
+            "ai_languageModel": [
+                [
+                    {
+                        "node": "Basic LLM Chain",
+                        "type": "ai_languageModel",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Switch": {
+            "main": [
+                [
+                    {
+                        "node": "If1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "private reply (delete path)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "If1": {
+            "main": [
+                [
+                    {
+                        "node": "private reply1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Code in JavaScript5",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "reply comment": {
+            "main": [
+                [
+                    {
+                        "node": "HTTP Request9",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "private reply1": {
+            "main": [
+                [
+                    {
+                        "node": "reply comment",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "HTTP Request9": {
+            "main": [
+                []
+            ]
+        },
+        "Code in JavaScript5": {
+            "main": [
+                [
+                    {
+                        "node": "private reply",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "HTTP Request1": {
+            "main": [
+                [
+                    {
+                        "node": "HTTP Request10",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "private reply (delete path)": {
+            "main": [
+                [
+                    {
+                        "node": "hide comment",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "private reply": {
+            "main": [
+                [
+                    {
+                        "node": "HTTP Request1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "If2": {
+            "main": [
+                [
+                    {
+                        "node": "private reply2",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "If Public Reply",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "private reply2": {
+            "main": [
+                [
+                    {
+                        "node": "If Public Reply",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "reply comment1": {
+            "main": [
+                [
+                    {
+                        "node": "If Auto Like",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "If Public Reply": {
+            "main": [
+                [
+                    {
+                        "node": "reply comment1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "If Auto Like",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "If Auto Like": {
+            "main": [
+                [
+                    {
+                        "node": "Like Comment",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Parse Messenger Event": {
+            "main": [
+                [
+                    {
+                        "node": "Supabase7",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Download Voice Note": {
+            "main": [
+                [
+                    {
+                        "node": "Voice to Base64",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Voice to Base64": {
+            "main": [
+                [
+                    {
+                        "node": "Transcribe Voice Note",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Transcribe Voice Note": {
+            "main": [
+                [
+                    {
+                        "node": "Extract Transcribed Text",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Extract Transcribed Text": {
+            "main": [
+                [
+                    {
+                        "node": "Check Existing Contact",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Store User Message": {
+            "main": [
+                [
+                    {
+                        "node": "If AI Enabled",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "If AI Enabled": {
+            "main": [
+                [
+                    {
+                        "node": "Add to Queue",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                []
+            ]
+        },
+        "Add to Queue": {
+            "main": [
+                [
+                    {
+                        "node": "Wait 10s Queue",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Wait 10s Queue": {
+            "main": [
+                [
+                    {
+                        "node": "Fetch User Queue",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Fetch User Queue": {
+            "main": [
+                [
+                    {
+                        "node": "If Latest in Queue",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "If Latest in Queue": {
+            "main": [
+                [
+                    {
+                        "node": "Clean User Queue",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                []
+            ]
+        },
+        "Clean User Queue": {
+            "main": [
+                [
+                    {
+                        "node": "Combine Messages",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Combine Messages": {
+            "main": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Check Existing Contact": {
+            "main": [
+                [
+                    {
+                        "node": "If New Contact",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "If New Contact": {
+            "main": [
+                [
+                    {
+                        "node": "Get FB Profile Name",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Update Contact Timestamp",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Get FB Profile Name": {
+            "main": [
+                [
+                    {
+                        "node": "Extract FB Name",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Extract FB Name": {
+            "main": [
+                [
+                    {
+                        "node": "Store User Message",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Update Contact Timestamp": {
+            "main": [
+                [
+                    {
+                        "node": "Store User Message",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "AI Agent": {
+            "main": [
+                [
+                    {
+                        "node": "Save Bot Message",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "OpenAI Chat Model": {
+            "ai_languageModel": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "ai_languageModel",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Postgres Chat Memory": {
+            "ai_memory": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "ai_memory",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Menu Tool": {
+            "ai_tool": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "ai_tool",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Branches Tool": {
+            "ai_tool": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "ai_tool",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Complaints Tool": {
+            "ai_tool": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "ai_tool",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Save Bot Message": {
+            "main": [
+                [
+                    {
+                        "node": "Send Messenger Reply",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Switch Message Type": {
+            "main": [
+                [],
+                [
+                    {
+                        "node": "If8",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Wait",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                []
+            ]
+        },
+        "Supabase7": {
+            "main": [
+                [
+                    {
+                        "node": "If6",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "If6": {
+            "main": [
+                [
+                    {
+                        "node": "Get FB Profile Name1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Edit Fields4",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Edit Fields4": {
+            "main": [
+                [
+                    {
+                        "node": "Switch Message Type",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "get name3": {
+            "main": [
+                []
+            ]
+        },
+        "Create a row2": {
+            "main": [
+                [
+                    {
+                        "node": "Edit Fields4",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Supabase7",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Get FB Profile Name1": {
+            "main": [
+                [
+                    {
+                        "node": "Create a row2",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "download audio": {
+            "main": [
+                [
+                    {
+                        "node": "Code in JavaScript1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "download image": {
+            "main": [
+                [
+                    {
+                        "node": "Basic LLM Chain1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Wait": {
+            "main": [
+                [
+                    {
+                        "node": "Create a row3",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Supabase": {
+            "main": [
+                [
+                    {
+                        "node": "If4",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Supabase14": {
+            "main": [
+                [
+                    {
+                        "node": "Create a row1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Supabase12": {
+            "main": [
+                [
+                    {
+                        "node": "Supabase",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "If4": {
+            "main": [
+                [
+                    {
+                        "node": "Edit Fields2",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Create a row1": {
+            "main": [
+                [
+                    {
+                        "node": "If4",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "transcribe1": {
+            "main": [
+                [
+                    {
+                        "node": "Supabase14",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Code in JavaScript1": {
+            "main": [
+                [
+                    {
+                        "node": "transcribe1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "OpenAI Chat Model1": {
+            "ai_languageModel": [
+                [
+                    {
+                        "node": "Basic LLM Chain1",
+                        "type": "ai_languageModel",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "If8": {
+            "main": [
+                [],
+                [
+                    {
+                        "node": "download image",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Basic LLM Chain1": {
+            "main": [
+                [
+                    {
+                        "node": "Supabase12",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Create a row3": {
+            "main": [
+                [
+                    {
+                        "node": "Create a row",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Create a row": {
+            "main": [
+                [
+                    {
+                        "node": "If4",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Wait1": {
+            "main": [
+                [
+                    {
+                        "node": "Supabase2",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Sort": {
+            "main": [
+                [
+                    {
+                        "node": "If3",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Aggregate": {
+            "main": [
+                [
+                    {
+                        "node": "Edit Fields1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Supabase2": {
+            "main": [
+                [
+                    {
+                        "node": "Sort",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Edit Fields1": {
+            "main": [
+                [
+                    {
+                        "node": "Code1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Edit Fields2": {
+            "main": [
+                [
+                    {
+                        "node": "Wait1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Supabase1": {
+            "main": [
+                [
+                    {
+                        "node": "Aggregate",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "If3": {
+            "main": [
+                [
+                    {
+                        "node": "Supabase1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "pinData": {
+        "Webhook1": [
+            {
+                "headers": {
+                    "host": "n8n.pr-media.forum",
+                    "x-real-ip": "173.252.95.113",
+                    "x-real-port": "58504",
+                    "x-forwarded-for": "173.252.95.113",
+                    "remote-host": "173.252.95.113",
+                    "connection": "upgrade",
+                    "content-length": "308",
+                    "accept": "*/*",
+                    "accept-encoding": "deflate, gzip",
+                    "user-agent": "facebookexternalua",
+                    "content-type": "application/json",
+                    "x-hub-signature": "sha1=d8aaad1d16c004e9b07f05cda6a3b065db362f31",
+                    "x-hub-signature-256": "sha256=7286434298ce7fd3f48d32da4b4476440a38883e8e910ba23ad1074052a9ec86",
+                    "facebook-api-version": "v22.0"
+                },
+                "params": {},
+                "query": {},
+                "body": {
+                    "object": "page",
+                    "entry": [
+                        {
+                            "time": 1791514490516,
+                            "id": "372566165936964",
+                            "messaging": [
+                                {
+                                    "sender": {
+                                        "id": "7682220021898480"
+                                    },
+                                    "recipient": {
+                                        "id": "372566165936964"
+                                    },
+                                    "timestamp": 1791514489914,
+                                    "message": {
+                                        "mid": "m_owc-rZMmrf83sJPqdjALC_f8-ZcUo2VOzFnrz0kfmhQJHjb9ig4iHb1vmM6VWgE2P37wuvcUqL-iCKF-Boobiw",
+                                        "text": "Hi"
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "webhookUrl": "https://n8n.pr-media.forum/webhook/meta-router",
+                "executionMode": "production"
+            }
+        ]
+    },
+    "meta": {
+        "templateCredsSetupCompleted": true,
+        "instanceId": "97cab07a3839e051b9ec38017956c5a3efa85de9ec81643a56d26e46b40218c9"
+    }
+}

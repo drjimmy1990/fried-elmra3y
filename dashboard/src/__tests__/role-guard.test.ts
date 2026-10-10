@@ -43,7 +43,7 @@ describe('Role-Based Access Control (RBAC) & Route Guard Tests', () => {
       '/': { admin: true, order_agent: false, support_agent: false },
       '/orders': { admin: true, order_agent: true, support_agent: false },
       '/complaints': { admin: true, order_agent: false, support_agent: true },
-      '/chat': { admin: true, order_agent: true, support_agent: true },
+      '/chat': { admin: true, order_agent: false, support_agent: false },
       '/comments': { admin: true, order_agent: false, support_agent: true },
       '/menu': { admin: true, order_agent: false, support_agent: false },
       '/offers': { admin: true, order_agent: false, support_agent: false },
@@ -70,17 +70,19 @@ describe('Role-Based Access Control (RBAC) & Route Guard Tests', () => {
       }
     });
 
-    it('verifies order_agent is allowed /orders and /chat only and denied all other routes', () => {
+    it('verifies order_agent is allowed /orders only and denied all other routes', () => {
       // Allowed routes
       assert.strictEqual(isRouteAllowed('order_agent', '/orders', true), true);
       assert.strictEqual(isRouteAllowed('order_agent', '/dashboard/orders', true), true);
       assert.strictEqual(isRouteAllowed('order_agent', '/dashboard/orders?tab=active', true), true);
-      assert.strictEqual(isRouteAllowed('order_agent', '/dashboard/chat?contactId=abc', true), true);
 
       // Explicitly denied routes
       const deniedRoutes = [
         '/',
         '/dashboard',
+        '/chat',
+        '/dashboard/chat',
+        '/dashboard/chat?contactId=abc',
         '/menu',
         '/dashboard/menu',
         '/offers',
@@ -96,7 +98,7 @@ describe('Role-Based Access Control (RBAC) & Route Guard Tests', () => {
         '/comments',
         '/dashboard/channels',
         '/channels',
-        '/chatty', // prefix lookalike must not match /chat
+        '/chatty',
       ];
 
       for (const deniedRoute of deniedRoutes) {
@@ -108,18 +110,18 @@ describe('Role-Based Access Control (RBAC) & Route Guard Tests', () => {
       }
     });
 
-    it('verifies support_agent is allowed /complaints, /chat and /comments only, and denied all others', () => {
+    it('verifies support_agent is allowed /complaints and /comments only, and denied all others including chat', () => {
       // Allowed routes
       assert.strictEqual(isRouteAllowed('support_agent', '/complaints', true), true);
       assert.strictEqual(isRouteAllowed('support_agent', '/dashboard/complaints', true), true);
-      assert.strictEqual(isRouteAllowed('support_agent', '/chat', true), true);
-      assert.strictEqual(isRouteAllowed('support_agent', '/dashboard/chat', true), true);
       assert.strictEqual(isRouteAllowed('support_agent', '/dashboard/comments', true), true);
 
       // Explicitly denied routes
       const deniedRoutes = [
         '/',
         '/dashboard',
+        '/chat',
+        '/dashboard/chat',
         '/orders',
         '/dashboard/orders',
         '/menu',

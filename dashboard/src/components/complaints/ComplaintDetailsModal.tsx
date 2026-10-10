@@ -13,15 +13,11 @@ import {
   Check,
   AlertTriangle,
   CheckCircle2,
-  Ban,
-  ArrowRight,
-  User,
   Sparkles,
   Loader2,
   RotateCcw,
 } from 'lucide-react';
 import {
-  getComplaintPriorityBadge,
   getComplaintStatusBadge,
   getWhatsAppLink,
   formatDateTime,
@@ -30,7 +26,6 @@ import { createClient } from '@/lib/supabase/client';
 import {
   ComplaintWithDetails,
   ComplaintStatus,
-  ComplaintPriority,
   StaffProfile,
 } from './types';
 
@@ -40,7 +35,6 @@ interface ComplaintDetailsModalProps {
   staffList: StaffProfile[];
   onClose: () => void;
   onUpdateStatus: (complaintId: string, newStatus: ComplaintStatus) => Promise<void>;
-  onUpdatePriority: (complaintId: string, newPriority: ComplaintPriority) => Promise<void>;
   onAssignStaff: (complaintId: string, staffId: string | null) => Promise<void>;
   onUpdateResolutionNotes: (complaintId: string, notes: string) => Promise<boolean>;
 }
@@ -51,7 +45,6 @@ export function ComplaintDetailsModal({
   staffList,
   onClose,
   onUpdateStatus,
-  onUpdatePriority,
   onAssignStaff,
   onUpdateResolutionNotes,
 }: ComplaintDetailsModalProps) {
@@ -61,11 +54,8 @@ export function ComplaintDetailsModal({
   const [isSavingNotes, setIsSavingNotes] = useState(false);
   const [notesSaveSuccess, setNotesSaveSuccess] = useState(false);
   const [isChangingStatus, setIsChangingStatus] = useState(false);
-  const [isChangingPriority, setIsChangingPriority] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
   const [isTakingOver, setIsTakingOver] = useState(false);
-  const [pendingStatusChange, setPendingStatusChange] = useState<ComplaintStatus | null>(null);
-  const [orderResolutionAction, setOrderResolutionAction] = useState<'confirmed' | 'cancelled' | 'keep'>('confirmed');
 
   // Sync resolution notes only when complaint ID changes
   useEffect(() => {
@@ -102,7 +92,6 @@ export function ComplaintDetailsModal({
 
   if (!isOpen || !complaint) return null;
 
-  const priorityBadge = getComplaintPriorityBadge(complaint.priority);
   const statusBadge = getComplaintStatusBadge(complaint.status);
 
   // Handle saving internal resolution notes
@@ -121,58 +110,11 @@ export function ComplaintDetailsModal({
 
   // Handle status transition
   const handleStatusChange = async (newStatus: ComplaintStatus) => {
-    if ((newStatus === 'resolved' || newStatus === 'closed') && complaint.order?.status === 'issue') {
-      setPendingStatusChange(newStatus);
-      return;
-    }
-    
     setIsChangingStatus(true);
     try {
       await onUpdateStatus(complaint.id, newStatus);
     } finally {
       setIsChangingStatus(false);
-    }
-  };
-
-  const confirmStatusChangeWithOrder = async () => {
-    if (!pendingStatusChange) return;
-    setIsChangingStatus(true);
-    try {
-      if (orderResolutionAction !== 'keep') {
-        const supabase = createClient();
-        await supabase
-          .from('orders')
-          .update({ status: orderResolutionAction, updated_at: new Date().toISOString() })
-          .eq('id', complaint.order_id as string);
-          
-        if (complaint.order) {
-          complaint.order.status = orderResolutionAction;
-        }
-      }
-      await onUpdateStatus(complaint.id, pendingStatusChange);
-      setPendingStatusChange(null);
-    } finally {
-      setIsChangingStatus(false);
-    }
-  };
-
-  // Handle priority change
-  const handlePriorityChange = async (newPriority: ComplaintPriority) => {
-    setIsChangingPriority(true);
-    try {
-      await onUpdatePriority(complaint.id, newPriority);
-    } finally {
-      setIsChangingPriority(false);
-    }
-  };
-
-  // Handle staff assignment
-  const handleAssignChange = async (staffId: string) => {
-    setIsAssigning(true);
-    try {
-      await onAssignStaff(complaint.id, staffId === '' ? null : staffId as any);
-    } finally {
-      setIsAssigning(false);
     }
   };
 
@@ -204,6 +146,16 @@ export function ComplaintDetailsModal({
     }
   };
 
+  // Handle staff assignment
+  const handleAssignChange = async (staffId: string) => {
+    setIsAssigning(true);
+    try {
+      await onAssignStaff(complaint.id, staffId === '' ? null : staffId);
+    } finally {
+      setIsAssigning(false);
+    }
+  };
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-xs animate-in fade-in duration-200"
@@ -227,17 +179,18 @@ export function ComplaintDetailsModal({
                   تذكرة شكوى #{complaint.ticket_number}
                 </h2>
                 <span
-                  className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${priorityBadge.color}`}
-                >
-                  {priorityBadge.label}
-                </span>
-                <span
                   className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${statusBadge.color}`}
                 >
                   {statusBadge.label}
                 </span>
                 <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-slate-800 text-slate-300 border-slate-700">
-                  {complaint.source === 'messenger' ? 'ماسنجر' : complaint.source === 'comment' ? 'تعليق' : complaint.source === 'dashboard' ? 'لوحة التحكم' : 'تليفون'}
+                  {complaint.source === 'messenger'
+                    ? 'ماسنجر'
+                    : complaint.source === 'comment'
+                    ? 'تعليق'
+                    : complaint.source === 'dashboard'
+                    ? 'لوحة التحكم'
+                    : 'تليفون'}
                 </span>
                 {complaint.order && (
                   <Link
@@ -291,7 +244,12 @@ export function ComplaintDetailsModal({
                   </div>
                   {complaint.contact && (
                     <div className="flex items-center gap-2 mt-1.5 text-[11px] text-slate-400">
-                      <span>المنصة: {complaint.contact.platform === 'messenger' ? 'فيسبوك ماسنجر' : complaint.contact.platform}</span>
+                      <span>
+                        المنصة:{' '}
+                        {complaint.contact.platform === 'messenger'
+                          ? 'فيسبوك ماسنجر'
+                          : complaint.contact.platform}
+                      </span>
                       <span>•</span>
                       <span>إجمالي الطلبات: {complaint.contact.total_orders || 0}</span>
                     </div>
@@ -368,20 +326,20 @@ export function ComplaintDetailsModal({
             {/* Status Transition Actions */}
             <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4 space-y-3">
               <span className="text-xs font-bold text-slate-300 block">
-                تحديث حالة التذكرة (Workflow Status):
+                تحديث حالة التذكرة:
               </span>
               <div className="grid grid-cols-2 gap-2">
                 <button
-                  onClick={() => handleStatusChange('in_progress')}
-                  disabled={isChangingStatus || complaint.status === 'in_progress'}
+                  onClick={() => handleStatusChange('open')}
+                  disabled={isChangingStatus || complaint.status === 'open'}
                   className={`flex items-center justify-center gap-1.5 p-2.5 rounded-xl text-xs font-bold border transition ${
-                    complaint.status === 'in_progress'
-                      ? 'bg-blue-600 text-white border-blue-500'
+                    complaint.status === 'open'
+                      ? 'bg-rose-600 text-white border-rose-500'
                       : 'bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800'
                   }`}
                 >
-                  <ArrowRight className="w-3.5 h-3.5" />
-                  <span>بدء المعالجة</span>
+                  <RotateCcw className="w-3.5 h-3.5 text-rose-400" />
+                  <span>مفتوحة</span>
                 </button>
 
                 <button
@@ -396,124 +354,33 @@ export function ComplaintDetailsModal({
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                   <span>تم الحل بنجاح</span>
                 </button>
-
-                <button
-                  onClick={() => handleStatusChange('closed')}
-                  disabled={isChangingStatus || complaint.status === 'closed'}
-                  className={`flex items-center justify-center gap-1.5 p-2.5 rounded-xl text-xs font-bold border transition ${
-                    complaint.status === 'closed'
-                      ? 'bg-slate-700 text-white border-slate-600'
-                      : 'bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800'
-                  }`}
-                >
-                  <Ban className="w-3.5 h-3.5 text-slate-400" />
-                  <span>أرشفة وإغلاق</span>
-                </button>
-
-                <button
-                  onClick={() => handleStatusChange('open')}
-                  disabled={isChangingStatus || complaint.status === 'open'}
-                  className={`flex items-center justify-center gap-1.5 p-2.5 rounded-xl text-xs font-bold border transition ${
-                    complaint.status === 'open'
-                      ? 'bg-rose-600 text-white border-rose-500'
-                      : 'bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800'
-                  }`}
-                >
-                  <RotateCcw className="w-3.5 h-3.5 text-rose-400" />
-                  <span>إعادة فتح</span>
-                </button>
               </div>
-                            {pendingStatusChange && (
-                <div className="mt-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-3">
-                  <span className="text-xs font-bold text-amber-400 block">حالة الأوردر بعد الحل؟</span>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setOrderResolutionAction('confirmed')}
-                      className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition border ${orderResolutionAction === 'confirmed' ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-slate-900 border-slate-700 text-slate-400'}`}
-                    >
-                      رجّعه مؤكد
-                    </button>
-                    <button
-                      onClick={() => setOrderResolutionAction('cancelled')}
-                      className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition border ${orderResolutionAction === 'cancelled' ? 'bg-rose-600 text-white border-rose-500' : 'bg-slate-900 border-slate-700 text-slate-400'}`}
-                    >
-                      ألغِ الأوردر
-                    </button>
-                    <button
-                      onClick={() => setOrderResolutionAction('keep')}
-                      className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition border ${orderResolutionAction === 'keep' ? 'bg-slate-700 text-white border-slate-500' : 'bg-slate-900 border-slate-700 text-slate-400'}`}
-                    >
-                      سيبه زي ما هو
-                    </button>
-                  </div>
-                  <div className="flex gap-2 mt-2">
-                    <button
-                      onClick={confirmStatusChangeWithOrder}
-                      disabled={isChangingStatus}
-                      className="flex-1 py-1.5 rounded-lg text-xs font-bold bg-amber-600 text-white hover:bg-amber-500 transition"
-                    >
-                      تأكيد
-                    </button>
-                    <button
-                      onClick={() => setPendingStatusChange(null)}
-                      disabled={isChangingStatus}
-                      className="flex-1 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition"
-                    >
-                      إلغاء
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
 
-            {/* Priority & Staff Assignment */}
-            <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4 space-y-4">
-              {/* Priority Selector */}
-              <div>
-                <span className="text-xs font-bold text-slate-300 block mb-1.5">
-                  مستوى الأولوية والخطورة:
-                </span>
-                <div className="grid grid-cols-4 gap-1.5">
-                  {(['low', 'medium', 'high', 'urgent'] as ComplaintPriority[]).map((p) => {
-                    const badge = getComplaintPriorityBadge(p);
-                    const isSelected = complaint.priority === p;
-                    return (
-                      <button
-                        key={p}
-                        onClick={() => handlePriorityChange(p)}
-                        disabled={isChangingPriority}
-                        className={`py-1.5 px-2 rounded-xl text-[11px] font-bold border transition ${
-                          isSelected
-                            ? 'bg-amber-600 text-white border-amber-500 shadow-sm'
-                            : 'bg-slate-900 text-slate-300 border-slate-700 hover:bg-slate-800'
-                        }`}
-                      >
-                        {p === 'urgent' ? 'عاجل' : p === 'high' ? 'عالي' : p === 'medium' ? 'متوسط' : 'عادي'}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Staff Assignment Selector */}
-              <div>
-                <span className="text-xs font-bold text-slate-300 block mb-1.5">
-                  إسناد التذكرة لموظف الدعم:
-                </span>
-                <select
-                  value={complaint.assigned_to || ''}
-                  onChange={(e) => handleAssignChange(e.target.value)}
-                  disabled={isAssigning}
-                  className="w-full rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-xs text-slate-200 focus:outline-hidden focus:border-amber-500 focus:ring-1 focus:ring-amber-500 disabled:opacity-50"
-                >
-                  <option value="">-- غير مخصص (بدون موظف) --</option>
-                  {staffList.map((staff) => (
-                    <option key={staff.id} value={staff.id}>
-                      {staff.full_name} ({staff.role === 'admin' ? 'مدير' : staff.role === 'support_agent' ? 'خدمة عملاء' : 'طلبات'})
-                    </option>
-                  ))}
-                </select>
-              </div>
+            {/* Staff Assignment */}
+            <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4 space-y-3">
+              <span className="text-xs font-bold text-slate-300 block">
+                إسناد التذكرة لموظف الدعم:
+              </span>
+              <select
+                value={complaint.assigned_to || ''}
+                onChange={(e) => handleAssignChange(e.target.value)}
+                disabled={isAssigning}
+                className="w-full rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-xs text-slate-200 focus:outline-hidden focus:border-amber-500 focus:ring-1 focus:ring-amber-500 disabled:opacity-50"
+              >
+                <option value="">-- غير مخصص (بدون موظف) --</option>
+                {staffList.map((staff) => (
+                  <option key={staff.id} value={staff.id}>
+                    {staff.full_name} (
+                    {staff.role === 'admin'
+                      ? 'مدير'
+                      : staff.role === 'support_agent'
+                      ? 'خدمة عملاء'
+                      : 'طلبات'}
+                    )
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -566,9 +433,7 @@ export function ComplaintDetailsModal({
 
         {/* Modal Footer */}
         <div className="flex items-center justify-between p-4 sm:p-5 border-t border-slate-800 bg-slate-950/80 text-xs">
-          <div className="text-slate-400">
-            تحديث فوري عبر Supabase Realtime • المطعم
-          </div>
+          <div className="text-slate-400">تحديث فوري عبر Supabase Realtime • المطعم</div>
           <button
             onClick={handleSafeClose}
             className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold transition border border-slate-700"
@@ -580,11 +445,3 @@ export function ComplaintDetailsModal({
     </div>
   );
 }
-
-
-
-
-
-
-
-

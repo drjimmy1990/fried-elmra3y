@@ -8,7 +8,6 @@ export interface Offer {
   start_date: string | null;
   end_date: string | null;
   is_active: boolean;
-  sort_order: number;
   created_at: string;
   updated_at: string;
 }
@@ -22,7 +21,6 @@ export interface OfferFormInput {
   start_date: string | null;
   end_date: string | null;
   is_active: boolean;
-  sort_order: number;
 }
 
 export type OfferFilterTab = 'all' | 'active' | 'inactive' | 'expired';

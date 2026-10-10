@@ -22,12 +22,10 @@ export function formatDateTime(dateString: string | null | undefined): string {
 
 export function getOrderStatusBadge(status: string) {
   switch (status) {
+    case 'pending':
+      return { label: 'قيد الانتظار', color: 'bg-amber-500/10 text-amber-400 border-amber-500/20' };
     case 'confirmed':
       return { label: 'مؤكد', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' };
-    case 'issue':
-      return { label: 'عليه مشكلة', color: 'bg-rose-500/10 text-rose-400 border-rose-500/20' };
-    case 'cancelled':
-      return { label: 'ملغي', color: 'bg-slate-500/10 text-slate-400 border-slate-500/20' };
     default:
       return { label: status, color: 'bg-slate-800 text-slate-300 border-slate-700' };
   }

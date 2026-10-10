@@ -29,7 +29,7 @@ export default async function OffersPage() {
   const { data: rawOffers, error: offersError } = await supabase
     .from('offers')
     .select('*')
-    .order('sort_order', { ascending: true })
+    .order('is_active', { ascending: false })
     .order('created_at', { ascending: false });
 
   if (offersError) {
@@ -46,7 +46,6 @@ export default async function OffersPage() {
     start_date: row.start_date,
     end_date: row.end_date,
     is_active: row.is_active,
-    sort_order: row.sort_order ?? 0,
     created_at: row.created_at,
     updated_at: row.updated_at,
   }));

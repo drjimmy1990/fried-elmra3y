@@ -27,6 +27,11 @@ const DEFAULT_SETTINGS: CommentSettings = {
   reply_delay_max_sec: 40,
   ignore_nested_replies: true,
   ignore_mentions_only: true,
+  branches_image_url: null,
+  menu_image_url: null,
+  offers_image_url: null,
+  action_assets: [],
+  fallback_dm_message: 'أهلاً بحضرتك يا فندم نورتنا! 🍗 تقدر تطلب أو تستفسر عن أي حاجة من هنا مباشرة 🛵',
   updated_at: new Date(0).toISOString(),
 };
 

@@ -16,6 +16,7 @@ import {
   X,
   Drumstick,
   Radio,
+  Building2,
 } from 'lucide-react';
 import { UserRole } from '@/types/database.types';
 
@@ -38,17 +39,19 @@ interface NavItem {
   roles: UserRole[];
   badge?: BadgeKind;
   badgeTitle?: string;
+  section: string;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { title: 'الرئيسية', href: '/dashboard', icon: LayoutDashboard, roles: ['admin'] },
+  { title: 'الرئيسية', href: '/dashboard', icon: LayoutDashboard, roles: ['admin'], section: 'غرفة العمليات' },
   {
     title: 'الطلبات',
     href: '/dashboard/orders',
     icon: ShoppingBag,
     roles: ['admin', 'order_agent'],
     badge: 'orders',
-    badgeTitle: 'أوردرات عليها مشكلة',
+    badgeTitle: 'أوردرات قيد الانتظار',
+    section: 'غرفة العمليات',
   },
   {
     title: 'الشكاوى',
@@ -57,26 +60,30 @@ const NAV_ITEMS: NavItem[] = [
     roles: ['admin', 'support_agent'],
     badge: 'complaints',
     badgeTitle: 'شكاوى مفتوحة',
+    section: 'غرفة العمليات',
   },
   {
     title: 'المحادثات',
     href: '/dashboard/chat',
     icon: MessageSquare,
-    roles: ['admin', 'support_agent', 'order_agent'],
+    roles: ['admin'], // Strictly admin only per owner requirement
     badge: 'chat',
     badgeTitle: 'عملاء طالبين موظف',
+    section: 'غرفة العمليات',
   },
   {
     title: 'التعليقات',
     href: '/dashboard/comments',
     icon: MessagesSquare,
     roles: ['admin', 'support_agent'],
+    section: 'غرفة العمليات',
   },
-  { title: 'المنيو', href: '/dashboard/menu', icon: BookOpen, roles: ['admin'] },
-  { title: 'العروض', href: '/dashboard/offers', icon: Sparkles, roles: ['admin'] },
-  { title: 'القنوات', href: '/dashboard/channels', icon: Radio, roles: ['admin'] },
-  { title: 'الفريق', href: '/dashboard/team', icon: Users, roles: ['admin'] },
-  { title: 'الإعدادات', href: '/dashboard/settings', icon: Settings, roles: ['admin'] },
+  { title: 'الفروع والتوصيل', href: '/dashboard/branches', icon: Building2, roles: ['admin'], section: 'إدارة المطعم' },
+  { title: 'المنيو', href: '/dashboard/menu', icon: BookOpen, roles: ['admin'], section: 'إدارة المطعم' },
+  { title: 'العروض', href: '/dashboard/offers', icon: Sparkles, roles: ['admin'], section: 'إدارة المطعم' },
+  { title: 'القنوات والربط', href: '/dashboard/channels', icon: Radio, roles: ['admin'], section: 'إعدادات النظام' },
+  { title: 'فريق العمل', href: '/dashboard/team', icon: Users, roles: ['admin'], section: 'إعدادات النظام' },
+  { title: 'الإعدادات العامة', href: '/dashboard/settings', icon: Settings, roles: ['admin'], section: 'إعدادات النظام' },
 ];
 
 const BADGE_STYLES: Record<BadgeKind, string> = {
@@ -87,7 +94,7 @@ const BADGE_STYLES: Record<BadgeKind, string> = {
 
 export function Sidebar({
   role,
-  restaurantName = 'المطعم',
+  restaurantName = 'بروستد الخديوي',
   issueOrdersCount = 0,
   openComplaintsCount = 0,
   needsHumanCount = 0,
@@ -142,9 +149,9 @@ export function Sidebar({
         </div>
 
         {/* Navigation Links */}
-        <div className="flex-1 overflow-y-auto px-4 py-6 scrollbar-thin scrollbar-thumb-slate-800">
-          <nav className="space-y-1.5">
-            {visibleItems.map((item) => {
+        <div className="flex-1 overflow-y-auto px-4 py-4 scrollbar-thin scrollbar-thumb-slate-800">
+          <nav className="space-y-1">
+            {visibleItems.map((item, index) => {
               const Icon = item.icon;
               const isActive =
                 item.href === '/dashboard'
@@ -160,40 +167,54 @@ export function Sidebar({
                   ? needsHumanCount
                   : 0;
 
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={onClose}
-                  aria-current={isActive ? 'page' : undefined}
-                  className={`group relative flex items-center justify-between rounded-xl px-4 py-3 text-sm font-medium transition-colors ${
-                    isActive
-                      ? 'bg-amber-600 text-white shadow-md shadow-amber-600/30'
-                      : 'text-slate-300 hover:bg-slate-900 hover:text-white'
-                  }`}
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <Icon
-                      className={`h-5 w-5 shrink-0 transition-transform group-hover:scale-110 ${
-                        isActive ? 'text-white' : 'text-slate-400 group-hover:text-amber-400'
-                      }`}
-                    />
-                    <span className="truncate">{item.title}</span>
-                  </div>
+              const isFirstInSection =
+                index === 0 || visibleItems[index - 1].section !== item.section;
 
-                  {/* Badges for counts */}
-                  {item.badge && badgeCount > 0 && (
-                    <span
-                      title={item.badgeTitle}
-                      aria-label={`${item.badgeTitle ?? ''}: ${badgeCount}`}
-                      className={`ml-1 inline-flex items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold ${
-                        isActive ? 'bg-white text-amber-800' : BADGE_STYLES[item.badge]
-                      }`}
-                    >
-                      {badgeCount}
-                    </span>
+              return (
+                <React.Fragment key={item.href}>
+                  {isFirstInSection && (
+                    <div className={`px-3 ${index === 0 ? 'pb-1.5' : 'pt-4 pb-1.5'}`}>
+                      <span className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+                        {item.section}
+                      </span>
+                    </div>
                   )}
-                </Link>
+
+                  <Link
+                    href={item.href}
+                    onClick={onClose}
+                    aria-current={isActive ? 'page' : undefined}
+                    className={`group relative flex items-center justify-between rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all ${
+                      isActive
+                        ? 'bg-gradient-to-l from-amber-500/15 via-amber-500/10 to-transparent text-amber-300 font-semibold border-r-3 border-amber-500 shadow-xs'
+                        : 'text-slate-400 hover:bg-slate-900/80 hover:text-slate-200'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <Icon
+                        className={`h-4.5 w-4.5 shrink-0 transition-transform group-hover:scale-110 ${
+                          isActive ? 'text-amber-400' : 'text-slate-500 group-hover:text-amber-400/80'
+                        }`}
+                      />
+                      <span className="truncate">{item.title}</span>
+                    </div>
+
+                    {/* Badges for counts */}
+                    {item.badge && badgeCount > 0 && (
+                      <span
+                        title={item.badgeTitle}
+                        aria-label={`${item.badgeTitle ?? ''}: ${badgeCount}`}
+                        className={`ml-1 inline-flex items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold ${
+                          isActive
+                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                            : BADGE_STYLES[item.badge]
+                        }`}
+                      >
+                        {badgeCount}
+                      </span>
+                    )}
+                  </Link>
+                </React.Fragment>
               );
             })}
           </nav>

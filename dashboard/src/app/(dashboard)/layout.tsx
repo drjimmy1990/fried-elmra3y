@@ -5,7 +5,7 @@ import { RealtimeAudioProvider } from '@/components/providers/RealtimeAudioProvi
 import { DashboardShell } from '@/components/layout/DashboardShell';
 import { UserRole } from '@/types/database.types';
 
-const DEFAULT_RESTAURANT_NAME = 'المطعم';
+const DEFAULT_RESTAURANT_NAME = 'بروستد الخديوي';
 
 /** Extracts `restaurant_name` from the get_public_settings() JSON payload. */
 function readRestaurantName(payload: unknown): string {
@@ -55,11 +55,11 @@ export default async function DashboardLayout({
     supabase
       .from('orders')
       .select('id', { count: 'exact', head: true })
-      .eq('status', 'issue'),
+      .eq('status', 'pending'),
     supabase
       .from('complaints')
       .select('id', { count: 'exact', head: true })
-      .in('status', ['open', 'in_progress']),
+      .eq('status', 'open'),
     supabase
       .from('contacts')
       .select('id', { count: 'exact', head: true })

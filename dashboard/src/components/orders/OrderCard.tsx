@@ -6,28 +6,25 @@ import {
   Clock,
   MapPin,
   Phone,
-  Printer, AlertTriangle,
-  ChevronLeft,
-  ChefHat,
-  Bike,
+  Printer,
   CheckCircle2,
-  Ban,
   Loader2,
   ShoppingBag,
-  CreditCard,
   MessageCircle,
+  Building2,
+  Tag,
+  AlertTriangle,
 } from 'lucide-react';
 import { formatCurrency, getOrderStatusBadge, getWhatsAppLink } from '@/lib/utils';
 import { OrderWithItems, OrderStatus } from './types';
 
-interface OrderCardProps {
+export interface OrderCardProps {
   order: OrderWithItems;
+  complaints?: any[];
   onSelectOrder: (order: OrderWithItems) => void;
   onAdvanceStatus: (orderId: string, currentStatus: OrderStatus) => Promise<void>;
-  onCancelOrder: (orderId: string) => Promise<void>;
   onPrintReceipt: (order: OrderWithItems) => void;
   isUpdating?: boolean;
-  complaints?: any[];
 }
 
 // Arabic relative time elapsed helper
@@ -59,21 +56,21 @@ function formatTimeElapsed(dateString: string | null | undefined): string {
 
 function OrderCardComponent({
   order,
+  complaints = [],
   onSelectOrder,
   onAdvanceStatus,
-  onCancelOrder,
   onPrintReceipt,
   isUpdating = false,
 }: OrderCardProps) {
   const currentBadge = getOrderStatusBadge(order.status);
 
   // Summarize items for preview
-  const totalItemCount = order.order_items.reduce((sum, item) => sum + (item.quantity || 1), 0);
-  const itemsPreview = order.order_items
+  const totalItemCount = (order.order_items || []).reduce((sum, item) => sum + (item.quantity || 1), 0);
+  const itemsPreview = (order.order_items || [])
     .slice(0, 2)
     .map((item) => `${item.quantity}x ${item.item_name}`)
     .join('، ');
-  const remainingCount = order.order_items.length > 2 ? order.order_items.length - 2 : 0;
+  const remainingCount = (order.order_items || []).length > 2 ? order.order_items.length - 2 : 0;
 
   return (
     <div
@@ -89,6 +86,12 @@ function OrderCardComponent({
           {order.source && (
             <span className="rounded-md bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-400 font-medium border border-slate-700/50">
               {order.source === 'messenger' ? 'ماسنجر' : order.source === 'whatsapp' ? 'واتساب' : order.source}
+            </span>
+          )}
+          {order.branch?.name && (
+            <span className="flex items-center gap-1 rounded-md bg-blue-500/10 text-blue-400 px-1.5 py-0.5 text-[10px] font-medium border border-blue-500/20">
+              <Building2 className="w-2.5 h-2.5" />
+              <span>{order.branch.name}</span>
             </span>
           )}
         </div>
@@ -124,7 +127,7 @@ function OrderCardComponent({
             </a>
             {order.contact_id && (
               <Link
-                href={{pathname: '/dashboard/chat', query: {contactId: order.contact_id}}}
+                href={{ pathname: '/dashboard/chat', query: { contactId: order.contact_id } }}
                 className="p-1 rounded-lg text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 transition-colors"
                 title="فتح محادثة العميل"
               >
@@ -141,6 +144,22 @@ function OrderCardComponent({
         </div>
       </div>
 
+      {/* Offer Banner Badge if applicable */}
+      {order.offer?.title && (
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-400 font-medium">
+          <Tag className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+          <span className="truncate">عرض: {order.offer.title}</span>
+        </div>
+      )}
+
+      {/* Linked Open Complaint Alert */}
+      {complaints.length > 0 && (
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-500/10 border border-rose-500/30 text-xs text-rose-300 font-medium">
+          <AlertTriangle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+          <span>شكوى مفتوحة #{complaints[0].ticket_number || ''}</span>
+        </div>
+      )}
+
       {/* Order Items Preview */}
       <div className="rounded-xl bg-slate-950/60 p-2.5 border border-slate-800/60 text-xs">
         <div className="flex items-center justify-between text-slate-400 mb-1">
@@ -148,14 +167,14 @@ function OrderCardComponent({
             <ShoppingBag className="w-3 h-3 text-amber-500/80" />
             <span>الأصناف ({totalItemCount} قطع)</span>
           </span>
-          {order.order_items.some((i) => i.notes) && (
+          {order.customer_notes && (
             <span className="text-[10px] text-amber-400 bg-amber-500/10 px-1 rounded-sm">
               يوجد ملاحظات
             </span>
           )}
         </div>
         <div className="text-slate-300 font-medium line-clamp-2 leading-relaxed">
-          {itemsPreview}
+          {itemsPreview || order.customer_notes || 'تفاصيل الأصناف بالداخل'}
           {remainingCount > 0 && (
             <span className="text-amber-400/90 font-semibold mr-1">
               +{remainingCount} صنف آخر
@@ -164,7 +183,7 @@ function OrderCardComponent({
         </div>
       </div>
 
-      {/* Price & Payment Footer */}
+      {/* Price Footer */}
       <div className="flex items-center justify-between pt-1 border-t border-slate-800/80">
         <div>
           <div className="text-[11px] text-slate-400">الإجمالي النهائي</div>
@@ -173,9 +192,10 @@ function OrderCardComponent({
           </div>
         </div>
 
-        <div className="flex items-center gap-1 text-[11px] text-slate-400 bg-slate-800/60 px-2 py-1 rounded-lg border border-slate-700/40">
-          <CreditCard className="w-3 h-3 text-slate-400" />
-          <span>{order.payment_method === 'cash_on_delivery' ? 'كاش' : order.payment_method}</span>
+        <div>
+          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${currentBadge.color}`}>
+            {currentBadge.label}
+          </span>
         </div>
       </div>
 
@@ -194,23 +214,6 @@ function OrderCardComponent({
           >
             <Printer className="w-4 h-4 text-amber-400" />
           </button>
-
-          {/* Quick Cancel Button (for non-terminal statuses) */}
-          {order.status !== 'cancelled' && (
-            <button
-              type="button"
-              onClick={() => {
-                if (confirm(`هل أنت متأكد من إلغاء الطلب #${order.order_number}؟`)) {
-                  onCancelOrder(order.id);
-                }
-              }}
-              disabled={isUpdating}
-              className="p-2 rounded-xl bg-slate-800/50 hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 transition-colors border border-slate-800 hover:border-rose-500/30"
-              title="إلغاء الطلب"
-            >
-              <Ban className="w-4 h-4" />
-            </button>
-          )}
         </div>
 
         {/* Quick Advance Status Button */}
@@ -218,36 +221,25 @@ function OrderCardComponent({
           {isUpdating ? (
             <div className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-800 text-xs text-slate-400">
               <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-500" />
-              <span>جاري التحديث...</span>
+              <span>جاري التأكيد...</span>
             </div>
           ) : (
             <>
-              {order.status === 'confirmed' && (
-                <button
-                  type="button"
-                  onClick={() => onAdvanceStatus(order.id, 'issue')}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-md shadow-rose-600/20 transition-all hover:scale-102"
-                >
-                  <AlertTriangle className="w-3.5 h-3.5" />
-                  <span>تسجيل مشكلة</span>
-                </button>
-              )}
-
-              {order.status === 'issue' && (
+              {order.status === 'pending' && (
                 <button
                   type="button"
                   onClick={() => onAdvanceStatus(order.id, 'confirmed')}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition-all hover:scale-102"
                 >
                   <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>تم الحل (تأكيد)</span>
+                  <span>تأكيد الطلب وإبلاغ العميل</span>
                 </button>
               )}
 
-              {order.status === 'cancelled' && (
-                <span className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-rose-500/10 text-rose-400 text-xs font-semibold border border-rose-500/20">
-                  <Ban className="w-3.5 h-3.5" />
-                  <span>ملغي</span>
+              {order.status === 'confirmed' && (
+                <span className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-500/10 text-emerald-400 text-xs font-semibold border border-emerald-500/20">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>تم تأكيد الطلب</span>
                 </span>
               )}
             </>
@@ -259,10 +251,3 @@ function OrderCardComponent({
 }
 
 export const OrderCard = React.memo(OrderCardComponent);
-
-
-
-
-
-
-

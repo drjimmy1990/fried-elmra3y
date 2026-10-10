@@ -27,7 +27,6 @@ interface OfferCardProps {
   onEdit: (offer: Offer) => void;
   onDelete: (offerId: string) => void;
   onOfferUpdated: (updatedOffer: Offer) => void;
-  onMove?: (id: string, direction: 'up' | 'down') => void;
 }
 
 export function OfferCard({
@@ -35,7 +34,6 @@ export function OfferCard({
   onEdit,
   onDelete,
   onOfferUpdated,
-  onMove,
 }: OfferCardProps) {
   const [imageError, setImageError] = useState(false);
   const [isTogglingActive, setIsTogglingActive] = useState(false);
@@ -249,20 +247,16 @@ export function OfferCard({
           </div>
         </div>
 
-        {/* Card Footer: Sort Order & Actions */}
+        {/* Card Footer: Creation Date & Actions */}
         <div className="px-4 sm:px-5 py-2.5 bg-slate-950/60 border-t border-slate-800/80 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] text-slate-500">
-              ترتيب الظهور: <strong className="text-slate-400">#{offer.sort_order}</strong>
+          <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+            <span>تاريخ الإضافة:</span>
+            <span className="text-slate-400 font-medium">
+              {new Date(offer.created_at).toLocaleDateString('ar-EG', {
+                day: 'numeric',
+                month: 'short',
+              })}
             </span>
-            <div className="flex items-center gap-1 mr-2">
-              <button onClick={() => onMove?.(offer.id, 'up')} className="p-1 bg-slate-800 hover:bg-slate-700 rounded text-slate-300">
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>
-              </button>
-              <button onClick={() => onMove?.(offer.id, 'down')} className="p-1 bg-slate-800 hover:bg-slate-700 rounded text-slate-300">
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-              </button>
-            </div>
           </div>
 
           <div className="flex items-center gap-1">

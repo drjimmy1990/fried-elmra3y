@@ -16,6 +16,53 @@ export interface FbPost {
   permalink_url: string | null;
 }
 
+export interface ActionAsset {
+  id: string;
+  name: string;        // identifier key: "menu", "branches", "offers", "wheel", etc.
+  label: string;       // display title: "صور الفروع", etc.
+  description: string; // intent guidance for AI: "عندما يسأل العميل عن الفروع وأماكن التواجد"
+  image_url: string;   // public image url
+}
+
+export const DEFAULT_ACTION_ASSETS: ActionAsset[] = [
+  {
+    id: 'branches',
+    name: 'branches',
+    label: 'عناوين وفروع المطعم',
+    description: 'إذا سأل العميل عن الفروع، أماكن التواجد، العناوين، أو هل ليكم فرع في منطقة معينة',
+    image_url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800',
+  },
+  {
+    id: 'menu',
+    name: 'menu',
+    label: 'قائمة المنيو والأسعار',
+    description: 'إذا طلب العميل المنيو، قائمة الطعام، أسعار الوجبات، أو صور الأصناف',
+    image_url: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800',
+  },
+  {
+    id: 'offers',
+    name: 'offers',
+    label: 'عروض التوفير والخصومات',
+    description: 'إذا سأل العميل عن العروض، الخصومات الحالية، عروض التوفير، أو وجبات التوفير',
+    image_url: 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=800',
+  },
+];
+
+export function parseActionAssets(value: Json): ActionAsset[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => (item && typeof item === 'object' && !Array.isArray(item) ? item : null))
+    .filter((item): item is { [k: string]: Json | undefined } => !!item)
+    .map((item) => ({
+      id: String(item.id || item.name || Math.random().toString(36).substring(2, 9)),
+      name: String(item.name || '').trim().toLowerCase().replace(/\s+/g, '_'),
+      label: String(item.label || item.name || ''),
+      description: String(item.description || ''),
+      image_url: String(item.image_url || ''),
+    }))
+    .filter((item) => item.name);
+}
+
 export interface DmButton {
   title: string;
   payload: string;
@@ -63,6 +110,9 @@ export function emptyRule(scope: 'post' | 'global', facebookPostId: string | nul
     hide_comment: false,
     create_complaint: false,
     notify_staff: false,
+    comment_image_url: null,
+    delete_keywords: [],
+    auto_delete: false,
     is_active: true,
   };
 }

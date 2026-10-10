@@ -16,9 +16,12 @@ import {
   AlertCircle,
   PlusCircle,
   Calendar,
+  Building2,
+  DollarSign,
+  Drumstick,
 } from 'lucide-react';
-import { formatCurrency, formatDateTime, getOrderStatusBadge, getComplaintPriorityBadge } from '@/lib/utils';
-import { OrderStatus, ComplaintPriority } from '@/types/database.types';
+import { formatCurrency, formatDateTime, getOrderStatusBadge, getComplaintStatusBadge } from '@/lib/utils';
+import { OrderStatus } from '@/types/database.types';
 
 export const revalidate = 0; // Dynamic server component
 
@@ -45,11 +48,11 @@ export default async function OverviewDashboardPage() {
       .select('id, total_amount, status, created_at')
       .gte('created_at', todayISO),
 
-    // Open & In-progress complaints
+    // Open complaints
     supabase
       .from('complaints')
-      .select('id, priority, status')
-      .in('status', ['open', 'in_progress']),
+      .select('id, status')
+      .eq('status', 'open'),
 
     // Contacts needing human intervention
     supabase
@@ -73,17 +76,16 @@ export default async function OverviewDashboardPage() {
     // Latest 4 complaints
     supabase
       .from('complaints')
-      .select('id, ticket_number, customer_name, issue_description, priority, status, created_at')
+      .select('id, ticket_number, customer_name, issue_description, status, created_at')
       .order('created_at', { ascending: false })
       .limit(4),
   ]);
 
   const todayOrders = todayOrdersRes.data || [];
-  const todayConfirmedCount = todayOrders.filter(o => o.status === 'confirmed').length;
-  const todayIssuesCount = todayOrders.filter(o => o.status === 'issue').length;
-  const todayCancelledCount = todayOrders.filter(o => o.status === 'cancelled').length;
+  const todayPendingCount = todayOrders.filter((o) => o.status === 'pending').length;
+  const todayConfirmedCount = todayOrders.filter((o) => o.status === 'confirmed').length;
   const todaySales = todayOrders
-    .filter(o => o.status === 'confirmed')
+    .filter((o) => o.status === 'confirmed')
     .reduce((sum, order) => sum + (Number(order.total_amount) || 0), 0);
 
   const openComplaintsCount = openComplaintsRes.data ? openComplaintsRes.data.length : 0;
@@ -102,137 +104,198 @@ export default async function OverviewDashboardPage() {
   }).format(new Date());
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
       {/* Welcome Banner */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-amber-950 p-6 sm:p-8 text-white shadow-xl">
-        <div className="relative z-10 flex flex-col justify-between gap-4 md:flex-row md:items-center">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-slate-900 to-amber-950/40 p-6 sm:p-8 text-white border border-slate-800 shadow-2xl shadow-black/40">
+        <div className="relative z-10 flex flex-col justify-between gap-6 md:flex-row md:items-center">
           <div>
-            <div className="flex items-center gap-2 text-xs font-medium text-amber-300">
-              <Calendar className="h-4 w-4" />
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-xs font-semibold text-amber-300">
+              <Calendar className="h-3.5 w-3.5 text-amber-400" />
               <span>{formattedTodayDate}</span>
             </div>
-            <h1 className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight">
-              أهلاً بك في غرفة عمليات المطعم 👑
+            <h1 className="mt-3 text-2xl sm:text-3xl font-black tracking-tight flex items-center gap-3">
+              <span>غرفة عمليات بروستد الخديوي</span>
+              <span className="text-2xl">🍗👑</span>
             </h1>
-            <p className="mt-1 text-sm text-slate-300 max-w-2xl leading-relaxed">
-              متابعة مباشرة للطلبات الواردة، أداء البوت الذكي للرد على الرسائل، والشكاوى العاجلة.
+            <p className="mt-1.5 text-sm text-slate-300 max-w-2xl leading-relaxed">
+              متابعة حية وشاملة لطلبات اليوم، محادثات الذكاء الاصطناعي على مسنجر، وبلاغات العملاء والتعليقات.
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-3">
             <Link
               href="/dashboard/orders"
-              className="inline-flex items-center gap-2 rounded-xl bg-amber-600 px-4 py-2.5 text-xs sm:text-sm font-semibold text-white shadow-md hover:bg-amber-500 transition"
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 px-5 py-2.5 text-xs sm:text-sm font-bold text-slate-950 shadow-lg shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500 transition active:scale-98"
             >
               <ShoppingBag className="h-4 w-4" />
               <span>لوحة الطلبات (Kanban)</span>
             </Link>
             <Link
               href="/dashboard/chat"
-              className="inline-flex items-center gap-2 rounded-xl bg-slate-900/10 px-4 py-2.5 text-xs sm:text-sm font-semibold text-white backdrop-blur-sm hover:bg-slate-900/20 transition border border-white/10"
+              className="inline-flex items-center gap-2 rounded-xl bg-slate-900/90 px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-200 border border-slate-700/80 hover:bg-slate-800 hover:text-white transition shadow-sm"
             >
-              <MessageSquare className="h-4 w-4" />
+              <MessageSquare className="h-4 w-4 text-amber-400" />
               <span>المحادثات الحية</span>
             </Link>
           </div>
         </div>
 
         {/* Decorative ambient background glows */}
-        <div className="pointer-events-none absolute -left-12 -top-12 h-64 w-64 rounded-full bg-amber-500/15 blur-3xl" />
-        <div className="pointer-events-none absolute -right-12 -bottom-12 h-64 w-64 rounded-full bg-emerald-500/10 blur-3xl" />
+        <div className="pointer-events-none absolute -left-16 -top-16 h-72 w-72 rounded-full bg-amber-500/10 blur-3xl" />
+        <div className="pointer-events-none absolute -right-16 -bottom-16 h-72 w-72 rounded-full bg-emerald-500/10 blur-3xl" />
       </div>
 
-      {/* Top 6 Operational Metrics Cards */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+      {/* Top 5 Operational Metrics Cards */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+        {/* Pending Orders */}
+        <div className="rounded-2xl border border-amber-500/30 bg-slate-900/80 backdrop-blur-sm p-5 shadow-lg shadow-black/20 flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-amber-300">طلبات جديدة</span>
+            <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+              <ShoppingBag className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <div className="text-3xl font-black text-amber-400 font-mono">{todayPendingCount}</div>
+            <p className="text-[11px] text-slate-400 mt-1">بانتظار التأكيد والإرسال</p>
+          </div>
+        </div>
+
         {/* Confirmed Orders */}
-        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-sm">
-          <div className="text-xs font-bold text-slate-400 mb-2">طلبات مؤكدة</div>
-          <div className="text-2xl font-black text-emerald-400">{todayConfirmedCount}</div>
-        </div>
-
-        {/* Issues */}
-        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-sm">
-          <div className="text-xs font-bold text-slate-400 mb-2">مشاكل الأوردرات</div>
-          <div className="text-2xl font-black text-rose-400">{todayIssuesCount}</div>
-        </div>
-
-        {/* Cancelled */}
-        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-sm">
-          <div className="text-xs font-bold text-slate-400 mb-2">طلبات ملغية</div>
-          <div className="text-2xl font-black text-slate-300">{todayCancelledCount}</div>
+        <div className="rounded-2xl border border-emerald-500/30 bg-slate-900/80 backdrop-blur-sm p-5 shadow-lg shadow-black/20 flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-emerald-300">طلبات مؤكدة</span>
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+              <CheckCircle className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <div className="text-3xl font-black text-emerald-400 font-mono">{todayConfirmedCount}</div>
+            <p className="text-[11px] text-slate-400 mt-1">قيد التجهيز أو التسليم</p>
+          </div>
         </div>
 
         {/* Open Complaints */}
-        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-sm">
-          <div className="text-xs font-bold text-slate-400 mb-2">شكاوى مفتوحة</div>
-          <div className={`text-2xl font-black ${openComplaintsCount > 0 ? 'text-rose-500' : 'text-emerald-400'}`}>{openComplaintsCount}</div>
+        <div className="rounded-2xl border border-slate-800 bg-slate-900/80 backdrop-blur-sm p-5 shadow-lg shadow-black/20 flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-300">شكاوى مفتوحة</span>
+            <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${openComplaintsCount > 0 ? 'bg-rose-500/15 border border-rose-500/30 text-rose-400' : 'bg-slate-800 text-slate-400'}`}>
+              <AlertTriangle className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <div className={`text-3xl font-black font-mono ${openComplaintsCount > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+              {openComplaintsCount}
+            </div>
+            <p className="text-[11px] text-slate-400 mt-1">
+              {openComplaintsCount > 0 ? 'تحتاج فحص وتواصل' : 'لا توجد شكاوى نشطة'}
+            </p>
+          </div>
         </div>
 
         {/* Needs Human */}
-        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-sm">
-          <div className="text-xs font-bold text-slate-400 mb-2">تدخل بشري مطلوب</div>
-          <div className={`text-2xl font-black ${needsHumanCount > 0 ? 'text-amber-500' : 'text-slate-300'}`}>{needsHumanCount}</div>
+        <div className="rounded-2xl border border-slate-800 bg-slate-900/80 backdrop-blur-sm p-5 shadow-lg shadow-black/20 flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-300">تدخل بشري</span>
+            <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${needsHumanCount > 0 ? 'bg-amber-500/15 border border-amber-500/30 text-amber-400' : 'bg-slate-800 text-slate-400'}`}>
+              <MessageSquare className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <div className={`text-3xl font-black font-mono ${needsHumanCount > 0 ? 'text-amber-400' : 'text-slate-400'}`}>
+              {needsHumanCount}
+            </div>
+            <p className="text-[11px] text-slate-400 mt-1">عملاء طلبوا التحدث لموظف</p>
+          </div>
         </div>
 
         {/* Comments Today */}
-        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-sm">
-          <div className="text-xs font-bold text-slate-400 mb-2">تعليقات اليوم</div>
-          <div className="text-2xl font-black text-blue-400">{commentsTodayCount}</div>
+        <div className="rounded-2xl border border-slate-800 bg-slate-900/80 backdrop-blur-sm p-5 shadow-lg shadow-black/20 flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-300">تعليقات اليوم</span>
+            <div className="w-8 h-8 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
+              <Bot className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <div className="text-3xl font-black text-sky-400 font-mono">{commentsTodayCount}</div>
+            <p className="text-[11px] text-slate-400 mt-1">تمت معالجتها بالرد والخاص</p>
+          </div>
         </div>
       </div>
 
-      {/* Revenue summary */}
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 flex justify-between items-center">
-         <span className="text-sm font-bold text-slate-300">إجمالي المبيعات (طلبات مؤكدة):</span>
-         <span className="text-3xl font-black text-emerald-400">{formatCurrency(todaySales)}</span>
+      {/* Revenue summary banner */}
+      <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 flex flex-col sm:flex-row justify-between sm:items-center gap-4 shadow-md">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shadow-lg shadow-emerald-500/5">
+            <DollarSign className="w-6 h-6" />
+          </div>
+          <div>
+            <span className="text-xs font-bold text-slate-400">إجمالي مبيعات اليوم (الطلبات المؤكدة):</span>
+            <div className="text-2xl sm:text-3xl font-black text-emerald-400 font-mono tracking-tight">
+              {formatCurrency(todaySales)}
+            </div>
+          </div>
+        </div>
+
+        <Link
+          href="/dashboard/orders"
+          className="inline-flex items-center gap-2 text-xs font-bold text-amber-400 hover:text-amber-300 transition"
+        >
+          <span>تفاصيل الطلبات والمبالغ</span>
+          <ArrowUpRight className="w-4 h-4" />
+        </Link>
       </div>
 
       {/* Quick Action Shortcuts Grid */}
-      <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-sm">
-        <h2 className="text-base font-bold text-slate-100 mb-4">روابط سريعة للعمليات اليومية</h2>
+      <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-6 shadow-lg shadow-black/20">
+        <h2 className="text-sm font-bold text-slate-200 mb-4 flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-amber-400" />
+          <span>روابط سريعة للعمليات اليومية</span>
+        </h2>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <Link
             href="/dashboard/orders"
-            className="flex flex-col items-center justify-center rounded-xl border border-slate-800 bg-slate-800 p-4 text-center hover:border-amber-400 hover:bg-amber-50/50 hover:shadow-xs transition group"
+            className="flex flex-col items-center justify-center rounded-2xl border border-slate-800/80 bg-slate-950/60 p-5 text-center hover:border-amber-500/40 hover:bg-slate-900 hover:shadow-lg transition-all group"
           >
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-100 text-amber-700 group-hover:scale-110 transition">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 group-hover:scale-110 transition shadow-xs">
               <ShoppingBag className="h-6 w-6" />
             </div>
-            <span className="mt-2.5 text-sm font-bold text-slate-200">متابعة الأوردرات</span>
-            <span className="mt-0.5 text-xs text-slate-400">كانبان المطبخ والتوصيل</span>
+            <span className="mt-3 text-sm font-bold text-slate-200 group-hover:text-amber-300 transition">متابعة الأوردرات</span>
+            <span className="mt-0.5 text-xs text-slate-500">كانبان المطبخ والتوصيل</span>
           </Link>
 
           <Link
             href="/dashboard/menu"
-            className="flex flex-col items-center justify-center rounded-xl border border-slate-800 bg-slate-800 p-4 text-center hover:border-amber-400 hover:bg-amber-50/50 hover:shadow-xs transition group"
+            className="flex flex-col items-center justify-center rounded-2xl border border-slate-800/80 bg-slate-950/60 p-5 text-center hover:border-amber-500/40 hover:bg-slate-900 hover:shadow-lg transition-all group"
           >
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 group-hover:scale-110 transition">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 group-hover:scale-110 transition shadow-xs">
               <UtensilsCrossed className="h-6 w-6" />
             </div>
-            <span className="mt-2.5 text-sm font-bold text-slate-200">قائمة الطعام</span>
-            <span className="mt-0.5 text-xs text-slate-400">تعديل الوجبات والأسعار</span>
+            <span className="mt-3 text-sm font-bold text-slate-200 group-hover:text-emerald-300 transition">قائمة الطعام (المنيو)</span>
+            <span className="mt-0.5 text-xs text-slate-500">صور وأسعار وPDF</span>
           </Link>
 
           <Link
             href="/dashboard/offers"
-            className="flex flex-col items-center justify-center rounded-xl border border-slate-800 bg-slate-800 p-4 text-center hover:border-amber-400 hover:bg-amber-50/50 hover:shadow-xs transition group"
+            className="flex flex-col items-center justify-center rounded-2xl border border-slate-800/80 bg-slate-950/60 p-5 text-center hover:border-amber-500/40 hover:bg-slate-900 hover:shadow-lg transition-all group"
           >
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-100 text-purple-700 group-hover:scale-110 transition">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-400 group-hover:scale-110 transition shadow-xs">
               <PlusCircle className="h-6 w-6" />
             </div>
-            <span className="mt-2.5 text-sm font-bold text-slate-200">إضافة عرض جديد</span>
-            <span className="mt-0.5 text-xs text-slate-400">عروض الخصم الخاصة</span>
+            <span className="mt-3 text-sm font-bold text-slate-200 group-hover:text-purple-300 transition">العروض والخصومات</span>
+            <span className="mt-0.5 text-xs text-slate-500">عروض الخصم الخاصة</span>
           </Link>
 
           <Link
             href="/dashboard/chat"
-            className="flex flex-col items-center justify-center rounded-xl border border-slate-800 bg-slate-800 p-4 text-center hover:border-amber-400 hover:bg-amber-50/50 hover:shadow-xs transition group"
+            className="flex flex-col items-center justify-center rounded-2xl border border-slate-800/80 bg-slate-950/60 p-5 text-center hover:border-amber-500/40 hover:bg-slate-900 hover:shadow-lg transition-all group"
           >
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100 text-blue-700 group-hover:scale-110 transition">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-500/10 border border-sky-500/20 text-sky-400 group-hover:scale-110 transition shadow-xs">
               <MessageSquare className="h-6 w-6" />
             </div>
-            <span className="mt-2.5 text-sm font-bold text-slate-200">المحادثة المباشرة</span>
-            <span className="mt-0.5 text-xs text-slate-400">التدخل اليدوي مع الزبائن</span>
+            <span className="mt-3 text-sm font-bold text-slate-200 group-hover:text-sky-300 transition">المحادثة المباشرة</span>
+            <span className="mt-0.5 text-xs text-slate-500">التدخل اليدوي مع الزبائن</span>
           </Link>
         </div>
       </div>
@@ -240,23 +303,23 @@ export default async function OverviewDashboardPage() {
       {/* Two-column operational feed: Recent Orders & Recent Complaints */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Recent Orders Table */}
-        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-sm">
-          <div className="flex items-center justify-between pb-4 border-b border-slate-700/50">
+        <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-6 shadow-lg shadow-black/20">
+          <div className="flex items-center justify-between pb-4 border-b border-slate-800">
             <div className="flex items-center gap-2">
-              <ShoppingBag className="h-5 w-5 text-amber-600" />
+              <ShoppingBag className="h-5 w-5 text-amber-400" />
               <h3 className="font-bold text-slate-100 text-base">أحدث الطلبات الواردة</h3>
             </div>
             <Link
               href="/dashboard/orders"
-              className="text-xs font-semibold text-amber-600 hover:text-amber-800"
+              className="text-xs font-semibold text-amber-400 hover:text-amber-300 transition"
             >
               عرض الكل ({todayOrders.length})
             </Link>
           </div>
 
-          <div className="mt-4 divide-y divide-slate-100">
+          <div className="mt-4 divide-y divide-slate-800/80">
             {recentOrders.length === 0 ? (
-              <div className="py-8 text-center text-sm text-slate-400">
+              <div className="py-8 text-center text-sm text-slate-500">
                 لا توجد طلبات واردة حتى الآن اليوم.
               </div>
             ) : (
@@ -265,14 +328,14 @@ export default async function OverviewDashboardPage() {
                 return (
                   <div
                     key={order.id}
-                    className="flex items-center justify-between py-3.5 hover:bg-slate-800/80 px-2 rounded-lg transition"
+                    className="flex items-center justify-between py-3.5 hover:bg-slate-800/50 px-2 rounded-xl transition"
                   >
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-100 text-sm">
+                        <span className="font-bold text-slate-100 text-sm font-mono">
                           #{order.order_number}
                         </span>
-                        <span className="text-sm font-medium text-slate-300">
+                        <span className="text-sm font-medium text-slate-200">
                           {order.customer_name}
                         </span>
                       </div>
@@ -282,7 +345,7 @@ export default async function OverviewDashboardPage() {
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <span className="font-bold text-sm text-slate-100">
+                      <span className="font-bold text-sm text-slate-100 font-mono">
                         {formatCurrency(Number(order.total_amount) || 0)}
                       </span>
                       <span
@@ -299,52 +362,52 @@ export default async function OverviewDashboardPage() {
         </div>
 
         {/* Recent Complaints Feed */}
-        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-sm">
-          <div className="flex items-center justify-between pb-4 border-b border-slate-700/50">
+        <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-6 shadow-lg shadow-black/20">
+          <div className="flex items-center justify-between pb-4 border-b border-slate-800">
             <div className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-rose-600" />
+              <AlertTriangle className="h-5 w-5 text-rose-400" />
               <h3 className="font-bold text-slate-100 text-base">أحدث البلاغات والشكاوى</h3>
             </div>
             <Link
               href="/dashboard/complaints"
-              className="text-xs font-semibold text-rose-600 hover:text-rose-800"
+              className="text-xs font-semibold text-rose-400 hover:text-rose-300 transition"
             >
               عرض الكل ({openComplaintsCount})
             </Link>
           </div>
 
-          <div className="mt-4 divide-y divide-slate-100">
+          <div className="mt-4 divide-y divide-slate-800/80">
             {recentComplaints.length === 0 ? (
-              <div className="py-8 text-center text-sm text-slate-400">
+              <div className="py-8 text-center text-sm text-slate-500">
                 ممتاز! لا توجد أي شكاوى مفتوحة حالياً.
               </div>
             ) : (
               recentComplaints.map((complaint) => {
-                const priorityBadge = getComplaintPriorityBadge(complaint.priority);
+                const statusBadge = getComplaintStatusBadge(complaint.status);
                 return (
                   <div
                     key={complaint.id}
-                    className="py-3.5 hover:bg-slate-800/80 px-2 rounded-lg transition"
+                    className="py-3.5 hover:bg-slate-800/50 px-2 rounded-xl transition"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-slate-400">
+                        <span className="text-xs font-bold text-slate-400 font-mono">
                           #{complaint.ticket_number}
                         </span>
-                        <span className="text-sm font-semibold text-slate-100">
+                        <span className="text-sm font-semibold text-slate-200">
                           {complaint.customer_name}
                         </span>
                       </div>
                       <span
-                        className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold ${priorityBadge.color}`}
+                        className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold ${statusBadge.color}`}
                       >
-                        {priorityBadge.label}
+                        {statusBadge.label}
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-slate-400 line-clamp-2 leading-relaxed">
                       {complaint.issue_description}
                     </p>
-                    <span className="mt-1.5 block text-[11px] text-slate-400">
+                    <span className="mt-1.5 block text-[11px] text-slate-500">
                       {formatDateTime(complaint.created_at)}
                     </span>
                   </div>

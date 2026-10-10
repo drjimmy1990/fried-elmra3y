@@ -66,14 +66,14 @@ export function isRouteAllowed(
     return true;
   }
 
-  // Order agent: orders + the customer chat opened from an order card
+  // Order agent: orders only
   if (role === 'order_agent') {
-    return ['/orders', '/chat'].some((r) => route === r || route.startsWith(`${r}/`));
+    return ['/orders'].some((r) => route === r || route.startsWith(`${r}/`));
   }
 
-  // Support agent: complaints, live chat and the comment inbox
+  // Support agent: complaints and comments only (chat is restricted strictly to admin)
   if (role === 'support_agent') {
-    return ['/complaints', '/chat', '/comments'].some((r) => route === r || route.startsWith(`${r}/`));
+    return ['/complaints', '/comments'].some((r) => route === r || route.startsWith(`${r}/`));
   }
 
   return false;

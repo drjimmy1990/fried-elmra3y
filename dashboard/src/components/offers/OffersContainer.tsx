@@ -82,8 +82,8 @@ export function OffersContainer({ initialOffers }: OffersContainerProps) {
 
   const sortOffersList = (list: Offer[]): Offer[] => {
     return [...list].sort((a, b) => {
-      if (a.sort_order !== b.sort_order) {
-        return a.sort_order - b.sort_order;
+      if (a.is_active !== b.is_active) {
+        return a.is_active ? -1 : 1;
       }
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
@@ -121,28 +121,6 @@ export function OffersContainer({ initialOffers }: OffersContainerProps) {
 
   const handleOfferUpdated = (updatedOffer: Offer) => {
     setOffers((prev) => sortOffersList(prev.map((o) => (o.id === updatedOffer.id ? updatedOffer : o))));
-  };
-
-  const handleMoveOffer = async (offerId: string, direction: 'up' | 'down') => {
-    const currentIndex = offers.findIndex(o => o.id === offerId);
-    if (currentIndex === -1) return;
-    if (direction === 'up' && currentIndex === 0) return;
-    if (direction === 'down' && currentIndex === offers.length - 1) return;
-
-    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
-    const newOffers = [...offers];
-    
-    // Swap sort_order
-    const tempSortOrder = newOffers[currentIndex].sort_order;
-    newOffers[currentIndex].sort_order = newOffers[targetIndex].sort_order;
-    newOffers[targetIndex].sort_order = tempSortOrder;
-    
-    // Update local state first for responsiveness
-    setOffers(sortOffersList(newOffers));
-    
-    // Persist to DB
-    await supabase.from('offers').update({ sort_order: newOffers[currentIndex].sort_order }).eq('id', newOffers[currentIndex].id);
-    await supabase.from('offers').update({ sort_order: newOffers[targetIndex].sort_order }).eq('id', newOffers[targetIndex].id);
   };
 
   return (
@@ -311,7 +289,6 @@ export function OffersContainer({ initialOffers }: OffersContainerProps) {
       </div>
 
       {/* Offers Grid */}
-      <div className="text-xs text-slate-500 mb-2">أول عروض هي اللي البوت بيعرضها الأول</div>
       {filteredOffers.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
           {filteredOffers.map((offer) => (
@@ -321,7 +298,6 @@ export function OffersContainer({ initialOffers }: OffersContainerProps) {
               onEdit={handleOpenEditModal}
               onDelete={handleDeleteOffer}
               onOfferUpdated={handleOfferUpdated}
-              onMove={handleMoveOffer}
             />
           ))}
         </div>

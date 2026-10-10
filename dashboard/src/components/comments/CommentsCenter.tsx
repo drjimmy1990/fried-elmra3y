@@ -1,16 +1,13 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { Globe2, Image as ImageIcon, Inbox, Plus } from 'lucide-react';
+import { Globe2, Image as ImageIcon } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-import { btn } from '@/components/ui/Modal';
 import { cn } from '@/lib/utils';
 import type { Json } from '@/types/database.types';
-import { CommentInbox } from './CommentInbox';
 import { CommentSettingsForm } from './CommentSettingsForm';
 import { PostsGrid } from './PostsGrid';
 import { RuleEditorModal } from './RuleEditorModal';
-import { RuleList } from './RuleList';
 import { RuleTester } from './RuleTester';
 import {
   emptyRule,
@@ -24,7 +21,7 @@ import {
   type RuleDraft,
 } from './types';
 
-type Tab = 'inbox' | 'posts' | 'global';
+type Tab = 'posts' | 'global';
 
 interface Props {
   role: 'admin' | 'support_agent';
@@ -57,6 +54,9 @@ function rulePayload(d: RuleDraft) {
     hide_comment: !!d.hide_comment,
     create_complaint: !!d.create_complaint,
     notify_staff: !!d.notify_staff,
+    comment_image_url: d.comment_image_url ?? null,
+    delete_keywords: d.delete_keywords ?? [],
+    auto_delete: !!d.auto_delete,
     is_active: d.is_active ?? true,
   };
 }
@@ -64,7 +64,7 @@ function rulePayload(d: RuleDraft) {
 export function CommentsCenter({ role, initialEvents, initialRules, initialSettings, initialPostSettings, pages }: Props) {
   const supabase = useMemo(() => createClient(), []);
   const canEdit = role === 'admin';
-  const [tab, setTab] = useState<Tab>('inbox');
+  const [tab, setTab] = useState<Tab>('posts');
   const [rules, setRules] = useState(initialRules);
   const [settings, setSettings] = useState(initialSettings);
   const [postSettings, setPostSettings] = useState(initialPostSettings);
@@ -79,14 +79,19 @@ export function CommentsCenter({ role, initialEvents, initialRules, initialSetti
   // ---------------- rules ----------------
   const saveRule = async (draft: RuleDraft) => {
     const payload = rulePayload(draft);
-    const query = draft.id
-      ? supabase.from('comment_rules').update(payload).eq('id', draft.id).select().single()
+    let targetId = draft.id;
+    if (!targetId && draft.scope === 'post' && draft.facebook_post_id) {
+      const existing = rules.find((r) => r.scope === 'post' && r.facebook_post_id === draft.facebook_post_id);
+      if (existing) targetId = existing.id;
+    }
+    const query = targetId
+      ? supabase.from('comment_rules').update(payload).eq('id', targetId).select().single()
       : supabase.from('comment_rules').insert(payload).select().single();
     const { data, error } = await query;
     if (error || !data) throw new Error(`تعذر حفظ القاعدة: ${error?.message ?? ''}`);
-    setRules((prev) => (draft.id ? prev.map((r) => (r.id === data.id ? data : r)) : [...prev, data]));
+    setRules((prev) => (targetId ? prev.map((r) => (r.id === data.id ? data : r)) : [...prev, data]));
     setEditor(null);
-    flash('تم حفظ القاعدة');
+    flash('تم حفظ الرد التلقائي');
   };
 
   const toggleRule = async (rule: CommentRule, active: boolean) => {
@@ -138,7 +143,14 @@ export function CommentsCenter({ role, initialEvents, initialRules, initialSetti
     flash(enabled ? 'البوت شغال على المنشور' : 'تم إيقاف البوت على المنشور');
   };
 
-  const openPostRule = (postId: string, channelId: string | null) => setEditor(emptyRule('post', postId, channelId));
+  const openPostRule = (postId: string, channelId: string | null) => {
+    const existing = rules.find((r) => r.scope === 'post' && r.facebook_post_id === postId);
+    if (existing) {
+      setEditor(ruleToDraft(existing));
+    } else {
+      setEditor(emptyRule('post', postId, channelId));
+    }
+  };
 
   // ---------------- settings ----------------
   const saveSettings = async (patch: Partial<CommentSettings>) => {
@@ -154,9 +166,8 @@ export function CommentsCenter({ role, initialEvents, initialRules, initialSetti
   const editorPost = editor?.scope === 'post' ? postSettings.find((p) => p.facebook_post_id === editor.facebook_post_id) : null;
 
   const tabs: Array<[Tab, string, React.ReactNode]> = [
-    ['inbox', 'صندوق التعليقات', <Inbox key="i" className="w-4 h-4" />],
-    ['posts', 'المنشورات', <ImageIcon key="p" className="w-4 h-4" />],
-    ['global', 'القواعد العامة', <Globe2 key="g" className="w-4 h-4" />],
+    ['posts', 'المنشورات والتعليقات', <ImageIcon key="p" className="w-4 h-4" />],
+    ['global', 'إعدادات التعليقات العامة', <Globe2 key="g" className="w-4 h-4" />],
   ];
 
   return (
@@ -177,17 +188,6 @@ export function CommentsCenter({ role, initialEvents, initialRules, initialSetti
           </button>
         ))}
       </div>
-
-      {tab === 'inbox' && (
-        <CommentInbox
-          initialEvents={initialEvents}
-          rules={rules}
-          posts={postSettings}
-          pages={pages}
-          canCreateRule={canEdit}
-          onCreateRuleForPost={openPostRule}
-        />
-      )}
 
       {tab === 'posts' && (
         <PostsGrid
@@ -224,23 +224,6 @@ export function CommentsCenter({ role, initialEvents, initialRules, initialSetti
       {tab === 'global' && (
         <div className="space-y-6">
           <CommentSettingsForm settings={settings} canEdit={canEdit} onSave={saveSettings} />
-
-          <section className="space-y-3 pt-4 border-t border-slate-800/80">
-            <div className="flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <h3 className="text-sm font-bold text-white">قواعد مخصصة لكلمات معينة (اختياري)</h3>
-                <p className="text-[11px] text-slate-400">
-                  قواعد إضافية تتجاوز الذكاء الاصطناعي لو حابب تثبت رد معين على كلمات محددة.
-                </p>
-              </div>
-              {canEdit && (
-                <button type="button" className={btn.secondary} onClick={() => setEditor(emptyRule('global'))}>
-                  <Plus className="w-4 h-4" /> إضافة قاعدة كلمات مخصصة
-                </button>
-              )}
-            </div>
-            <RuleList rules={globalRules} pages={pages} canEdit={canEdit} emptyText="لا توجد قواعد مخصصة (الذكاء الاصطناعي يتولى جميع الردود)" {...ruleHandlers} />
-          </section>
 
           <RuleTester rules={rules} settings={settings} posts={postSettings.filter((p) => !p.id.startsWith('local-'))} />
         </div>

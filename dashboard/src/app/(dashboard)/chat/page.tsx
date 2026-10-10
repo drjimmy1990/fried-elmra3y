@@ -1,5 +1,6 @@
 import React from 'react';
 import { Metadata } from 'next';
+import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { ChatContainer } from '@/components/chat/ChatContainer';
 import {
@@ -27,6 +28,25 @@ export default async function ChatPage({ searchParams }: ChatPageProps) {
       : undefined;
 
   const supabase = await createClient();
+
+  // 1. RBAC Guard: Strictly restricted to active admin per owner requirement
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect('/login');
+  }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role, is_active')
+    .eq('id', user.id)
+    .single();
+
+  if (!profile || profile.role !== 'admin' || !profile.is_active) {
+    redirect('/dashboard/orders');
+  }
 
   // 1. Fetch contacts ordered by last_interaction_at desc limit 100
   const { data: contactsData, error: contactsError } = await supabase

@@ -1,13 +1,25 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertCircle, ExternalLink, ImageOff, Loader2, Plus, RefreshCw, Settings2, X } from 'lucide-react';
+import {
+  AlertCircle,
+  ExternalLink,
+  Image as ImageIcon,
+  ImageOff,
+  Loader2,
+  MessageSquare,
+  Plus,
+  RefreshCw,
+  Settings2,
+  ShieldAlert,
+  ThumbsUp,
+  Trash2,
+} from 'lucide-react';
 import Link from 'next/link';
 import { api } from '@/components/channels/types';
 import { btn, inputClass } from '@/components/ui/Modal';
 import { Switch } from '@/components/ui/FormControls';
 import { cn, formatDateTime } from '@/lib/utils';
-import { RuleList } from './RuleList';
 import { fbLink, type CommentRule, type FbPost, type PageOption, type PostSetting } from './types';
 
 interface RuleHandlers {
@@ -29,14 +41,23 @@ interface Props extends RuleHandlers {
 /** A post card can come from Facebook (fresh) or only from the post_settings cache (older posts with rules). */
 type GridPost = FbPost & { channelId: string; cachedOnly?: boolean };
 
-export function PostsGrid({ pages, postSettings, rules, canEdit, onToggleBot, onAddRule, ...ruleHandlers }: Props) {
+export function PostsGrid({
+  pages,
+  postSettings,
+  rules,
+  canEdit,
+  onToggleBot,
+  onAddRule,
+  onEdit,
+  onToggle,
+  onDelete,
+}: Props) {
   const connected = pages.filter((p) => p.status !== 'disconnected');
   const [channelId, setChannelId] = useState(connected[0]?.id ?? '');
   const [posts, setPosts] = useState<FbPost[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const load = useCallback(async (ch: string, after: string | null) => {
@@ -57,16 +78,20 @@ export function PostsGrid({ pages, postSettings, rules, canEdit, onToggleBot, on
   }, []);
 
   useEffect(() => {
-    setSelectedId(null);
     load(channelId, null);
   }, [channelId, load]);
 
   const settingsMap = useMemo(() => new Map(postSettings.map((p) => [p.facebook_post_id, p])), [postSettings]);
-  const rulesByPost = useMemo(() => {
-    const m = new Map<string, CommentRule[]>();
+
+  // Strictly 1 rule per post mapping
+  const ruleByPost = useMemo(() => {
+    const m = new Map<string, CommentRule>();
     for (const r of rules) {
       if (r.scope !== 'post' || !r.facebook_post_id) continue;
-      m.set(r.facebook_post_id, [...(m.get(r.facebook_post_id) ?? []), r]);
+      // Take the active rule or the latest rule
+      if (!m.has(r.facebook_post_id) || r.is_active) {
+        m.set(r.facebook_post_id, r);
+      }
     }
     return m;
   }, [rules]);
@@ -74,7 +99,7 @@ export function PostsGrid({ pages, postSettings, rules, canEdit, onToggleBot, on
   const gridPosts: GridPost[] = useMemo(() => {
     const fresh: GridPost[] = posts.map((p) => ({ ...p, channelId }));
     // Older posts that still have rules but are not in the loaded list
-    const older: GridPost[] = Array.from(rulesByPost.keys())
+    const older: GridPost[] = Array.from(ruleByPost.keys())
       .filter((id) => !posts.some((p) => p.id === id))
       .map((id) => settingsMap.get(id))
       .filter((s): s is PostSetting => !!s && (!s.channel_id || s.channel_id === channelId))
@@ -88,9 +113,7 @@ export function PostsGrid({ pages, postSettings, rules, canEdit, onToggleBot, on
         cachedOnly: true,
       }));
     return [...fresh, ...older];
-  }, [posts, rulesByPost, settingsMap, channelId]);
-
-  const selected = gridPosts.find((p) => p.id === selectedId) ?? null;
+  }, [posts, ruleByPost, settingsMap, channelId]);
 
   if (connected.length === 0) {
     return (
@@ -106,22 +129,24 @@ export function PostsGrid({ pages, postSettings, rules, canEdit, onToggleBot, on
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center gap-2">
-        {connected.length > 1 && (
-          <select className={cn(inputClass, 'w-auto min-w-[200px]')} value={channelId} onChange={(e) => setChannelId(e.target.value)}>
-            {connected.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name ?? p.external_id}
-              </option>
-            ))}
-          </select>
-        )}
-        <button type="button" className={btn.secondary} onClick={() => load(channelId, null)} disabled={loading}>
-          <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
-          تحديث
-        </button>
-        <p className="text-[11px] text-slate-500">
-          المنشور اللي مالوش قواعد خاصة بيستخدم القواعد العامة. اقفل البوت على أي منشور لو مش عايزه يرد عليه.
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {connected.length > 1 && (
+            <select className={cn(inputClass, 'w-auto min-w-[200px]')} value={channelId} onChange={(e) => setChannelId(e.target.value)}>
+              {connected.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name ?? p.external_id}
+                </option>
+              ))}
+            </select>
+          )}
+          <button type="button" className={btn.secondary} onClick={() => load(channelId, null)} disabled={loading}>
+            <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
+            تحديث المنشورات
+          </button>
+        </div>
+        <p className="text-xs text-slate-400">
+          كل منشور يمكن تخصيص <strong className="text-amber-400 font-semibold">رد واحد فقط</strong> له. المنشورات بدون رد مخصص تتبع الرد العام التلقائي.
         </p>
       </div>
 
@@ -137,114 +162,199 @@ export function PostsGrid({ pages, postSettings, rules, canEdit, onToggleBot, on
         </div>
       )}
 
-      {/* Selected post: rules panel */}
-      {selected && (
-        <section className="p-4 sm:p-5 rounded-3xl bg-slate-900 border border-amber-500/30 space-y-4">
-          <div className="flex items-start gap-3">
-            <Thumb src={selected.full_picture} className="w-16 h-16" />
-            <div className="min-w-0 flex-1">
-              <h3 className="text-sm font-bold text-white">قواعد هذا المنشور</h3>
-              <p className="text-xs text-slate-400 line-clamp-2">{selected.message || 'منشور بدون نص'}</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setSelectedId(null)}
-              className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center"
-              aria-label="إغلاق"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-          <RuleList
-            rules={rulesByPost.get(selected.id) ?? []}
-            pages={pages}
-            canEdit={canEdit}
-            emptyText="مفيش قواعد خاصة — التعليقات هنا بتمشي على القواعد العامة"
-            {...ruleHandlers}
-          />
-          {canEdit && (
-            <button type="button" className={btn.primary} onClick={() => onAddRule(selected, selected.channelId)}>
-              <Plus className="w-4 h-4" /> إضافة قاعدة لهذا المنشور
-            </button>
-          )}
-        </section>
-      )}
-
       {gridPosts.length === 0 && !loading && !error && (
         <p className="py-12 text-center text-sm text-slate-500">لا توجد منشورات على هذه الصفحة</p>
       )}
 
-      <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">
         {gridPosts.map((post) => {
           const setting = settingsMap.get(post.id);
           const botOn = setting ? setting.bot_enabled : true;
-          const postRules = rulesByPost.get(post.id) ?? [];
-          const activeRules = postRules.filter((r) => r.is_active).length;
+          const rule = ruleByPost.get(post.id) ?? null;
+
           return (
             <article
               key={post.id}
               className={cn(
-                'rounded-3xl overflow-hidden border bg-slate-900/60 flex flex-col transition',
-                selectedId === post.id ? 'border-amber-500/60' : 'border-slate-800',
-                !botOn && 'opacity-75'
+                'rounded-3xl overflow-hidden border bg-slate-900/70 flex flex-col transition hover:border-slate-700 shadow-lg',
+                !botOn
+                  ? 'border-slate-800/80 opacity-70'
+                  : rule
+                    ? rule.is_active
+                      ? 'border-emerald-500/30 ring-1 ring-emerald-500/20'
+                      : 'border-slate-800'
+                    : 'border-slate-800'
               )}
             >
-              <div className="relative aspect-video bg-slate-800">
+              {/* Post Thumbnail & Badges */}
+              <div className="relative aspect-video bg-slate-800/80">
                 <Thumb src={post.full_picture} className="w-full h-full rounded-none" />
-                <span
-                  className={cn(
-                    'absolute top-2 right-2 px-2 py-1 rounded-lg text-[11px] font-bold backdrop-blur',
-                    !botOn
-                      ? 'bg-slate-950/80 text-slate-300'
-                      : activeRules > 0
-                        ? 'bg-amber-500/90 text-slate-950'
-                        : 'bg-slate-950/70 text-emerald-300'
+
+                {/* Status Badge */}
+                <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5">
+                  {!botOn ? (
+                    <span className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-950/90 text-rose-300 border border-rose-500/30 backdrop-blur">
+                      البوت متوقف ⛔
+                    </span>
+                  ) : rule ? (
+                    rule.is_active ? (
+                      <span className="px-2.5 py-1 rounded-lg text-[11px] font-black bg-emerald-500 text-slate-950 backdrop-blur shadow-md">
+                        رد مخصص نشط 🟢
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-950/90 text-slate-400 border border-slate-700 backdrop-blur">
+                        رد مخصص معطل ⚪
+                      </span>
+                    )
+                  ) : (
+                    <span className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-amber-500/90 text-slate-950 backdrop-blur">
+                      الرد العام 🤖
+                    </span>
                   )}
-                >
-                  {!botOn ? 'البوت متوقف على المنشور' : activeRules > 0 ? `قواعد خاصة (${activeRules})` : 'يستخدم الرد العام'}
-                </span>
+                </div>
+
                 {post.cachedOnly && (
-                  <span className="absolute top-2 left-2 px-2 py-1 rounded-lg text-[10px] font-bold bg-slate-950/80 text-slate-400">منشور أقدم</span>
+                  <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-slate-950/80 text-slate-400">
+                    منشور أقدم
+                  </span>
                 )}
               </div>
-              <div className="p-4 flex-1 flex flex-col gap-3">
-                <p className="text-xs text-slate-300 line-clamp-3 flex-1">{post.message || <em className="text-slate-500">بدون نص</em>}</p>
-                <div className="flex items-center justify-between text-[11px] text-slate-500">
-                  <span>{formatDateTime(post.created_time)}</span>
-                  <a
-                    href={post.permalink_url ?? fbLink(post.id)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 hover:text-slate-300"
-                  >
-                    فيسبوك <ExternalLink className="w-3 h-3" />
-                  </a>
+
+              {/* Card Body */}
+              <div className="p-4 flex-1 flex flex-col justify-between gap-3">
+                <div className="space-y-2">
+                  <p className="text-xs text-slate-200 line-clamp-3 leading-relaxed">
+                    {post.message || <em className="text-slate-500 font-normal">منشور بدون نص</em>}
+                  </p>
+
+                  <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
+                    <span>{formatDateTime(post.created_time)}</span>
+                    <a
+                      href={post.permalink_url ?? fbLink(post.id)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-slate-400 hover:text-amber-300 transition"
+                    >
+                      فتح المنشور <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-800">
-                  <label className="flex items-center gap-2 text-[11px] font-semibold text-slate-300">
+
+                {/* Rule Info & Direct Actions */}
+                <div className="space-y-3 pt-2">
+                  {rule ? (
+                    <div className="p-3 rounded-2xl bg-slate-800/60 border border-slate-700/60 space-y-2.5">
+                      {/* Pill features summary */}
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-900 text-slate-300 border border-slate-700/50">
+                          {rule.trigger_type === 'any' ? 'أي تعليق' : `كلمات (${rule.keywords.length})`}
+                        </span>
+
+                        {rule.reply_enabled && rule.reply_variations && rule.reply_variations.length > 0 ? (
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-900 text-slate-300 border border-slate-700/50">
+                            {rule.reply_variations.length === 1 ? 'رد موحد' : `${rule.reply_variations.length} ردود متغيرة`}
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-rose-500/10 text-rose-300 border border-rose-500/20">
+                            بدون رد تعليق
+                          </span>
+                        )}
+
+                        {rule.comment_image_url && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-sky-500/10 text-sky-300 border border-sky-500/20">
+                            <ImageIcon className="w-2.5 h-2.5" /> صورة
+                          </span>
+                        )}
+
+                        {rule.dm_enabled && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-purple-500/10 text-purple-300 border border-purple-500/20">
+                            <MessageSquare className="w-2.5 h-2.5" /> خاص
+                          </span>
+                        )}
+
+                        {rule.like_comment && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                            <ThumbsUp className="w-2.5 h-2.5" /> لايك
+                          </span>
+                        )}
+
+                        {rule.delete_keywords && rule.delete_keywords.length > 0 && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-rose-500/10 text-rose-300 border border-rose-500/20">
+                            <ShieldAlert className="w-2.5 h-2.5" /> {rule.auto_delete ? 'حذف' : 'إخفاء'} ({rule.delete_keywords.length})
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Rule Buttons & Toggle */}
+                      <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-700/40">
+                        <label className="flex items-center gap-2 text-[11px] font-medium text-slate-300 cursor-pointer">
+                          <Switch
+                            size="sm"
+                            checked={rule.is_active}
+                            disabled={!canEdit}
+                            label={rule.is_active ? 'الرد المخصص نشط' : 'الرد المخصص متوقف'}
+                            onChange={(active) => onToggle(rule, active)}
+                          />
+                          <span>{rule.is_active ? 'مفعل' : 'متوقف'}</span>
+                        </label>
+
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => onEdit(rule)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold text-slate-950 bg-amber-400 hover:bg-amber-300 transition shadow-sm"
+                          >
+                            <Settings2 className="w-3.5 h-3.5" />
+                            تعديل الرد
+                          </button>
+
+                          {canEdit && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (window.confirm('هل تريد حذف الرد المخصص لهذا المنشور والرجوع للرد العام التلقائي؟')) {
+                                  onDelete(rule);
+                                }
+                              }}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition"
+                              title="حذف الرد المخصص"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-3 rounded-2xl bg-slate-800/30 border border-dashed border-slate-700/60 space-y-2 text-center">
+                      <p className="text-[11px] text-slate-400">هذا المنشور يتبع الرد العام بالذكاء الاصطناعي</p>
+                      {canEdit && (
+                        <button
+                          type="button"
+                          onClick={() => onAddRule(post, post.channelId)}
+                          className="w-full py-2 px-3 rounded-xl border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-bold text-xs flex items-center justify-center gap-1.5 transition"
+                        >
+                          <Plus className="w-4 h-4" />
+                          تخصيص رد لهذا المنشور
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Master Bot Switch on this post */}
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-800/80 text-[11px] text-slate-400">
+                    <span>تشغيل البوت على المنشور</span>
                     <Switch
                       size="sm"
                       checked={botOn}
                       disabled={!canEdit || togglingId === post.id}
-                      label={botOn ? 'إيقاف البوت على هذا المنشور' : 'تشغيل البوت على هذا المنشور'}
+                      label={botOn ? 'إيقاف البوت' : 'تشغيل البوت'}
                       onChange={async (v) => {
                         setTogglingId(post.id);
                         await onToggleBot(post, post.channelId, v).finally(() => setTogglingId(null));
                       }}
                     />
-                    البوت {botOn ? 'شغال' : 'متوقف'}
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedId(post.id);
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold text-amber-200 bg-amber-500/10 hover:bg-amber-500/20"
-                  >
-                    <Settings2 className="w-3.5 h-3.5" />
-                    القواعد ({postRules.length})
-                  </button>
+                  </div>
                 </div>
               </div>
             </article>
@@ -253,7 +363,7 @@ export function PostsGrid({ pages, postSettings, rules, canEdit, onToggleBot, on
       </div>
 
       {cursor && (
-        <div className="flex justify-center">
+        <div className="flex justify-center pt-2">
           <button type="button" className={btn.secondary} onClick={() => load(channelId, cursor)} disabled={loading}>
             {loading && <Loader2 className="w-4 h-4 animate-spin" />}
             تحميل منشورات أقدم

@@ -10,7 +10,6 @@ import {
   FileText,
 } from 'lucide-react';
 import {
-  getComplaintPriorityBadge,
   getComplaintStatusBadge,
   getWhatsAppLink,
   formatTimeElapsed,
@@ -30,16 +29,15 @@ function ComplaintCardComponent({
   onQuickAdvanceStatus,
   isUpdating = false,
 }: ComplaintCardProps) {
-  const priorityBadge = getComplaintPriorityBadge(complaint.priority);
   const statusBadge = getComplaintStatusBadge(complaint.status);
 
   // Quick next status action helper
   const getNextStatusAction = (current: ComplaintStatus): { label: string; nextStatus: ComplaintStatus } | null => {
     switch (current) {
       case 'open':
-        return { label: 'بدء المعالجة ⚡', nextStatus: 'in_progress' };
-      case 'in_progress':
-        return { label: 'تم الحل وإرضاء العميل ✓', nextStatus: 'resolved' };
+        return { label: 'تم الحل وإرضاء العميل ✅', nextStatus: 'resolved' };
+      case 'resolved':
+        return { label: 'إعادة فتح التذكرة 🔄', nextStatus: 'open' };
       default:
         return null;
     }
@@ -60,16 +58,16 @@ function ComplaintCardComponent({
       }}
       className="group relative rounded-2xl bg-slate-900/90 hover:bg-slate-900 border border-slate-800/90 hover:border-slate-700/80 p-4 shadow-md hover:shadow-xl transition-all duration-200 cursor-pointer text-slate-200 flex flex-col gap-3 select-none focus:outline-none focus:ring-2 focus:ring-amber-500/50"
     >
-      {/* Top Meta Bar: Ticket Number, Elapsed Time, Priority & Status Badges */}
+      {/* Top Meta Bar: Ticket Number, Elapsed Time, Status Badge */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2">
           <span className="font-extrabold text-sm text-white tracking-wide font-mono bg-slate-800 px-2 py-0.5 rounded-md border border-slate-700/50">
             #{complaint.ticket_number}
           </span>
           <span
-            className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${priorityBadge.color}`}
+            className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${statusBadge.color}`}
           >
-            {priorityBadge.label}
+            {statusBadge.label}
           </span>
         </div>
 
