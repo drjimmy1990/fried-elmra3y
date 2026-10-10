@@ -14,6 +14,8 @@ import {
   Trash2,
   Upload,
   X,
+  Pencil,
+  Check,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Modal, btn, inputClass } from '@/components/ui/Modal';
@@ -53,6 +55,14 @@ function validate(d: RuleDraft): string | null {
   return null;
 }
 
+export const BUTTON_ACTIONS = [
+  { label: 'طلب أوردر / وجبة 🛵', payload: 'START_ORDER' },
+  { label: 'عرض المنيو والأسعار 🍗', payload: 'VIEW_MENU' },
+  { label: 'عروض وتخفيضات 🔥', payload: 'VIEW_OFFERS' },
+  { label: 'تحدث مع موظف 👨‍💼', payload: 'HUMAN_AGENT' },
+  { label: 'فروع المطعم 📍', payload: 'BRANCHES' },
+];
+
 export function RuleEditorModal({ open, draft, pages, postPreview, onClose, onSave }: Props) {
   const supabase = useMemo(() => createClient(), []);
   const [d, setD] = useState<RuleDraft | null>(draft);
@@ -63,9 +73,19 @@ export function RuleEditorModal({ open, draft, pages, postPreview, onClose, onSa
   const [error, setError] = useState<string | null>(null);
   const commentImgInputRef = useRef<HTMLInputElement | null>(null);
 
+  // DM Button Builder State
+  const [editingBtnIndex, setEditingBtnIndex] = useState<number | null>(null);
+  const [editBtnTitle, setEditBtnTitle] = useState('');
+  const [editBtnPayload, setEditBtnPayload] = useState('START_ORDER');
+  const [isAddingBtn, setIsAddingBtn] = useState(false);
+  const [newBtnTitle, setNewBtnTitle] = useState('');
+  const [newBtnPayload, setNewBtnPayload] = useState('START_ORDER');
+
   useEffect(() => {
     setD(draft);
     setError(null);
+    setEditingBtnIndex(null);
+    setIsAddingBtn(false);
     if (draft) {
       const vars = draft.reply_variations ?? [];
       if (vars.length > 1) {
@@ -85,6 +105,44 @@ export function RuleEditorModal({ open, draft, pages, postPreview, onClose, onSa
     const has = d.dm_buttons.some((x) => x.payload === b.payload);
     if (has) set('dm_buttons', d.dm_buttons.filter((x) => x.payload !== b.payload));
     else if (d.dm_buttons.length < MAX_DM_BUTTONS) set('dm_buttons', [...d.dm_buttons, b]);
+  };
+
+  const removeButton = (idx: number) => {
+    set('dm_buttons', d.dm_buttons.filter((_, i) => i !== idx));
+    if (editingBtnIndex === idx) setEditingBtnIndex(null);
+  };
+
+  const startEditButton = (idx: number) => {
+    const b = d.dm_buttons[idx];
+    if (!b) return;
+    setEditingBtnIndex(idx);
+    setEditBtnTitle(b.title);
+    setEditBtnPayload(b.payload);
+  };
+
+  const saveEditButton = (idx: number) => {
+    if (!editBtnTitle.trim()) return;
+    const next = [...d.dm_buttons];
+    next[idx] = {
+      title: editBtnTitle.trim().slice(0, MAX_BUTTON_TITLE),
+      payload: editBtnPayload.trim() || 'START_ORDER',
+    };
+    set('dm_buttons', next);
+    setEditingBtnIndex(null);
+  };
+
+  const addCustomButton = () => {
+    if (!newBtnTitle.trim() || d.dm_buttons.length >= MAX_DM_BUTTONS) return;
+    const updated = [
+      ...d.dm_buttons,
+      {
+        title: newBtnTitle.trim().slice(0, MAX_BUTTON_TITLE),
+        payload: newBtnPayload.trim() || 'START_ORDER',
+      },
+    ];
+    set('dm_buttons', updated);
+    setNewBtnTitle('');
+    setIsAddingBtn(false);
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -469,36 +527,192 @@ export function RuleEditorModal({ open, draft, pages, postPreview, onClose, onSa
                 placeholder="أهلاً بك يا فندم! بناءً على طلبك، إليك تفاصيل العرض والأسعار..."
               />
 
-              {/* DM Quick Buttons */}
-              <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-800/60">
+              {/* DM Quick Buttons Builder */}
+              <div className="space-y-2.5 pt-2 border-t border-slate-200 dark:border-slate-800/60">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                    أزرار سريعة تحت الرسالة ({d.dm_buttons.length}/{MAX_DM_BUTTONS})
-                  </span>
-                  {d.dm_buttons.length >= MAX_DM_BUTTONS && (
-                    <span className="text-[10px] text-amber-500 dark:text-amber-400 font-medium">
-                      الحد الأقصى 3 أزرار (اضغط على أي زر مفعل لإلغائه)
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                      أزرار الرد السريع تحت الرسالة ({d.dm_buttons.length}/{MAX_DM_BUTTONS})
                     </span>
+                    <span className="text-[10px] text-slate-400">(حد أقصى 3 أزرار حسب سياسة فيسبوك)</span>
+                  </div>
+                  {!isAddingBtn && d.dm_buttons.length < MAX_DM_BUTTONS && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAddingBtn(true);
+                        setNewBtnTitle('');
+                        setNewBtnPayload('START_ORDER');
+                      }}
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-500 hover:text-blue-400 transition"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> إضافة زر مخصص
+                    </button>
                   )}
                 </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {DM_BUTTON_PRESETS.map((b) => {
-                    const on = d.dm_buttons.some((x) => x.payload === b.payload);
-                    return (
-                      <button
-                        key={b.payload}
-                        type="button"
-                        onClick={() => toggleButton(b)}
-                        disabled={!on && d.dm_buttons.length >= MAX_DM_BUTTONS}
-                        className={cn(
-                          'px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition disabled:opacity-40',
-                          on ? 'bg-blue-500/20 border-blue-500/50 text-blue-700 dark:text-blue-200' : 'bg-white dark:bg-slate-950/50 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
-                        )}
+
+                {/* Active buttons list */}
+                {d.dm_buttons.length > 0 && (
+                  <div className="space-y-1.5">
+                    {d.dm_buttons.map((b, idx) => {
+                      const isEditing = editingBtnIndex === idx;
+                      if (isEditing) {
+                        return (
+                          <div
+                            key={idx}
+                            className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/30 flex flex-wrap items-center gap-2 text-xs"
+                          >
+                            <input
+                              type="text"
+                              maxLength={MAX_BUTTON_TITLE}
+                              className={cn(inputClass, 'flex-1 py-1 text-xs')}
+                              value={editBtnTitle}
+                              onChange={(e) => setEditBtnTitle(e.target.value)}
+                              placeholder="عنوان الزر (مثلاً: اطلب الآن)"
+                            />
+                            <select
+                              className={cn(inputClass, 'w-auto py-1 text-xs bg-slate-900')}
+                              value={editBtnPayload}
+                              onChange={(e) => setEditBtnPayload(e.target.value)}
+                            >
+                              {BUTTON_ACTIONS.map((act) => (
+                                <option key={act.payload} value={act.payload}>
+                                  {act.label}
+                                </option>
+                              ))}
+                            </select>
+                            <button
+                              type="button"
+                              onClick={() => saveEditButton(idx)}
+                              disabled={!editBtnTitle.trim()}
+                              className="p-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition disabled:opacity-40"
+                              title="حفظ التعديل"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditingBtnIndex(null)}
+                              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
+                              title="إلغاء"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        );
+                      }
+
+                      const matchedAction = BUTTON_ACTIONS.find((act) => act.payload === b.payload);
+                      return (
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 text-xs"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-slate-900 dark:text-slate-100">{b.title}</span>
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-300 font-medium border border-blue-500/20">
+                              {matchedAction ? matchedAction.label : b.payload}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => startEditButton(idx)}
+                              className="p-1 text-slate-400 hover:text-blue-400 transition rounded"
+                              title="تعديل الزر"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => removeButton(idx)}
+                              className="p-1 text-slate-400 hover:text-rose-400 transition rounded"
+                              title="حذف الزر"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Add Custom Button Form */}
+                {isAddingBtn && (
+                  <div className="p-2.5 rounded-xl bg-slate-900 border border-blue-500/40 space-y-2">
+                    <div className="text-[11px] font-bold text-blue-400 flex items-center justify-between">
+                      <span>إضافة زر جديد:</span>
+                      <span className="text-[10px] text-slate-400 font-normal">أقصى طول للعنوان 20 حرف</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <input
+                        type="text"
+                        maxLength={MAX_BUTTON_TITLE}
+                        className={cn(inputClass, 'flex-1 py-1.5 text-xs')}
+                        value={newBtnTitle}
+                        onChange={(e) => setNewBtnTitle(e.target.value)}
+                        placeholder="نص الزر (مثلاً: اطلب دليفري 🛵)"
+                        autoFocus
+                      />
+                      <select
+                        className={cn(inputClass, 'w-auto py-1.5 text-xs bg-slate-900')}
+                        value={newBtnPayload}
+                        onChange={(e) => setNewBtnPayload(e.target.value)}
                       >
-                        {b.title}
+                        {BUTTON_ACTIONS.map((act) => (
+                          <option key={act.payload} value={act.payload}>
+                            {act.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="flex items-center justify-end gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setIsAddingBtn(false)}
+                        className="px-2.5 py-1 text-xs text-slate-400 hover:text-slate-200"
+                      >
+                        إلغاء
                       </button>
-                    );
-                  })}
+                      <button
+                        type="button"
+                        onClick={addCustomButton}
+                        disabled={!newBtnTitle.trim()}
+                        className="px-3 py-1 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-40 transition"
+                      >
+                        إضافة الزر
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Quick Presets Suggestions */}
+                <div className="space-y-1">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                    أو اختر من الأزرار الجاهزة بنقرة واحدة:
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {DM_BUTTON_PRESETS.map((b) => {
+                      const on = d.dm_buttons.some((x) => x.payload === b.payload);
+                      return (
+                        <button
+                          key={b.payload}
+                          type="button"
+                          onClick={() => toggleButton(b)}
+                          disabled={!on && d.dm_buttons.length >= MAX_DM_BUTTONS}
+                          className={cn(
+                            'px-2 py-1 rounded-lg text-[11px] font-semibold border transition disabled:opacity-40',
+                            on
+                              ? 'bg-blue-500/20 border-blue-500/50 text-blue-700 dark:text-blue-200'
+                              : 'bg-white dark:bg-slate-950/50 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-blue-500/40'
+                          )}
+                        >
+                          {on ? `✓ ${b.title}` : `+ ${b.title}`}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>

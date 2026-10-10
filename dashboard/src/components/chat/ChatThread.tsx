@@ -20,37 +20,11 @@ import {
   Image as ImageIcon,
   MapPin,
   ShoppingBag,
+  Settings,
 } from 'lucide-react';
 import { formatDateTime, getWhatsAppLink } from '@/lib/utils';
 import { ChatThreadProps, QuickReply, MessageRow } from './types';
-
-const CANNED_REPLIES: QuickReply[] = [
-  {
-    id: '1',
-    text: 'أهلاً بحضرتك يا فندم، نعتذر عن أي إزعاج ويسعدنا جداً خدمتك.',
-    label: 'ترحيب واعتذار',
-  },
-  {
-    id: '2',
-    text: 'تم تجهيز طلب حضرتك بالكامل وهو مع الطيار الآن في الطريق إليك.',
-    label: 'تأكيد التوصيل',
-  },
-  {
-    id: '3',
-    text: 'لحظات من فضلك وأراجع الأمر لحضرتك مع إدارة المطبخ والفرع فوراً.',
-    label: 'مراجعة المطبخ',
-  },
-  {
-    id: '4',
-    text: 'شرفتنا يا فندم 🍗 تحب نساعدك في حاجة تانية؟',
-    label: 'إنهاء المحادثة',
-  },
-  {
-    id: '5',
-    text: 'تم تسجيل ملاحظات حضرتك وسيقوم مدير الفرع بالتواصل معك هاتفياً.',
-    label: 'تصعيد للإدارة',
-  },
-];
+import { CannedResponsesModal, DEFAULT_CANNED_REPLIES } from './CannedResponsesModal';
 
 export function ChatThread({
   contact,
@@ -65,8 +39,29 @@ export function ChatThread({
   channels = [],
 }: ChatThreadProps) {
   const [inputText, setInputText] = useState('');
+  const [cannedReplies, setCannedReplies] = useState<QuickReply[]>(DEFAULT_CANNED_REPLIES);
+  const [isCannedModalOpen, setIsCannedModalOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('khedewy_canned_replies');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setCannedReplies(parsed);
+        }
+      }
+    } catch (e) {}
+  }, []);
+
+  const handleSaveCannedReplies = (updated: QuickReply[]) => {
+    setCannedReplies(updated);
+    try {
+      localStorage.setItem('khedewy_canned_replies', JSON.stringify(updated));
+    } catch (e) {}
+  };
 
   // Auto-scroll to bottom whenever messages change or loading completes
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
@@ -479,7 +474,7 @@ export function ChatThread({
           <Sparkles className="w-3 h-3 text-amber-600 dark:text-amber-400" />
           ردود سريعة:
         </span>
-        {CANNED_REPLIES.map((canned) => (
+        {cannedReplies.map((canned) => (
           <button
             key={canned.id}
             type="button"
@@ -490,6 +485,15 @@ export function ChatThread({
             {canned.label || canned.text}
           </button>
         ))}
+        <button
+          type="button"
+          onClick={() => setIsCannedModalOpen(true)}
+          className="px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-xs font-semibold whitespace-nowrap transition flex items-center gap-1 cursor-pointer"
+          title="إضافة أو تعديل الردود السريعة"
+        >
+          <Settings className="w-3 h-3" />
+          <span>تعديل الردود</span>
+        </button>
       </div>
 
       {/* 5. Agent Input Box */}
@@ -550,6 +554,13 @@ export function ChatThread({
           <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500">Enter ↵ للإرسال</span>
         </div>
       </div>
+
+      <CannedResponsesModal
+        open={isCannedModalOpen}
+        onClose={() => setIsCannedModalOpen(false)}
+        replies={cannedReplies}
+        onSave={handleSaveCannedReplies}
+      />
     </div>
   );
 }
