@@ -69,20 +69,20 @@ const STEPS: Array<{ title: string; body: React.ReactNode }> = [
 export function SetupGuide() {
   const [open, setOpen] = useState(false);
   return (
-    <section className="rounded-3xl border border-slate-800 bg-slate-900/60">
+    <section className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/80 shadow-xs">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between gap-3 p-5 text-right"
+        className="w-full flex items-center justify-between gap-3 p-5 text-right hover:bg-slate-50 dark:hover:bg-slate-800/40 rounded-3xl transition"
         aria-expanded={open}
       >
         <span className="flex items-center gap-3">
-          <span className="w-10 h-10 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-300 flex items-center justify-center">
+          <span className="w-10 h-10 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-300 flex items-center justify-center">
             <BookOpen className="w-5 h-5" />
           </span>
           <span>
-            <span className="block text-sm font-bold text-white">دليل الربط خطوة بخطوة</span>
-            <span className="block text-xs text-slate-400">أول مرة؟ افتح الدليل — 6 خطوات</span>
+            <span className="block text-sm font-bold text-slate-900 dark:text-white">دليل الربط خطوة بخطوة</span>
+            <span className="block text-xs text-slate-500 dark:text-slate-400">أول مرة؟ افتح الدليل — 6 خطوات</span>
           </span>
         </span>
         <ChevronDown className={cn('w-5 h-5 text-slate-400 transition-transform', open && 'rotate-180')} />
@@ -90,12 +90,12 @@ export function SetupGuide() {
       {open && (
         <ol className="px-5 pb-5 space-y-3">
           {STEPS.map((s, i) => (
-            <li key={s.title} className="flex gap-3 p-3 rounded-2xl bg-slate-950/40 border border-slate-800">
-              <span className="w-7 h-7 shrink-0 rounded-full bg-amber-500/15 text-amber-300 text-xs font-black flex items-center justify-center">
+            <li key={s.title} className="flex gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800">
+              <span className="w-7 h-7 shrink-0 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 text-xs font-black flex items-center justify-center">
                 {i + 1}
               </span>
-              <div className="text-xs text-slate-300 leading-relaxed">
-                <p className="text-sm font-bold text-white mb-1">{s.title}</p>
+              <div className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                <p className="text-sm font-bold text-slate-900 dark:text-white mb-1">{s.title}</p>
                 {s.body}
               </div>
             </li>

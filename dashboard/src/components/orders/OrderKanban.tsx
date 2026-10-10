@@ -443,7 +443,7 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
               <span>{isRealtimeActive ? 'تحديث لحظي نشط' : 'جاري الاتصال...'}</span>
             </span>
           </div>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1">
             متابعة دورة تحضير وتسليم الوجبات وتحديث الحالات وإبلاغ العملاء فورياً
           </p>
         </div>
@@ -481,7 +481,7 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
 
       {/* Summary KPI Cards Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 shadow-xs flex flex-col justify-between">
+        <div className="rounded-2xl bg-white dark:bg-[#101726] border border-slate-200/90 dark:border-slate-700/80 p-3.5 shadow-xs flex flex-col justify-between">
           <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">إجمالي الطلبات</span>
           <div className="flex items-baseline justify-between mt-2">
             <span className="text-xl font-black text-slate-900 dark:text-white">{totalOrdersCount}</span>
@@ -505,7 +505,7 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
           </div>
         </div>
 
-        <div className="rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 shadow-xs flex flex-col justify-between">
+        <div className="rounded-2xl bg-white dark:bg-[#101726] border border-slate-200/90 dark:border-slate-700/80 p-3.5 shadow-xs flex flex-col justify-between">
           <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">إجمالي المبيعات المؤكدة</span>
           <div className="flex items-baseline justify-between mt-2">
             <span className="text-lg font-black text-amber-600 dark:text-amber-400 font-mono">
@@ -517,8 +517,7 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
       </div>
 
       {/* Filter and Search Bar */}
-      {/* Filter and Search Bar */}
-      <div className="flex flex-col lg:flex-row items-center justify-between gap-3 bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 rounded-2xl shadow-xs">
+      <div className="flex flex-col lg:flex-row items-center justify-between gap-3 bg-white dark:bg-[#101726] border border-slate-200/90 dark:border-slate-700/80 p-3.5 rounded-2xl shadow-xs">
         {/* Search Input */}
         <div className="relative w-full lg:w-72">
           <Search className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute right-3 top-1/2 -translate-y-1/2" />
@@ -656,7 +655,7 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
             return (
               <div
                 key={column.id}
-                className="flex flex-col rounded-3xl bg-white/90 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 shadow-md dark:shadow-xl overflow-hidden min-h-[500px]"
+                className="flex flex-col rounded-3xl bg-white dark:bg-[#101726] border border-slate-200/90 dark:border-slate-700/80 shadow-md dark:shadow-xl overflow-hidden min-h-[500px]"
               >
                 {/* Column Header */}
                 <div

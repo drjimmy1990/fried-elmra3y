@@ -86,7 +86,7 @@ export function Topbar({ user, botEnabled = true, onToggleSidebar }: TopbarProps
   const RoleIcon = roleInfo.icon;
 
   return (
-    <header className="sticky top-0 z-30 flex h-20 w-full items-center justify-between border-b border-slate-200/80 bg-white/85 dark:border-slate-800/80 dark:bg-[#0B0F17]/90 px-4 backdrop-blur-md sm:px-6 transition-colors duration-200">
+    <header className="sticky top-0 z-30 flex h-20 w-full items-center justify-between border-b border-slate-200 bg-white/90 dark:border-slate-800 dark:bg-[#0E1424]/90 px-4 backdrop-blur-md sm:px-6 transition-colors duration-200">
       {/* Right Side: Mobile menu hamburger + Bot Status */}
       <div className="flex items-center gap-3 sm:gap-4">
         {/* Mobile Hamburger Toggle */}
@@ -100,7 +100,7 @@ export function Topbar({ user, botEnabled = true, onToggleSidebar }: TopbarProps
         </button>
 
         {/* Bot Status Indicator */}
-        <div className="flex items-center gap-2 rounded-full border border-slate-200 dark:border-slate-800 bg-slate-100/80 dark:bg-slate-900 px-3 py-1.5 text-xs shadow-xs">
+        <div className="flex items-center gap-2 rounded-full border border-slate-200 dark:border-slate-700/80 bg-slate-100/90 dark:bg-[#121B2D] px-3 py-1.5 text-xs shadow-xs">
           <div className="relative flex h-2.5 w-2.5 items-center justify-center">
             {botEnabled ? (
               <>

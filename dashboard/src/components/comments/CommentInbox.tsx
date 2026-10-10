@@ -295,19 +295,19 @@ export function CommentInbox({ initialEvents, rules, posts, pages, canCreateRule
 }
 
 const TONES = {
-  slate: 'text-slate-200 bg-slate-800/60',
-  emerald: 'text-emerald-300 bg-emerald-500/10',
-  orange: 'text-orange-300 bg-orange-500/10',
-  rose: 'text-rose-300 bg-rose-500/10',
+  slate: 'text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800/60',
+  emerald: 'text-emerald-700 dark:text-emerald-300 bg-emerald-500/10',
+  orange: 'text-orange-700 dark:text-orange-300 bg-orange-500/10',
+  rose: 'text-rose-700 dark:text-rose-300 bg-rose-500/10',
 } as const;
 
 function Kpi({ icon, label, value, tone }: { icon: React.ReactNode; label: string; value: React.ReactNode; tone: keyof typeof TONES }) {
   return (
-    <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 flex items-center gap-3">
+    <div className="p-4 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 flex items-center gap-3 shadow-xs">
       <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center', TONES[tone])}>{icon}</div>
       <div>
-        <p className="text-lg font-black text-white leading-none">{value}</p>
-        <p className="text-[11px] text-slate-400 mt-1">{label}</p>
+        <p className="text-lg font-black text-slate-900 dark:text-white leading-none">{value}</p>
+        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">{label}</p>
       </div>
     </div>
   );

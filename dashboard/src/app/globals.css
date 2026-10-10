@@ -8,29 +8,34 @@
     --bg-surface: #ffffff;
     --bg-elevated: #ffffff;
     --bg-subtle: #f1f5f9;
-    --border-subtle: rgba(226, 232, 240, 0.9);
+    --border-subtle: #e2e8f0;
     --border-default: #cbd5e1;
     --border-hover: #94a3b8;
     --text-primary: #0f172a;
-    --text-secondary: #475569;
-    --text-muted: #94a3b8;
+    --text-secondary: #334155;
+    --text-muted: #64748b;
     --brand-gold: #d97706;
-    --brand-gold-glow: rgba(217, 119, 6, 0.1);
+    --brand-gold-glow: rgba(217, 119, 6, 0.12);
   }
 
   .dark {
-    --bg-canvas: #0b0f17;
-    --bg-surface: #111827;
-    --bg-elevated: #161f30;
-    --bg-subtle: #1a2234;
-    --border-subtle: rgba(255, 255, 255, 0.08);
-    --border-default: rgba(255, 255, 255, 0.12);
-    --border-hover: rgba(255, 255, 255, 0.2);
-    --text-primary: #f8fafc;
-    --text-secondary: #94a3b8;
-    --text-muted: #64748b;
+    --bg-canvas: #090d16;
+    --bg-surface: #101726;
+    --bg-elevated: #162035;
+    --bg-subtle: #1c273e;
+    --border-subtle: rgba(255, 255, 255, 0.10);
+    --border-default: rgba(255, 255, 255, 0.16);
+    --border-hover: rgba(255, 255, 255, 0.28);
+    --text-primary: #ffffff;
+    --text-secondary: #cbd5e1;
+    --text-muted: #94a3b8;
     --brand-gold: #f59e0b;
-    --brand-gold-glow: rgba(245, 158, 11, 0.15);
+    --brand-gold-glow: rgba(245, 158, 11, 0.20);
+  }
+
+  ::selection {
+    background-color: rgba(245, 158, 11, 0.25);
+    color: inherit;
   }
 
   body {
@@ -43,6 +48,23 @@
   .font-mono, [dir="ltr"] {
     font-family: var(--font-jakarta), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   }
+}
+
+/* Crisp, Defined Dark Mode Borders for Luxury Visual Separation */
+:where(.dark, .dark *) .dark\:border-slate-800 {
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+:where(.dark, .dark *) .dark\:border-slate-800\/80 {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+:where(.dark, .dark *) .dark\:border-slate-800\/60 {
+  border-color: rgba(255, 255, 255, 0.10);
+}
+
+:where(.dark, .dark *) .dark\:border-slate-700\/80 {
+  border-color: rgba(255, 255, 255, 0.18);
 }
 
 /* Custom premium scrollbar */

@@ -71,13 +71,13 @@ export default async function CommentsPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-6">
-      <div className="flex items-center gap-3 pb-6 border-b border-slate-800">
-        <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center">
+      <div className="flex items-center gap-3 pb-6 border-b border-slate-200 dark:border-slate-800">
+        <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 flex items-center justify-center">
           <MessagesSquare className="w-6 h-6" />
         </div>
         <div>
-          <h1 className="text-2xl font-black text-white tracking-tight">مركز التعليقات</h1>
-          <p className="text-sm text-slate-400 mt-1">تابع ردود البوت على تعليقات فيسبوك، تحكم في كل منشور، وظبط القواعد العامة</p>
+          <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">مركز التعليقات</h1>
+          <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">تابع ردود البوت على تعليقات فيسبوك، تحكم في كل منشور، وظبط القواعد العامة</p>
         </div>
       </div>
 

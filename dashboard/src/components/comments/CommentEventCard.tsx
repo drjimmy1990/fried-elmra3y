@@ -55,8 +55,8 @@ export function CommentEventCard({ event: e, rule, post, pageName, busyAction, c
   return (
     <article
       className={cn(
-        'p-4 rounded-2xl border bg-slate-900/60 space-y-3',
-        e.decision === 'complaint' ? 'border-rose-500/30' : e.decision === 'failed' ? 'border-orange-500/30' : 'border-slate-800'
+        'p-4 rounded-2xl border bg-white dark:bg-slate-900/60 space-y-3 shadow-xs',
+        e.decision === 'complaint' ? 'border-rose-500/30' : e.decision === 'failed' ? 'border-orange-500/30' : 'border-slate-200 dark:border-slate-800'
       )}
     >
       <div className="flex gap-3">
@@ -65,7 +65,7 @@ export function CommentEventCard({ event: e, rule, post, pageName, busyAction, c
           href={postLink ?? undefined}
           target="_blank"
           rel="noreferrer"
-          className="w-14 h-14 shrink-0 rounded-xl overflow-hidden bg-slate-800 border border-slate-700/60"
+          className="w-14 h-14 shrink-0 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60"
           title={post?.post_caption ?? 'فتح المنشور'}
         >
           {post?.post_thumbnail_url ? (
@@ -78,12 +78,12 @@ export function CommentEventCard({ event: e, rule, post, pageName, busyAction, c
 
         <div className="min-w-0 flex-1 space-y-1.5">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="text-sm font-bold text-white">{e.commenter_name || 'مستخدم فيسبوك'}</span>
+            <span className="text-sm font-bold text-slate-900 dark:text-white">{e.commenter_name || 'مستخدم فيسبوك'}</span>
             <span className="text-[11px] text-slate-500">{formatTimeElapsed(e.comment_created_at ?? e.created_at)}</span>
-            {pageName && <span className="text-[11px] text-blue-300/80">· {pageName}</span>}
+            {pageName && <span className="text-[11px] text-blue-600 dark:text-blue-300/80">· {pageName}</span>}
             {e.parent_comment_id && <span className="text-[11px] text-slate-500">· رد على تعليق</span>}
           </div>
-          <p className="text-sm text-slate-200 whitespace-pre-wrap break-words">{e.comment_text || <em className="text-slate-500">بدون نص</em>}</p>
+          <p className="text-sm text-slate-700 dark:text-slate-200 whitespace-pre-wrap break-words">{e.comment_text || <em className="text-slate-500">بدون نص</em>}</p>
           {post?.post_caption && <p className="text-[11px] text-slate-500 line-clamp-1">على: {post.post_caption}</p>}
         </div>
       </div>

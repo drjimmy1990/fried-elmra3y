@@ -33,7 +33,7 @@ export function DashboardShell({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen bg-slate-50 text-slate-900 dark:bg-[#0B0F17] dark:text-slate-100 font-sans transition-colors duration-200">
+    <div className="flex min-h-screen bg-slate-50 text-slate-900 dark:bg-[#090D16] dark:text-slate-100 font-sans transition-colors duration-200">
       {/* Role-Aware Sidebar */}
       <Sidebar
         role={user.role}

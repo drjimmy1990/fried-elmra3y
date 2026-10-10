@@ -134,7 +134,7 @@ export function InviteStaffModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-lg bg-white dark:bg-[#101726] border border-slate-200/90 dark:border-slate-700/80 rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
@@ -145,7 +145,7 @@ export function InviteStaffModal({
               <h2 id="invite-modal-title" className="text-lg font-bold text-slate-900 dark:text-white">
                 إضافة موظف جديد للفريق
               </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-slate-600 dark:text-slate-300">
                 إنشاء حساب موظف وتحديد صلاحياته ومسؤولياته في النظام
               </p>
             </div>

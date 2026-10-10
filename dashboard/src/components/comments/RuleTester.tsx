@@ -35,12 +35,12 @@ export function RuleTester({ rules, settings, posts }: Props) {
   );
 
   return (
-    <section className="p-5 rounded-3xl bg-slate-900/60 border border-purple-500/20 space-y-4">
+    <section className="p-5 rounded-3xl bg-white dark:bg-slate-900/60 border border-purple-500/20 space-y-4 shadow-xs">
       <header className="flex items-center gap-2">
-        <FlaskConical className="w-5 h-5 text-purple-400" />
+        <FlaskConical className="w-5 h-5 text-purple-500 dark:text-purple-400" />
         <div>
-          <h3 className="text-sm font-bold text-white">جرّب تعليق</h3>
-          <p className="text-[11px] text-slate-400">اكتب تعليق وشوف البوت هيعمل إيه — بنفس ترتيب القواعد الحقيقي.</p>
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white">جرّب تعليق</h3>
+          <p className="text-[11px] text-slate-600 dark:text-slate-400">اكتب تعليق وشوف البوت هيعمل إيه — بنفس ترتيب القواعد الحقيقي.</p>
         </div>
       </header>
 

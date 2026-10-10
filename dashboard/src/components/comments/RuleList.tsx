@@ -39,15 +39,15 @@ export function RuleList({ rules, pages, canEdit, emptyText, onEdit, onDuplicate
         <li
           key={rule.id}
           className={cn(
-            'p-3.5 rounded-2xl border bg-slate-900/60 transition',
-            rule.is_active ? 'border-slate-800' : 'border-slate-800/60 opacity-60'
+            'p-3.5 rounded-2xl border bg-white dark:bg-slate-900/60 transition shadow-xs',
+            rule.is_active ? 'border-slate-200 dark:border-slate-800' : 'border-slate-200/60 dark:border-slate-800/60 opacity-60'
           )}
         >
           <div className="flex items-start gap-3">
             <div className="min-w-0 flex-1 space-y-2">
               <div className="flex flex-wrap items-center gap-2">
-                <h4 className="text-sm font-bold text-white">{rule.name}</h4>
-                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-800 text-slate-400">أولوية {rule.priority}</span>
+                <h4 className="text-sm font-bold text-slate-900 dark:text-white">{rule.name}</h4>
+                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">أولوية {rule.priority}</span>
                 {pageName(rule.channel_id) && (
                   <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-500/10 text-blue-300">{pageName(rule.channel_id)}</span>
                 )}

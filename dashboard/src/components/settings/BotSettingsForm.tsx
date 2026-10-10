@@ -276,7 +276,7 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* 2. Financial & Delivery Parameters */}
-        <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col justify-between">
+        <div className="bg-white dark:bg-[#101726] border border-slate-200/90 dark:border-slate-700/80 rounded-2xl p-6 shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex items-center gap-3 mb-4 pb-3 border-b border-slate-200 dark:border-slate-800">
               <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center">
@@ -331,7 +331,7 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
         </div>
 
         {/* 3. Dashboard Alerts */}
-        <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col justify-between">
+        <div className="bg-white dark:bg-[#101726] border border-slate-200/90 dark:border-slate-700/80 rounded-2xl p-6 shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex items-center gap-3 mb-4 pb-3 border-b border-slate-200 dark:border-slate-800">
               <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-500 flex items-center justify-center">
@@ -379,7 +379,7 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
       </div>
 
       {/* 4. Business Hours & Off-Hours Handling */}
-      <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs">
+      <div className="bg-white dark:bg-[#101726] border border-slate-200/90 dark:border-slate-700/80 rounded-2xl p-6 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-500 flex items-center justify-center">
@@ -471,7 +471,7 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
       </div>
 
       {/* 5. AI Agent System Prompt (Gemini 2.0 Flash) */}
-      <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs">
+      <div className="bg-white dark:bg-[#101726] border border-slate-200/90 dark:border-slate-700/80 rounded-2xl p-6 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 pb-3 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
@@ -516,7 +516,7 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
       </div>
 
       {/* 6. Telegram Operations Alerts */}
-      <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs">
+      <div className="bg-white dark:bg-[#101726] border border-slate-200/90 dark:border-slate-700/80 rounded-2xl p-6 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-600 dark:text-sky-400 flex items-center justify-center">
@@ -603,23 +603,23 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
       </div>
 
       {/* Link Card for Channels and Menu */}
-      <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="bg-white dark:bg-[#101726] border border-slate-200/90 dark:border-slate-700/80 rounded-2xl p-6 shadow-xs grid grid-cols-1 md:grid-cols-2 gap-4">
         <a href="/dashboard/channels" className="flex items-center gap-4 p-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-blue-500/50 bg-slate-50/50 dark:bg-slate-950/50 transition group">
-          <div className="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-500 dark:text-blue-400 flex items-center justify-center group-hover:bg-blue-500/20 transition">
+          <div className="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center group-hover:bg-blue-500/20 transition">
             <Facebook className="w-6 h-6" />
           </div>
           <div>
-            <h4 className="font-bold text-slate-900 dark:text-white text-sm mb-1 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition">إعدادات فيسبوك وماسنجر</h4>
+            <h4 className="font-bold text-slate-900 dark:text-white text-sm mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition">إعدادات فيسبوك وماسنجر</h4>
             <p className="text-xs text-slate-500 dark:text-slate-400">انتقل لربط الصفحة والردود التلقائية</p>
           </div>
         </a>
 
         <a href="/dashboard/menu" className="flex items-center gap-4 p-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-rose-500/50 bg-slate-50/50 dark:bg-slate-950/50 transition group">
-          <div className="w-12 h-12 rounded-xl bg-rose-500/10 text-rose-500 dark:text-rose-400 flex items-center justify-center group-hover:bg-rose-500/20 transition">
+          <div className="w-12 h-12 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center group-hover:bg-rose-500/20 transition">
             <FileText className="w-6 h-6" />
           </div>
           <div>
-            <h4 className="font-bold text-slate-900 dark:text-white text-sm mb-1 group-hover:text-rose-500 dark:group-hover:text-rose-400 transition">إعدادات المنيو والأسعار</h4>
+            <h4 className="font-bold text-slate-900 dark:text-white text-sm mb-1 group-hover:text-rose-600 dark:group-hover:text-rose-400 transition">إعدادات المنيو والأسعار</h4>
             <p className="text-xs text-slate-500 dark:text-slate-400">انتقل لرفع المنيو وتحديث قائمة الأسعار</p>
           </div>
         </a>

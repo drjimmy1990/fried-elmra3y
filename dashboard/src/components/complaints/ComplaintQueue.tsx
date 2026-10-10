@@ -359,7 +359,7 @@ export function ComplaintQueue({ initialComplaints, staffList }: ComplaintQueueP
               <span>{isRealtimeActive ? 'مزامنة لحظية' : 'جاري الاتصال...'}</span>
             </span>
           </div>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1">
             متابعة المشكلات وحلها يدوياً مع إمكانية التدخل المباشر في الشات
           </p>
         </div>
@@ -397,7 +397,7 @@ export function ComplaintQueue({ initialComplaints, staffList }: ComplaintQueueP
 
       {/* Summary KPI Cards Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 flex flex-col justify-between shadow-xs">
+        <div className="rounded-2xl bg-white dark:bg-[#101726] border border-slate-200/90 dark:border-slate-700/80 p-3.5 flex flex-col justify-between shadow-xs">
           <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">إجمالي التذاكر</span>
           <div className="flex items-baseline justify-between mt-2">
             <span className="text-xl font-black text-slate-900 dark:text-white">{totalCount}</span>
@@ -421,7 +421,7 @@ export function ComplaintQueue({ initialComplaints, staffList }: ComplaintQueueP
           </div>
         </div>
 
-        <div className="rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 flex flex-col justify-between shadow-xs">
+        <div className="rounded-2xl bg-white dark:bg-[#101726] border border-slate-200/90 dark:border-slate-700/80 p-3.5 flex flex-col justify-between shadow-xs">
           <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">نسبة الإغلاق والرضا</span>
           <div className="flex items-baseline justify-between mt-2">
             <span className="text-xl font-black text-amber-600 dark:text-amber-400 font-mono">
@@ -433,7 +433,7 @@ export function ComplaintQueue({ initialComplaints, staffList }: ComplaintQueueP
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3 rounded-2xl shadow-xs">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white dark:bg-[#101726] border border-slate-200/90 dark:border-slate-700/80 p-3 rounded-2xl shadow-xs">
         {/* Search Input */}
         <div className="relative w-full sm:w-80">
           <Search className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute right-3 top-1/2 -translate-y-1/2" />
@@ -499,7 +499,7 @@ export function ComplaintQueue({ initialComplaints, staffList }: ComplaintQueueP
 
       {/* Main View: Table (Default) or Cards */}
       {viewMode === 'table' ? (
-        <div className="rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">
+        <div className="rounded-3xl bg-white dark:bg-[#101726] border border-slate-200/90 dark:border-slate-700/80 shadow-xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-right text-xs">
               <thead>
@@ -656,7 +656,7 @@ export function ComplaintQueue({ initialComplaints, staffList }: ComplaintQueueP
             return (
               <div
                 key={column.id}
-                className="flex flex-col rounded-3xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 shadow-xl overflow-hidden min-h-[500px]"
+                className="flex flex-col rounded-3xl bg-white dark:bg-[#101726] border border-slate-200/90 dark:border-slate-700/80 shadow-xl overflow-hidden min-h-[500px]"
               >
                 {/* Column Header */}
                 <div

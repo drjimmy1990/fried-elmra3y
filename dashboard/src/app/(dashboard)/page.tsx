@@ -106,7 +106,7 @@ export default async function OverviewDashboardPage() {
   return (
     <div className="space-y-6 sm:space-y-8 p-3 sm:p-6 lg:p-8 max-w-7xl mx-auto">
       {/* Welcome Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/20 text-slate-900 dark:from-slate-900 dark:via-slate-900 dark:to-amber-950/40 dark:border-slate-800 dark:text-white p-6 sm:p-8 shadow-xs dark:shadow-2xl dark:shadow-black/40">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/20 text-slate-900 dark:from-[#0E1424] dark:via-[#101726] dark:to-amber-950/30 dark:border-slate-700/80 dark:text-white p-6 sm:p-8 shadow-xs dark:shadow-2xl dark:shadow-black/40">
         <div className="relative z-10 flex flex-col justify-between gap-6 md:flex-row md:items-center">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/25 text-xs font-bold text-amber-700 dark:text-amber-300">
@@ -148,7 +148,7 @@ export default async function OverviewDashboardPage() {
       {/* Top 5 Operational Metrics Cards */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         {/* Pending Orders */}
-        <div className="rounded-2xl border border-amber-500/30 bg-white dark:bg-slate-900/80 backdrop-blur-sm p-5 shadow-xs dark:shadow-lg dark:shadow-black/20 flex flex-col justify-between hover:border-amber-400 transition">
+        <div className="rounded-2xl border border-amber-500/40 bg-white dark:bg-[#101726] p-5 shadow-xs dark:shadow-lg dark:shadow-black/20 flex flex-col justify-between hover:border-amber-400 transition">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-amber-700 dark:text-amber-300">طلبات جديدة</span>
             <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
@@ -162,7 +162,7 @@ export default async function OverviewDashboardPage() {
         </div>
 
         {/* Confirmed Orders */}
-        <div className="rounded-2xl border border-emerald-500/30 bg-white dark:bg-slate-900/80 backdrop-blur-sm p-5 shadow-xs dark:shadow-lg dark:shadow-black/20 flex flex-col justify-between hover:border-emerald-400 transition">
+        <div className="rounded-2xl border border-emerald-500/40 bg-white dark:bg-[#101726] p-5 shadow-xs dark:shadow-lg dark:shadow-black/20 flex flex-col justify-between hover:border-emerald-400 transition">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300">طلبات مؤكدة</span>
             <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500">
@@ -176,7 +176,7 @@ export default async function OverviewDashboardPage() {
         </div>
 
         {/* Open Complaints */}
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/80 backdrop-blur-sm p-5 shadow-xs dark:shadow-lg dark:shadow-black/20 flex flex-col justify-between hover:border-rose-400 transition">
+        <div className="rounded-2xl border border-slate-200/90 dark:border-slate-700/80 bg-white dark:bg-[#101726] p-5 shadow-xs dark:shadow-lg dark:shadow-black/20 flex flex-col justify-between hover:border-rose-400 transition">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-600 dark:text-slate-300">شكاوى مفتوحة</span>
             <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${openComplaintsCount > 0 ? 'bg-rose-500/10 border border-rose-500/25 text-rose-500' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
@@ -194,7 +194,7 @@ export default async function OverviewDashboardPage() {
         </div>
 
         {/* Needs Human */}
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/80 backdrop-blur-sm p-5 shadow-xs dark:shadow-lg dark:shadow-black/20 flex flex-col justify-between hover:border-amber-400 transition">
+        <div className="rounded-2xl border border-slate-200/90 dark:border-slate-700/80 bg-white dark:bg-[#101726] p-5 shadow-xs dark:shadow-lg dark:shadow-black/20 flex flex-col justify-between hover:border-amber-400 transition">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-600 dark:text-slate-300">تدخل بشري</span>
             <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${needsHumanCount > 0 ? 'bg-amber-500/10 border border-amber-500/25 text-amber-500' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
@@ -210,7 +210,7 @@ export default async function OverviewDashboardPage() {
         </div>
 
         {/* Comments Today */}
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/80 backdrop-blur-sm p-5 shadow-xs dark:shadow-lg dark:shadow-black/20 flex flex-col justify-between hover:border-sky-400 transition">
+        <div className="rounded-2xl border border-slate-200/90 dark:border-slate-700/80 bg-white dark:bg-[#101726] p-5 shadow-xs dark:shadow-lg dark:shadow-black/20 flex flex-col justify-between hover:border-sky-400 transition">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-600 dark:text-slate-300">تعليقات اليوم</span>
             <div className="w-8 h-8 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-500">
@@ -225,7 +225,7 @@ export default async function OverviewDashboardPage() {
       </div>
 
       {/* Revenue summary banner */}
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-6 flex flex-col sm:flex-row justify-between sm:items-center gap-4 shadow-xs dark:shadow-md">
+      <div className="rounded-2xl border border-slate-200/90 dark:border-slate-700/80 bg-white dark:bg-[#101726] p-6 flex flex-col sm:flex-row justify-between sm:items-center gap-4 shadow-xs dark:shadow-md">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shadow-xs">
             <DollarSign className="w-6 h-6" />
@@ -248,7 +248,7 @@ export default async function OverviewDashboardPage() {
       </div>
 
       {/* Quick Action Shortcuts Grid */}
-      <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/80 p-6 shadow-xs dark:shadow-lg dark:shadow-black/20">
+      <div className="rounded-3xl border border-slate-200/90 dark:border-slate-700/80 bg-white dark:bg-[#101726] p-6 shadow-xs dark:shadow-lg dark:shadow-black/20">
         <h2 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-4 flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-amber-500" />
           <span>روابط سريعة للعمليات اليومية</span>
@@ -256,46 +256,46 @@ export default async function OverviewDashboardPage() {
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <Link
             href="/dashboard/orders"
-            className="flex flex-col items-center justify-center rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-slate-50/80 dark:bg-slate-950/60 p-5 text-center hover:border-amber-400 dark:hover:border-amber-500/40 hover:bg-amber-50/40 dark:hover:bg-slate-900 hover:shadow-md transition-all group"
+            className="flex flex-col items-center justify-center rounded-2xl border border-slate-200/90 dark:border-slate-700/80 bg-slate-50/80 dark:bg-slate-950/60 p-5 text-center hover:border-amber-400 dark:hover:border-amber-500/40 hover:bg-amber-50/40 dark:hover:bg-slate-900 hover:shadow-md transition-all group"
           >
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 group-hover:scale-110 transition shadow-xs">
               <ShoppingBag className="h-6 w-6" />
             </div>
             <span className="mt-3 text-sm font-bold text-slate-800 dark:text-slate-200 group-hover:text-amber-600 dark:group-hover:text-amber-300 transition">متابعة الأوردرات</span>
-            <span className="mt-0.5 text-xs text-slate-500">كانبان المطبخ والتوصيل</span>
+            <span className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">كانبان المطبخ والتوصيل</span>
           </Link>
 
           <Link
             href="/dashboard/menu"
-            className="flex flex-col items-center justify-center rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-slate-50/80 dark:bg-slate-950/60 p-5 text-center hover:border-emerald-400 dark:hover:border-emerald-500/40 hover:bg-emerald-50/40 dark:hover:bg-slate-900 hover:shadow-md transition-all group"
+            className="flex flex-col items-center justify-center rounded-2xl border border-slate-200/90 dark:border-slate-700/80 bg-slate-50/80 dark:bg-slate-950/60 p-5 text-center hover:border-emerald-400 dark:hover:border-emerald-500/40 hover:bg-emerald-50/40 dark:hover:bg-slate-900 hover:shadow-md transition-all group"
           >
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition shadow-xs">
               <UtensilsCrossed className="h-6 w-6" />
             </div>
             <span className="mt-3 text-sm font-bold text-slate-800 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-300 transition">قائمة الطعام (المنيو)</span>
-            <span className="mt-0.5 text-xs text-slate-500">صور وأسعار وPDF</span>
+            <span className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">صور وأسعار وPDF</span>
           </Link>
 
           <Link
             href="/dashboard/offers"
-            className="flex flex-col items-center justify-center rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-slate-50/80 dark:bg-slate-950/60 p-5 text-center hover:border-purple-400 dark:hover:border-purple-500/40 hover:bg-purple-50/40 dark:hover:bg-slate-900 hover:shadow-md transition-all group"
+            className="flex flex-col items-center justify-center rounded-2xl border border-slate-200/90 dark:border-slate-700/80 bg-slate-50/80 dark:bg-slate-950/60 p-5 text-center hover:border-purple-400 dark:hover:border-purple-500/40 hover:bg-purple-50/40 dark:hover:bg-slate-900 hover:shadow-md transition-all group"
           >
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition shadow-xs">
               <PlusCircle className="h-6 w-6" />
             </div>
             <span className="mt-3 text-sm font-bold text-slate-800 dark:text-slate-200 group-hover:text-purple-600 dark:group-hover:text-purple-300 transition">العروض والخصومات</span>
-            <span className="mt-0.5 text-xs text-slate-500">عروض الخصم الخاصة</span>
+            <span className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">عروض الخصم الخاصة</span>
           </Link>
 
           <Link
             href="/dashboard/chat"
-            className="flex flex-col items-center justify-center rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-slate-50/80 dark:bg-slate-950/60 p-5 text-center hover:border-sky-400 dark:hover:border-sky-500/40 hover:bg-sky-50/40 dark:hover:bg-slate-900 hover:shadow-md transition-all group"
+            className="flex flex-col items-center justify-center rounded-2xl border border-slate-200/90 dark:border-slate-700/80 bg-slate-50/80 dark:bg-slate-950/60 p-5 text-center hover:border-sky-400 dark:hover:border-sky-500/40 hover:bg-sky-50/40 dark:hover:bg-slate-900 hover:shadow-md transition-all group"
           >
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-500/10 border border-sky-500/20 text-sky-600 dark:text-sky-400 group-hover:scale-110 transition shadow-xs">
               <MessageSquare className="h-6 w-6" />
             </div>
             <span className="mt-3 text-sm font-bold text-slate-800 dark:text-slate-200 group-hover:text-sky-600 dark:group-hover:text-sky-300 transition">المحادثة المباشرة</span>
-            <span className="mt-0.5 text-xs text-slate-500">التدخل اليدوي مع الزبائن</span>
+            <span className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">التدخل اليدوي مع الزبائن</span>
           </Link>
         </div>
       </div>
@@ -303,8 +303,8 @@ export default async function OverviewDashboardPage() {
       {/* Two-column operational feed: Recent Orders & Recent Complaints */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Recent Orders Table */}
-        <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/80 p-6 shadow-xs dark:shadow-lg dark:shadow-black/20">
-          <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+        <div className="rounded-3xl border border-slate-200/90 dark:border-slate-700/80 bg-white dark:bg-[#101726] p-6 shadow-xs dark:shadow-lg dark:shadow-black/20">
+          <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
             <div className="flex items-center gap-2">
               <ShoppingBag className="h-5 w-5 text-amber-500" />
               <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base">أحدث الطلبات الواردة</h3>
@@ -317,7 +317,7 @@ export default async function OverviewDashboardPage() {
             </Link>
           </div>
 
-          <div className="mt-4 divide-y divide-slate-100 dark:divide-slate-800/80">
+          <div className="mt-4 divide-y divide-slate-200/80 dark:divide-slate-800/80">
             {recentOrders.length === 0 ? (
               <div className="py-8 text-center text-sm text-slate-400 dark:text-slate-500">
                 لا توجد طلبات واردة حتى الآن اليوم.
@@ -328,7 +328,7 @@ export default async function OverviewDashboardPage() {
                 return (
                   <div
                     key={order.id}
-                    className="flex items-center justify-between py-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 px-2 rounded-xl transition"
+                    className="flex items-center justify-between py-3.5 hover:bg-slate-50/80 dark:hover:bg-slate-800/60 px-2 rounded-xl transition"
                   >
                     <div>
                       <div className="flex items-center gap-2">
@@ -362,8 +362,8 @@ export default async function OverviewDashboardPage() {
         </div>
 
         {/* Recent Complaints Feed */}
-        <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/80 p-6 shadow-xs dark:shadow-lg dark:shadow-black/20">
-          <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+        <div className="rounded-3xl border border-slate-200/90 dark:border-slate-700/80 bg-white dark:bg-[#101726] p-6 shadow-xs dark:shadow-lg dark:shadow-black/20">
+          <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-rose-500" />
               <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base">أحدث البلاغات والشكاوى</h3>
@@ -376,7 +376,7 @@ export default async function OverviewDashboardPage() {
             </Link>
           </div>
 
-          <div className="mt-4 divide-y divide-slate-100 dark:divide-slate-800/80">
+          <div className="mt-4 divide-y divide-slate-200/80 dark:divide-slate-800/80">
             {recentComplaints.length === 0 ? (
               <div className="py-8 text-center text-sm text-slate-400 dark:text-slate-500">
                 ممتاز! لا توجد أي شكاوى مفتوحة حالياً.
@@ -387,7 +387,7 @@ export default async function OverviewDashboardPage() {
                 return (
                   <div
                     key={complaint.id}
-                    className="py-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 px-2 rounded-xl transition"
+                    className="py-3.5 hover:bg-slate-50/80 dark:hover:bg-slate-800/60 px-2 rounded-xl transition"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">

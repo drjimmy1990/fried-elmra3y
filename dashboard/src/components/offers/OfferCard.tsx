@@ -124,7 +124,7 @@ export function OfferCard({
     <>
       <div
         className={cn(
-          'group relative flex flex-col justify-between bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden transition-all duration-200 hover:border-slate-300 dark:hover:border-slate-700 shadow-xs hover:shadow-md',
+          'group relative flex flex-col justify-between bg-white dark:bg-[#101726] border border-slate-200/90 dark:border-slate-700/80 rounded-2xl overflow-hidden transition-all duration-200 hover:border-slate-300 dark:hover:border-slate-600 shadow-xs hover:shadow-md',
           !offer.is_active && 'opacity-75 border-slate-200 dark:border-slate-800/60'
         )}
       >
@@ -289,20 +289,20 @@ export function OfferCard({
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs animate-in fade-in duration-150"
         >
           <div
-            className="w-full max-w-sm bg-slate-900 border border-rose-500/30 rounded-2xl p-5 space-y-4 shadow-2xl"
+            className="w-full max-w-sm bg-white dark:bg-slate-900 border border-rose-500/30 rounded-2xl p-5 space-y-4 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center gap-3 text-rose-400">
+            <div className="flex items-center gap-3 text-rose-500 dark:text-rose-400">
               <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20">
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="font-bold text-white text-sm">حذف العرض الترويجي</h4>
-                <p className="text-xs text-slate-400 truncate max-w-[200px]">{offer.title}</p>
+                <h4 className="font-bold text-slate-900 dark:text-white text-sm">حذف العرض الترويجي</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[200px]">{offer.title}</p>
               </div>
             </div>
 
-            <p className="text-xs text-slate-300 leading-relaxed">
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
               هل أنت متأكد من حذف عرض <strong>"{offer.title}"</strong> نهائياً؟ سيتم حذفه من لوحة التحكم ولن يظهر للعملاء أو البوت.
             </p>
 
@@ -311,7 +311,7 @@ export function OfferCard({
                 type="button"
                 onClick={() => setIsConfirmingDelete(false)}
                 disabled={isDeleting}
-                className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               >
                 إلغاء
               </button>

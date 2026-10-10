@@ -252,7 +252,7 @@ export function TeamManager({ initialStaff, currentUserId }: TeamManagerProps) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-800">
         <div>
           <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">إدارة فريق العمل والصلاحيات</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">
             إدارة حسابات الوكلاء، أدوار التشغيل (RBAC)، وتفعيل أو تعليق وصول الموظفين
           </p>
         </div>
@@ -270,7 +270,7 @@ export function TeamManager({ initialStaff, currentUserId }: TeamManagerProps) {
       {/* 1. Top 4 KPI Metrics */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Staff */}
-        <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
+        <div className="bg-white dark:bg-[#101726] border border-slate-200/90 dark:border-slate-700/80 rounded-2xl p-5 shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">إجمالي فريق العمل</span>
             <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center">
@@ -284,7 +284,7 @@ export function TeamManager({ initialStaff, currentUserId }: TeamManagerProps) {
         </div>
 
         {/* Admins */}
-        <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
+        <div className="bg-white dark:bg-[#101726] border border-slate-200/90 dark:border-slate-700/80 rounded-2xl p-5 shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">المديرون 👑</span>
             <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-500 border border-amber-500/20 flex items-center justify-center">
@@ -297,7 +297,7 @@ export function TeamManager({ initialStaff, currentUserId }: TeamManagerProps) {
         </div>
 
         {/* Order Agents */}
-        <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
+        <div className="bg-white dark:bg-[#101726] border border-slate-200/90 dark:border-slate-700/80 rounded-2xl p-5 shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">مسؤولو الطلبات 🍕</span>
             <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-500 border border-blue-500/20 flex items-center justify-center">
@@ -310,7 +310,7 @@ export function TeamManager({ initialStaff, currentUserId }: TeamManagerProps) {
         </div>
 
         {/* Support Agents */}
-        <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
+        <div className="bg-white dark:bg-[#101726] border border-slate-200/90 dark:border-slate-700/80 rounded-2xl p-5 shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-purple-600 dark:text-purple-400">خدمة العملاء 🎧</span>
             <div className="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-500 border border-purple-500/20 flex items-center justify-center">
@@ -324,7 +324,7 @@ export function TeamManager({ initialStaff, currentUserId }: TeamManagerProps) {
       </div>
 
       {/* 2. Filters & Search Bar */}
-      <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-[#101726] border border-slate-200/90 dark:border-slate-700/80 rounded-2xl p-4 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
         {/* Role Tabs */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
           <button
@@ -391,7 +391,7 @@ export function TeamManager({ initialStaff, currentUserId }: TeamManagerProps) {
       </div>
 
       {/* 3. Staff Members Table */}
-      <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs overflow-hidden">
+      <div className="bg-white dark:bg-[#101726] border border-slate-200/90 dark:border-slate-700/80 rounded-2xl shadow-xs overflow-hidden">
         {filteredStaff.length === 0 ? (
           <div className="p-12 text-center">
             <Users className="w-12 h-12 text-slate-400 dark:text-slate-600 mx-auto mb-3" />
@@ -589,7 +589,7 @@ export function TeamManager({ initialStaff, currentUserId }: TeamManagerProps) {
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 dark:bg-slate-950/80 backdrop-blur-xs animate-in fade-in duration-150"
         >
           <div
-            className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 duration-150"
+            className="w-full max-w-md bg-white dark:bg-[#101726] border border-slate-200/90 dark:border-slate-700/80 rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-500 flex items-center justify-center mb-4">

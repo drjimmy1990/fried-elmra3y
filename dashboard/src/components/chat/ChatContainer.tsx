@@ -401,7 +401,7 @@ export function ChatContainer({
   }, [supabase]);
 
   return (
-    <div className="flex flex-1 min-h-0 w-full rounded-2xl sm:rounded-3xl bg-white dark:bg-[#0E1523] border border-slate-200/90 dark:border-slate-800/90 shadow-xl dark:shadow-2xl overflow-hidden relative transition-colors">
+    <div className="flex flex-1 min-h-0 w-full rounded-2xl sm:rounded-3xl bg-white dark:bg-[#0E1523] border border-slate-200/90 dark:border-slate-700/80 shadow-xl dark:shadow-2xl overflow-hidden relative transition-colors">
       {/* Sidebar: Contacts List */}
       <ChatSidebar
         contacts={contacts}

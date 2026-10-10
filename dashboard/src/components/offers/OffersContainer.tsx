@@ -170,7 +170,7 @@ export function OffersContainer({ initialOffers }: OffersContainerProps) {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="p-3 sm:p-4 rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+      <div className="p-3 sm:p-4 rounded-2xl bg-white dark:bg-[#101726] border border-slate-200/90 dark:border-slate-700/80 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
         {/* Filter Tabs */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
           <button

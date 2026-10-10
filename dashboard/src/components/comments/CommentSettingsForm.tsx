@@ -217,20 +217,20 @@ export function CommentSettingsForm({ settings, canEdit, onSave }: Props) {
   return (
     <div className="space-y-6">
       {/* AI Comment Agent */}
-      <section className="p-5 rounded-3xl bg-slate-900/80 border border-amber-500/30 space-y-4 shadow-xl shadow-amber-500/5">
-        <header className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
+      <section className="p-5 rounded-3xl bg-white dark:bg-slate-900/80 border border-amber-500/30 space-y-4 shadow-xl shadow-amber-500/5">
+        <header className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 flex items-center justify-center">
               <Bot className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-white">المساعد الذكي للتعليقات (AI Comment Agent)</h3>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">المساعد الذكي للتعليقات (AI Comment Agent)</h3>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
                   <Sparkles className="w-3 h-3" /> المحرك الأساسي
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 mt-0.5">
+              <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">
                 الذكاء الاصطناعي بيحلل نية التعليق، يحدد الإجراء والصورة المرفقة، يخفي السبام، ويسجل الشكاوى تلقائياً.
               </p>
             </div>
@@ -296,20 +296,20 @@ export function CommentSettingsForm({ settings, canEdit, onSave }: Props) {
       </section>
 
       {/* Dynamic Action Assets & Images Manager */}
-      <section className="p-5 rounded-3xl bg-slate-900/80 border border-slate-800 space-y-4 shadow-xl">
-        <header className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
+      <section className="p-5 rounded-3xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 space-y-4 shadow-xs">
+        <header className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
               <ImageIcon className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-white">صور وإجراءات الرد الآلي (Action Images & Intents)</h3>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">صور وإجراءات الرد الآلي (Action Images & Intents)</h3>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30">
                   {actionAssets.length} صور مضافة
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 mt-0.5">
+              <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">
                 أضف الصور التي تريد من البوت إرفاقها في التعليقات (مثل المنيو، الفروع، العروض، مسابقات). كل صورة لها اسم معرّف ووصف نية يوجه الذكاء الاصطناعي لاختيارها.
               </p>
             </div>

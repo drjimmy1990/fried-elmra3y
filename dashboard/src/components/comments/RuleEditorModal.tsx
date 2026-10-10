@@ -216,10 +216,10 @@ export function RuleEditorModal({ open, draft, pages, postPreview, onClose, onSa
         )}
 
         {/* 1. Trigger Conditions */}
-        <section className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-3">
+        <section className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-white flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-amber-400" />
+            <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-amber-500" />
               متى يتم تفعيل الرد على هذا المنشور؟
             </span>
           </div>
@@ -236,8 +236,8 @@ export function RuleEditorModal({ open, draft, pages, postPreview, onClose, onSa
                 className={cn(
                   'px-3 py-2.5 rounded-xl text-xs font-bold border transition text-center',
                   d.trigger_type === v
-                    ? 'bg-amber-500/20 border-amber-500/60 text-amber-200 shadow-sm'
-                    : 'bg-slate-950/50 border-slate-800 text-slate-400 hover:text-slate-200'
+                    ? 'bg-amber-500/20 border-amber-500/60 text-amber-800 dark:text-amber-200 shadow-xs'
+                    : 'bg-white dark:bg-slate-950/50 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                 )}
               >
                 {label}
@@ -260,13 +260,13 @@ export function RuleEditorModal({ open, draft, pages, postPreview, onClose, onSa
         </section>
 
         {/* 2. Toxic/Forbidden Words (Auto Delete / Hide) */}
-        <section className="p-4 rounded-2xl bg-slate-900/60 border border-rose-500/20 space-y-3">
+        <section className="p-4 rounded-2xl bg-rose-50/50 dark:bg-slate-900/60 border border-rose-200 dark:border-rose-500/20 space-y-3">
           <header className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <ShieldAlert className="w-4 h-4 text-rose-400" />
+              <ShieldAlert className="w-4 h-4 text-rose-500 dark:text-rose-400" />
               <div>
-                <h4 className="text-xs font-bold text-white">إخفاء أو حذف التعليق عند كلمات معينة</h4>
-                <p className="text-[11px] text-slate-400">لو كتب العميل أي كلمة من هذه الكلمات، لن يتم الرد وسيتم إخفاء/حذف التعليق فوراً.</p>
+                <h4 className="text-xs font-bold text-slate-900 dark:text-white">إخفاء أو حذف التعليق عند كلمات معينة</h4>
+                <p className="text-[11px] text-slate-600 dark:text-slate-400">لو كتب العميل أي كلمة من هذه الكلمات، لن يتم الرد وسيتم إخفاء/حذف التعليق فوراً.</p>
               </div>
             </div>
             <Switch
@@ -285,7 +285,7 @@ export function RuleEditorModal({ open, draft, pages, postPreview, onClose, onSa
           </header>
 
           {((d.delete_keywords?.length ?? 0) > 0 || !!d.hide_comment) && (
-            <div className="space-y-3 pt-2 border-t border-slate-800/80">
+            <div className="space-y-3 pt-2 border-t border-slate-200 dark:border-slate-800/80">
               <TagInput
                 tone="rose"
                 value={d.delete_keywords ?? []}
@@ -293,8 +293,8 @@ export function RuleEditorModal({ open, draft, pages, postPreview, onClose, onSa
                 placeholder="اكتب الكلمة المسيئة واضغط Enter (مثال: نصابين، زفت، بارد، سيء)"
               />
               <div className="flex items-center gap-4 text-xs">
-                <span className="text-slate-400 font-semibold">الإجراء المطلوب:</span>
-                <label className="inline-flex items-center gap-1.5 cursor-pointer text-slate-300">
+                <span className="text-slate-500 dark:text-slate-400 font-semibold">الإجراء المطلوب:</span>
+                <label className="inline-flex items-center gap-1.5 cursor-pointer text-slate-700 dark:text-slate-300">
                   <input
                     type="radio"
                     name="auto_delete_opt"
@@ -304,7 +304,7 @@ export function RuleEditorModal({ open, draft, pages, postPreview, onClose, onSa
                   />
                   <span>إخفاء التعليق فقط (يظهر لصاحبه فقط)</span>
                 </label>
-                <label className="inline-flex items-center gap-1.5 cursor-pointer text-rose-300 font-semibold">
+                <label className="inline-flex items-center gap-1.5 cursor-pointer text-rose-700 dark:text-rose-300 font-semibold">
                   <input
                     type="radio"
                     name="auto_delete_opt"
@@ -320,13 +320,13 @@ export function RuleEditorModal({ open, draft, pages, postPreview, onClose, onSa
         </section>
 
         {/* 3. Public Comment Reply */}
-        <section className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-4">
+        <section className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-4">
           <header className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <MessageSquare className="w-4 h-4 text-amber-400" />
+              <MessageSquare className="w-4 h-4 text-amber-500 dark:text-amber-400" />
               <div>
-                <h4 className="text-xs font-bold text-white">الرد العلني في الكومنت (Public Reply)</h4>
-                <p className="text-[11px] text-slate-400">كتابة رد عام يظهر لكل المتابعين تحت تعليق العميل.</p>
+                <h4 className="text-xs font-bold text-slate-900 dark:text-white">الرد العلني في الكومنت (Public Reply)</h4>
+                <p className="text-[11px] text-slate-600 dark:text-slate-400">كتابة رد عام يظهر لكل المتابعين تحت تعليق العميل.</p>
               </div>
             </div>
             <Switch checked={!!d.reply_enabled} onChange={(v) => set('reply_enabled', v)} label="الرد العلني" />
@@ -447,20 +447,20 @@ export function RuleEditorModal({ open, draft, pages, postPreview, onClose, onSa
         </section>
 
         {/* 4. Private Messenger Reply */}
-        <section className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-3">
+        <section className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3">
           <header className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Send className="w-4 h-4 text-blue-400" />
+              <Send className="w-4 h-4 text-blue-500 dark:text-blue-400" />
               <div>
-                <h4 className="text-xs font-bold text-white">الرد في رسالة خاصة (ماسنجر)</h4>
-                <p className="text-[11px] text-slate-400">إرسال رسالة ترحيبية فورية إلى صندوق رسائل العميل.</p>
+                <h4 className="text-xs font-bold text-slate-900 dark:text-white">الرد في رسالة خاصة (ماسنجر)</h4>
+                <p className="text-[11px] text-slate-600 dark:text-slate-400">إرسال رسالة ترحيبية فورية إلى صندوق رسائل العميل.</p>
               </div>
             </div>
             <Switch checked={!!d.dm_enabled} onChange={(v) => set('dm_enabled', v)} label="الرسالة الخاصة" />
           </header>
 
           {d.dm_enabled && (
-            <div className="space-y-3 pt-2 border-t border-slate-800/80">
+            <div className="space-y-3 pt-2 border-t border-slate-200 dark:border-slate-800/80">
               <textarea
                 rows={3}
                 className={cn(inputClass, 'resize-y text-xs')}
@@ -470,9 +470,9 @@ export function RuleEditorModal({ open, draft, pages, postPreview, onClose, onSa
               />
 
               {/* DM Quick Buttons */}
-              <div className="space-y-2 pt-2 border-t border-slate-800/60">
+              <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-800/60">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-slate-400">
+                  <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                     أزرار سريعة تحت الرسالة ({d.dm_buttons.length}/{MAX_DM_BUTTONS})
                   </span>
                 </div>
@@ -487,7 +487,7 @@ export function RuleEditorModal({ open, draft, pages, postPreview, onClose, onSa
                         disabled={!on && d.dm_buttons.length >= MAX_DM_BUTTONS}
                         className={cn(
                           'px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition disabled:opacity-40',
-                          on ? 'bg-blue-500/20 border-blue-500/50 text-blue-200' : 'bg-slate-950/50 border-slate-800 text-slate-400'
+                          on ? 'bg-blue-500/20 border-blue-500/50 text-blue-700 dark:text-blue-200' : 'bg-white dark:bg-slate-950/50 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
                         )}
                       >
                         {b.title}
@@ -501,12 +501,12 @@ export function RuleEditorModal({ open, draft, pages, postPreview, onClose, onSa
         </section>
 
         {/* 5. Auto-Like */}
-        <section className="p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800 flex items-center justify-between">
+        <section className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Heart className="w-4 h-4 text-rose-400" />
+            <Heart className="w-4 h-4 text-rose-500 dark:text-rose-400" />
             <div>
-              <h4 className="text-xs font-bold text-white">لايك تلقائي على التعليق</h4>
-              <p className="text-[11px] text-slate-400">عمل Like فوري على تعليق العميل لزيادة التفاعل.</p>
+              <h4 className="text-xs font-bold text-slate-900 dark:text-white">لايك تلقائي على التعليق</h4>
+              <p className="text-[11px] text-slate-600 dark:text-slate-400">عمل Like فوري على تعليق العميل لزيادة التفاعل.</p>
             </div>
           </div>
           <Switch checked={!!d.like_comment} onChange={(v) => set('like_comment', v)} label="لايك تلقائي" />

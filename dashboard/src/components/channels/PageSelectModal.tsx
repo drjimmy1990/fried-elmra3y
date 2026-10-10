@@ -116,28 +116,28 @@ export function PageSelectModal({ open, onClose, onDone }: Props) {
                 onClick={() => toggle(p.id)}
                 className={cn(
                   'w-full flex items-center gap-3 p-3 rounded-2xl border text-right transition',
-                  isSel ? 'bg-amber-500/10 border-amber-500/40' : 'bg-slate-950/40 border-slate-800 hover:border-slate-700'
+                  isSel ? 'bg-amber-500/10 border-amber-500/40' : 'bg-slate-50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
                 )}
               >
                 <input type="checkbox" readOnly checked={isSel} className="accent-amber-500 w-4 h-4 shrink-0" tabIndex={-1} />
                 {p.picture_url ? (
                   <Image src={p.picture_url} alt="" width={40} height={40} className="w-10 h-10 rounded-xl object-cover" unoptimized />
                 ) : (
-                  <div className="w-10 h-10 rounded-xl bg-blue-500/15 text-blue-300 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-300 flex items-center justify-center">
                     <Facebook className="w-5 h-5" />
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-white truncate">{p.name}</p>
+                  <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{p.name}</p>
                   <p dir="ltr" className="text-[11px] text-slate-500 font-mono text-right">{p.id}</p>
                   {p.missing_tasks.length > 0 && (
-                    <p className="text-[11px] text-amber-300 mt-0.5">
+                    <p className="text-[11px] text-amber-600 dark:text-amber-300 mt-0.5">
                       صلاحيتك على الصفحة ناقصة: {p.missing_tasks.map((t) => TASK_LABELS[t] ?? t).join('، ')}
                     </p>
                   )}
                 </div>
                 {p.current_status === 'connected' && (
-                  <span className="text-[10px] font-bold text-emerald-300 bg-emerald-500/10 border border-emerald-500/25 rounded-full px-2 py-0.5 shrink-0">
+                  <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border border-emerald-500/25 rounded-full px-2 py-0.5 shrink-0">
                     متصلة بالفعل
                   </span>
                 )}

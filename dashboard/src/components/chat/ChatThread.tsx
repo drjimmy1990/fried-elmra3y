@@ -511,7 +511,7 @@ export function ChatThread({
           return null;
         })()}
         
-        <div className="relative flex items-end gap-2 bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl p-2.5 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-500/20 transition shadow-xs">
+        <div className="relative flex items-end gap-2 bg-slate-50 dark:bg-slate-900/90 border border-slate-200/90 dark:border-slate-700/80 rounded-2xl p-2.5 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-500/20 transition shadow-xs">
           <textarea
             ref={textareaRef}
             rows={2}

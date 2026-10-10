@@ -75,7 +75,7 @@ function OrderCardComponent({
   return (
     <div
       onClick={() => onSelectOrder(order)}
-      className="group relative rounded-2xl bg-white dark:bg-slate-900/90 hover:bg-slate-50 dark:hover:bg-slate-900 border border-slate-200 dark:border-slate-800/90 hover:border-slate-300 dark:hover:border-slate-700/80 p-4 shadow-xs hover:shadow-md dark:shadow-md dark:hover:shadow-xl transition-all duration-200 cursor-pointer text-slate-800 dark:text-slate-200 flex flex-col gap-3 select-none"
+      className="group relative rounded-2xl bg-white dark:bg-[#101726] hover:bg-slate-50 dark:hover:bg-[#162035] border border-slate-200/90 dark:border-slate-700/80 hover:border-slate-300 dark:hover:border-slate-600 p-4 shadow-xs hover:shadow-md dark:shadow-md dark:hover:shadow-xl transition-all duration-200 cursor-pointer text-slate-800 dark:text-slate-200 flex flex-col gap-3 select-none"
     >
       {/* Top Meta Bar */}
       <div className="flex items-center justify-between gap-2">
