@@ -475,6 +475,11 @@ export function RuleEditorModal({ open, draft, pages, postPreview, onClose, onSa
                   <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                     أزرار سريعة تحت الرسالة ({d.dm_buttons.length}/{MAX_DM_BUTTONS})
                   </span>
+                  {d.dm_buttons.length >= MAX_DM_BUTTONS && (
+                    <span className="text-[10px] text-amber-500 dark:text-amber-400 font-medium">
+                      الحد الأقصى 3 أزرار (اضغط على أي زر مفعل لإلغائه)
+                    </span>
+                  )}
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {DM_BUTTON_PRESETS.map((b) => {
