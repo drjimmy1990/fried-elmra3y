@@ -115,13 +115,13 @@ export function ChatThread({
   // If no contact is selected
   if (!contact) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-900/50 text-slate-400 space-y-4">
-        <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-slate-800/80 border border-slate-700 text-slate-500 shadow-xl">
+      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-50/50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 space-y-4">
+        <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 shadow-md dark:shadow-xl">
           <MessageCircle className="w-10 h-10" />
         </div>
         <div className="text-center max-w-sm">
-          <h3 className="text-lg font-bold text-slate-200">اختر محادثة للبدء</h3>
-          <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+          <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">اختر محادثة للبدء</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
             انقر على أي عميل من القائمة الجانبية لعرض سجل المحادثة الكامل والتحكم في الرد الآلي للبوت أو إرسال رد بشري مباشر.
           </p>
         </div>
@@ -130,15 +130,15 @@ export function ChatThread({
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-slate-900 min-w-0 overflow-hidden">
+    <div className="flex-1 flex flex-col h-full bg-white dark:bg-slate-900 min-w-0 overflow-hidden transition-colors">
       {/* 1. Thread Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border-b border-slate-800 bg-slate-950/80 shrink-0">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/80 shrink-0">
         <div className="flex items-center gap-3 min-w-0">
           {/* Back button for mobile */}
           {onBackToSidebar && (
             <button
               onClick={onBackToSidebar}
-              className="p-2 -mr-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-900 md:hidden"
+              className="p-2 -mr-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900 md:hidden"
               aria-label="العودة للقائمة"
             >
               <ArrowRight className="w-5 h-5" />
@@ -148,17 +148,17 @@ export function ChatThread({
           {/* Customer Avatar */}
           <div className="relative shrink-0">
             <div
-              className={`w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-sm shadow-md ${
+              className={`w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-sm shadow-sm ${
                 contact.ai_enabled
-                  ? 'bg-emerald-950/80 border border-emerald-500/40 text-emerald-300'
-                  : 'bg-amber-950/80 border border-amber-500/40 text-amber-300'
+                  ? 'bg-emerald-500/10 dark:bg-emerald-950/80 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300'
+                  : 'bg-amber-500/10 dark:bg-amber-950/80 border border-amber-500/30 text-amber-700 dark:text-amber-300'
               }`}
             >
               {contact.name ? contact.name.slice(0, 2) : 'ع'}
             </div>
-            <div className="absolute -bottom-1 -left-1 ring-2 ring-slate-950 rounded-full">
+            <div className="absolute -bottom-1 -left-1 ring-2 ring-white dark:ring-slate-950 rounded-full">
               <span
-                className={`inline-block w-3.5 h-3.5 rounded-full border-2 border-slate-950 ${
+                className={`inline-block w-3.5 h-3.5 rounded-full border-2 border-white dark:border-slate-950 ${
                   contact.ai_enabled ? 'bg-emerald-500' : 'bg-amber-500'
                 }`}
                 title={contact.ai_enabled ? 'البوت يعمل' : 'البوت متوقف'}
@@ -169,35 +169,35 @@ export function ChatThread({
           {/* Customer Details */}
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="font-bold text-base text-white truncate">
+              <h2 className="font-bold text-base text-slate-900 dark:text-white truncate">
                 {contact.name || 'عميل بدون اسم'}
               </h2>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+              <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                 {contact.platform === 'messenger' ? 'فيسبوك ماسنجر' : contact.platform}
               </span>
               {channels && channels.length > 1 && contact.channel_id && (
-                <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-900/40 text-indigo-300 border border-indigo-700/50">
+                <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700/50">
                   {channels.find(c => c.id === contact.channel_id)?.name || 'صفحة غير معروفة'}
                 </span>
               )}
             </div>
 
-            <div className="flex items-center gap-3 text-xs text-slate-400 mt-1 flex-wrap">
+            <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mt-1 flex-wrap">
               {contact.phone && (
                 <div className="flex items-center gap-2" dir="ltr">
-                  <span className="font-mono text-slate-300">{contact.phone}</span>
+                  <span className="font-mono text-slate-700 dark:text-slate-300">{contact.phone}</span>
                   <a
                     href={`tel:${contact.phone}`}
-                    className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition"
+                    className="p-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition"
                     title="اتصال هاتفي"
                   >
-                    <Phone className="w-3.5 h-3.5 text-amber-400" />
+                    <Phone className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                   </a>
                   <a
                     href={getWhatsAppLink(contact.phone)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="p-1 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 text-emerald-400 transition border border-emerald-800/40"
+                    className="p-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/80 hover:bg-emerald-100 dark:hover:bg-emerald-900 text-emerald-700 dark:text-emerald-400 transition border border-emerald-200 dark:border-emerald-800/40"
                     title="محادثة واتساب"
                   >
                     <MessageCircle className="w-3.5 h-3.5" />
@@ -206,15 +206,15 @@ export function ChatThread({
               )}
 
               {contact.total_orders > 0 && (
-                <span className="flex items-center gap-1 text-slate-400">
-                  <ShoppingBag className="w-3 h-3 text-slate-500" />
+                <span className="flex items-center gap-1 text-slate-500 dark:text-slate-400">
+                  <ShoppingBag className="w-3 h-3 text-slate-400 dark:text-slate-500" />
                   <span>{contact.total_orders} طلب</span>
                 </span>
               )}
 
               {contact.address && (
-                <span className="flex items-center gap-1 text-slate-400 truncate max-w-xs" title={contact.address}>
-                  <MapPin className="w-3 h-3 text-slate-500 shrink-0" />
+                <span className="flex items-center gap-1 text-slate-500 dark:text-slate-400 truncate max-w-xs" title={contact.address}>
+                  <MapPin className="w-3 h-3 text-slate-400 dark:text-slate-500 shrink-0" />
                   <span className="truncate">{contact.address}</span>
                 </span>
               )}
@@ -226,7 +226,7 @@ export function ChatThread({
         <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
           <div className="text-left sm:text-right">
             <div className="flex items-center gap-1.5 justify-end">
-              <span className="text-xs font-bold text-slate-200">الرد الآلي للبوت (Bot AI)</span>
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200">الرد الآلي للبوت (Bot AI)</span>
               {contact.ai_enabled ? (
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               ) : (
@@ -235,12 +235,12 @@ export function ChatThread({
             </div>
             <div className="text-[11px] font-semibold mt-0.5">
               {contact.ai_enabled ? (
-                <span className="text-emerald-400 flex items-center gap-1">
+                <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                   <Sparkles className="w-3 h-3" />
                   <span>البوت يجيب آلياً 🤖</span>
                 </span>
               ) : (
-                <span className="text-amber-400 flex items-center gap-1">
+                <span className="text-amber-600 dark:text-amber-400 flex items-center gap-1">
                   <PauseCircle className="w-3 h-3" />
                   <span>البوت متوقف - تولي بشري 👤</span>
                 </span>
@@ -289,17 +289,16 @@ export function ChatThread({
 
       {/* needs_human banner */}
       {contact.needs_human && (
-        <div className="bg-amber-950/60 border-b border-amber-900 px-4 py-2 flex items-center justify-between text-xs text-amber-300">
+        <div className="bg-amber-500/10 dark:bg-amber-950/60 border-b border-amber-500/20 dark:border-amber-900 px-4 py-2 flex items-center justify-between text-xs text-amber-800 dark:text-amber-300">
           <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0" />
+            <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
             <span className="font-bold">العميل طلب يكلم موظف</span>
           </div>
           <button
             onClick={async () => {
-              /* Note: needs_human state management is ideally handled via a parent prop, but for brevity we use an API fetch here or parent onUpdateContact */
               await fetch('/api/chat/needs-human', { method: 'POST', body: JSON.stringify({ contactId: contact.id, needs_human: false }) });
             }}
-            className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 transition shrink-0 ml-2"
+            className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-800 dark:text-amber-300 border border-amber-500/40 transition shrink-0 ml-2"
           >
             تم — إلغاء التنبيه
           </button>
@@ -308,9 +307,9 @@ export function ChatThread({
 
       {/* Warning Alert if AI is still enabled while agent is viewing */}
       {contact.ai_enabled && !contact.needs_human && (
-        <div className="bg-emerald-950/40 border-b border-emerald-900/50 px-4 py-2 flex items-center justify-between text-xs text-emerald-300">
+        <div className="bg-emerald-500/10 dark:bg-emerald-950/40 border-b border-emerald-500/20 dark:border-emerald-900/50 px-4 py-2 flex items-center justify-between text-xs text-emerald-800 dark:text-emerald-300">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
+            <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
             <span>
               الذكاء الاصطناعي يقوم بالرد آلياً على هذا العميل حالياً. إذا رغبت بالرد يدوياً يمكنك إيقاف البوت لتفادي تداخل الردود.
             </span>
@@ -318,7 +317,7 @@ export function ChatThread({
           <button
             onClick={() => onToggleAi(contact.id, false)}
             disabled={isTogglingAi}
-            className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 transition shrink-0 ml-2"
+            className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-800 dark:text-amber-300 border border-amber-500/40 transition shrink-0 ml-2"
           >
             إيقاف البوت الآن ⏸️
           </button>
@@ -326,14 +325,14 @@ export function ChatThread({
       )}
 
       {/* 3. Messages Stream Area */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 scrollbar-thin scrollbar-thumb-slate-800">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-800">
         {isLoadingMessages ? (
           <div className="flex flex-col items-center justify-center h-48 space-y-2 text-slate-400">
             <Loader2 className="w-6 h-6 animate-spin text-amber-500" />
             <p className="text-xs">جاري تحميل سجل الرسائل...</p>
           </div>
         ) : messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48 space-y-2 text-slate-500">
+          <div className="flex flex-col items-center justify-center h-48 space-y-2 text-slate-400 dark:text-slate-500">
             <MessageCircle className="w-8 h-8 opacity-40 text-slate-400" />
             <p className="text-xs">لا توجد رسائل سابقة في هذه المحادثة بعد.</p>
           </div>
@@ -354,7 +353,7 @@ export function ChatThread({
                 <div className="shrink-0 mt-1">
                   {isUser && (
                     <div
-                      className="w-8 h-8 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300 shadow-xs"
+                      className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 shadow-xs"
                       title="رسالة العميل"
                     >
                       <User className="w-4 h-4" />
@@ -362,7 +361,7 @@ export function ChatThread({
                   )}
                   {isBot && (
                     <div
-                      className="w-8 h-8 rounded-xl bg-purple-950 border border-purple-700/50 flex items-center justify-center text-purple-300 shadow-xs"
+                      className="w-8 h-8 rounded-xl bg-purple-100 dark:bg-purple-950 border border-purple-200 dark:border-purple-700/50 flex items-center justify-center text-purple-700 dark:text-purple-300 shadow-xs"
                       title="رد الذكاء الاصطناعي الآلي"
                     >
                       <Bot className="w-4 h-4" />
@@ -370,7 +369,7 @@ export function ChatThread({
                   )}
                   {isAgent && (
                     <div
-                      className="w-8 h-8 rounded-xl bg-amber-950 border border-amber-700/50 flex items-center justify-center text-amber-300 shadow-xs"
+                      className="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-950 border border-amber-200 dark:border-amber-700/50 flex items-center justify-center text-amber-700 dark:text-amber-300 shadow-xs"
                       title="رد موظف الدعم البشري"
                     >
                       <Headphones className="w-4 h-4" />
@@ -380,42 +379,42 @@ export function ChatThread({
 
                 {/* Message Bubble */}
                 <div
-                  className={`flex flex-col rounded-2xl p-3.5 shadow-md ${
+                  className={`flex flex-col rounded-2xl p-3.5 shadow-xs sm:shadow-md ${
                     isUser
-                      ? 'bg-slate-800/90 border border-slate-700 text-slate-100 rounded-tr-xs'
+                      ? 'bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-tr-xs'
                       : isBot
-                      ? 'bg-purple-950/40 border border-purple-800/40 text-purple-50 rounded-tl-xs'
-                      : 'bg-amber-950/40 border border-amber-800/40 text-amber-50 rounded-tl-xs'
+                      ? 'bg-purple-50/80 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/40 text-purple-950 dark:text-purple-50 rounded-tl-xs'
+                      : 'bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/40 text-amber-950 dark:text-amber-50 rounded-tl-xs'
                   }`}
                 >
                   {/* Sender Tag Header */}
                   <div className="flex items-center justify-between gap-3 text-[11px] mb-1 font-semibold">
                     {isUser && (
-                      <span className="text-slate-400 flex items-center gap-1">
+                      <span className="text-slate-600 dark:text-slate-400 flex items-center gap-1">
                         <span>{contact.name || 'العميل'}</span>
                       </span>
                     )}
                     {isBot && (
-                      <span className="text-purple-300 flex items-center gap-1">
-                        <Sparkles className="w-3 h-3 text-purple-400" />
+                      <span className="text-purple-700 dark:text-purple-300 flex items-center gap-1">
+                        <Sparkles className="w-3 h-3 text-purple-600 dark:text-purple-400" />
                         <span>الذكاء الاصطناعي 🤖</span>
                       </span>
                     )}
                     {isAgent && (
-                      <span className="text-amber-300 flex items-center gap-1">
-                        <Headphones className="w-3 h-3 text-amber-400" />
+                      <span className="text-amber-700 dark:text-amber-300 flex items-center gap-1">
+                        <Headphones className="w-3 h-3 text-amber-600 dark:text-amber-400" />
                         <span>موظف الدعم 👤</span>
                       </span>
                     )}
 
-                    <span className="text-[10px] text-slate-500 font-mono" dir="ltr">
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono" dir="ltr">
                       {formatDateTime(message.created_at)}
                     </span>
                   </div>
 
                   {/* Media preview if present */}
                   {message.media_url && (
-                    <div className="mt-1 mb-2 rounded-xl overflow-hidden border border-slate-700/60 bg-black/40">
+                    <div className="mt-1 mb-2 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700/60 bg-black/40">
                       <a
                         href={message.media_url}
                         target="_blank"
@@ -447,15 +446,15 @@ export function ChatThread({
                   {/* Send Error */}
                   {isAgent && message.send_error && (
                     <div className="mt-2 pt-2 border-t border-red-500/30">
-                      <div className="flex items-center gap-1.5 text-red-400 text-[11px] font-bold mb-1">
+                      <div className="flex items-center gap-1.5 text-red-500 dark:text-red-400 text-[11px] font-bold mb-1">
                         <AlertCircle className="w-3.5 h-3.5" />
                         <span>لم يتم الإرسال ⚠️</span>
                       </div>
-                      <p className="text-[10px] text-red-300/80 mb-2">{message.send_error}</p>
+                      <p className="text-[10px] text-red-700 dark:text-red-300/80 mb-2">{message.send_error}</p>
                       <button
                         onClick={() => onSendMessage(message.content || '')}
                         disabled={isSending}
-                        className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded px-2 py-1 text-[10px] font-bold transition"
+                        className="bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/30 rounded px-2 py-1 text-[10px] font-bold transition"
                       >
                         إعادة المحاولة
                       </button>
@@ -470,9 +469,9 @@ export function ChatThread({
       </div>
 
       {/* 4. Agent Canned Response Chips */}
-      <div className="px-4 py-2 border-t border-slate-800 bg-slate-950/60 overflow-x-auto scrollbar-none flex items-center gap-2">
-        <span className="text-[11px] font-bold text-slate-400 whitespace-nowrap flex items-center gap-1">
-          <Sparkles className="w-3 h-3 text-amber-400" />
+      <div className="px-4 py-2 border-t border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/60 overflow-x-auto scrollbar-none flex items-center gap-2">
+        <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 whitespace-nowrap flex items-center gap-1">
+          <Sparkles className="w-3 h-3 text-amber-600 dark:text-amber-400" />
           ردود سريعة:
         </span>
         {CANNED_REPLIES.map((canned) => (
@@ -480,7 +479,7 @@ export function ChatThread({
             key={canned.id}
             type="button"
             onClick={() => handleApplyCanned(canned.text)}
-            className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 text-xs font-medium whitespace-nowrap transition"
+            className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800 text-xs font-medium whitespace-nowrap transition shadow-xs"
             title={canned.text}
           >
             {canned.label || canned.text}
@@ -489,7 +488,7 @@ export function ChatThread({
       </div>
 
       {/* 5. Agent Input Box */}
-      <div className="p-4 border-t border-slate-800 bg-slate-950">
+      <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-950">
         {contact.platform === 'messenger' && (() => {
           const lastUserMessage = [...messages].reverse().find(m => m.sender_type === 'user');
           const isPast24h = lastUserMessage 
@@ -498,7 +497,7 @@ export function ChatThread({
           
           if (isPast24h) {
             return (
-              <div className="mb-2 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[10px] px-3 py-1.5 rounded-lg flex items-center gap-1.5">
+              <div className="mb-2 bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-[10px] px-3 py-1.5 rounded-lg flex items-center gap-1.5">
                 <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                 <span>فيسبوك بيسمح بالرد خلال 24 ساعة من آخر رسالة للعميل — الرسالة ممكن متتبعتش</span>
               </div>
@@ -507,7 +506,7 @@ export function ChatThread({
           return null;
         })()}
         
-        <div className="relative flex items-end gap-2 bg-slate-900 border border-slate-800 rounded-2xl p-2 focus-within:border-amber-500 focus-within:ring-1 focus-within:ring-amber-500 transition shadow-lg">
+        <div className="relative flex items-end gap-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-2 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-500/20 transition shadow-xs">
           <textarea
             ref={textareaRef}
             rows={2}
@@ -516,14 +515,14 @@ export function ChatThread({
             onKeyDown={handleKeyDown}
             placeholder="اكتب رد موظف الدعم هنا... (اضغط Enter للإرسال، Shift+Enter لسطر جديد)"
             disabled={isSending}
-            className="flex-1 bg-transparent border-0 resize-none text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-hidden focus:ring-0 leading-relaxed max-h-32 min-h-[44px] py-1 px-2"
+            className="flex-1 bg-transparent border-0 resize-none text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:ring-0 leading-relaxed max-h-32 min-h-[44px] py-1 px-2"
           />
 
           <button
             type="button"
             onClick={handleSend}
             disabled={!inputText.trim() || isSending}
-            className="inline-flex items-center justify-center h-10 px-4 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs shadow-md shadow-amber-950/40 transition disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+            className="inline-flex items-center justify-center h-10 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-md shadow-amber-500/20 transition disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
             title="إرسال الرسالة للعميل"
           >
             {isSending ? (

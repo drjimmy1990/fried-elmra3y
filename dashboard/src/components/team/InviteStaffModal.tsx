@@ -129,23 +129,23 @@ export function InviteStaffModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="invite-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 dark:bg-slate-950/80 backdrop-blur-xs animate-in fade-in duration-200"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="relative w-full max-w-lg bg-slate-900 border border-slate-700/80 rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-slate-800">
+        <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center">
               <UserPlus className="w-5 h-5" />
             </div>
             <div>
-              <h2 id="invite-modal-title" className="text-lg font-bold text-white">
+              <h2 id="invite-modal-title" className="text-lg font-bold text-slate-900 dark:text-white">
                 إضافة موظف جديد للفريق
               </h2>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 إنشاء حساب موظف وتحديد صلاحياته ومسؤولياته في النظام
               </p>
             </div>
@@ -153,7 +153,7 @@ export function InviteStaffModal({
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition"
+            className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center justify-center transition"
           >
             <X className="w-4 h-4" />
           </button>
@@ -161,8 +161,8 @@ export function InviteStaffModal({
 
         {/* Error Alert */}
         {errorMessage && (
-          <div className="mx-6 mt-6 p-4 rounded-2xl bg-rose-950/50 border border-rose-500/30 text-rose-200 flex items-center gap-3 text-xs">
-            <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
+          <div className="mx-6 mt-6 p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-500/30 text-rose-700 dark:text-rose-200 flex items-center gap-3 text-xs">
+            <AlertCircle className="w-5 h-5 text-rose-500 shrink-0" />
             <span>{errorMessage}</span>
           </div>
         )}
@@ -171,8 +171,8 @@ export function InviteStaffModal({
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           {/* Full Name */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              الاسم بالكامل <span className="text-rose-400">*</span>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              الاسم بالكامل <span className="text-rose-500">*</span>
             </label>
             <div className="relative">
               <input
@@ -181,7 +181,7 @@ export function InviteStaffModal({
                 value={formData.full_name}
                 onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                 placeholder="أحمد محمد علي"
-                className="w-full bg-slate-950/70 border border-slate-700/80 focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 rounded-xl px-4 py-2.5 pr-10 text-white text-sm outline-none transition"
+                className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-700/80 focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 rounded-xl px-4 py-2.5 pr-10 text-slate-900 dark:text-white text-sm outline-none transition placeholder:text-slate-400 dark:placeholder:text-slate-500"
               />
               <User className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2" />
             </div>
@@ -189,8 +189,8 @@ export function InviteStaffModal({
 
           {/* Email */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              البريد الإلكتروني <span className="text-rose-400">*</span>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              البريد الإلكتروني <span className="text-rose-500">*</span>
             </label>
             <div className="relative">
               <input
@@ -200,16 +200,16 @@ export function InviteStaffModal({
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 placeholder="staff@khedewy.com"
-                className="w-full bg-slate-950/70 border border-slate-700/80 focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 rounded-xl px-4 py-2.5 pl-10 text-white text-sm outline-none transition text-left"
+                className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-700/80 focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 rounded-xl px-4 py-2.5 pl-10 text-slate-900 dark:text-white text-sm outline-none transition text-left placeholder:text-slate-400 dark:placeholder:text-slate-500"
               />
               <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             </div>
-            <p className="text-[11px] text-slate-500 mt-1">يُستخدم هذا البريد لتسجيل دخول الموظف إلى لوحة التحكم.</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">يُستخدم هذا البريد لتسجيل دخول الموظف إلى لوحة التحكم.</p>
           </div>
 
           {/* Phone */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
               رقم الهاتف المحمول (اختياري)
             </label>
             <div className="relative">
@@ -219,7 +219,7 @@ export function InviteStaffModal({
                 value={formData.phone || ''}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 placeholder="01012345678"
-                className="w-full bg-slate-950/70 border border-slate-700/80 focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 rounded-xl px-4 py-2.5 pl-10 text-white text-sm outline-none transition text-left"
+                className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-700/80 focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 rounded-xl px-4 py-2.5 pl-10 text-slate-900 dark:text-white text-sm outline-none transition text-left placeholder:text-slate-400 dark:placeholder:text-slate-500"
               />
               <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             </div>
@@ -227,8 +227,8 @@ export function InviteStaffModal({
 
           {/* Password */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              كلمة المرور المؤقتة <span className="text-rose-400">*</span>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              كلمة المرور المؤقتة <span className="text-rose-500">*</span>
             </label>
             <div className="relative">
               <input
@@ -238,24 +238,24 @@ export function InviteStaffModal({
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 placeholder="••••••••"
-                className="w-full bg-slate-950/70 border border-slate-700/80 focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 rounded-xl px-4 py-2.5 pr-10 pl-10 text-white text-sm outline-none transition"
+                className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-700/80 focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 rounded-xl px-4 py-2.5 pr-10 pl-10 text-slate-900 dark:text-white text-sm outline-none transition placeholder:text-slate-400 dark:placeholder:text-slate-500"
               />
               <Lock className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2" />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition"
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-white transition"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
-            <p className="text-[11px] text-slate-500 mt-1">6 خانات على الأقل (يمكن للموظف تغييرها لاحقاً).</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">6 خانات على الأقل (يمكن للموظف تغييرها لاحقاً).</p>
           </div>
 
           {/* Role Selector Pills */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-2">
-              الدور الوظيفي والصلاحيات <span className="text-rose-400">*</span>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
+              الدور الوظيفي والصلاحيات <span className="text-rose-500">*</span>
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
               {/* Order Agent */}
@@ -265,22 +265,22 @@ export function InviteStaffModal({
                 className={cn(
                   'flex flex-col items-center text-center p-3 rounded-2xl border transition-all duration-200',
                   formData.role === 'order_agent'
-                    ? 'bg-blue-500/15 border-blue-500/50 text-white shadow-md shadow-blue-500/10'
-                    : 'bg-slate-950/40 border-slate-800 text-slate-400 hover:bg-slate-800/60'
+                    ? 'bg-blue-500/15 border-blue-500/50 text-blue-700 dark:text-white shadow-xs shadow-blue-500/10'
+                    : 'bg-slate-50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60'
                 )}
               >
                 <div
                   className={cn(
                     'w-8 h-8 rounded-xl flex items-center justify-center mb-1.5',
                     formData.role === 'order_agent'
-                      ? 'bg-blue-500/20 text-blue-400'
-                      : 'bg-slate-800 text-slate-400'
+                      ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400'
+                      : 'bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
                   )}
                 >
                   <Pizza className="w-4 h-4" />
                 </div>
                 <span className="text-xs font-bold block">مسؤول الطلبات</span>
-                <span className="text-[10px] text-slate-400 mt-0.5">المطبخ والأوردرات</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">المطبخ والأوردرات</span>
               </button>
 
               {/* Support Agent */}
@@ -290,22 +290,22 @@ export function InviteStaffModal({
                 className={cn(
                   'flex flex-col items-center text-center p-3 rounded-2xl border transition-all duration-200',
                   formData.role === 'support_agent'
-                    ? 'bg-purple-500/15 border-purple-500/50 text-white shadow-md shadow-purple-500/10'
-                    : 'bg-slate-950/40 border-slate-800 text-slate-400 hover:bg-slate-800/60'
+                    ? 'bg-purple-500/15 border-purple-500/50 text-purple-700 dark:text-white shadow-xs shadow-purple-500/10'
+                    : 'bg-slate-50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60'
                 )}
               >
                 <div
                   className={cn(
                     'w-8 h-8 rounded-xl flex items-center justify-center mb-1.5',
                     formData.role === 'support_agent'
-                      ? 'bg-purple-500/20 text-purple-400'
-                      : 'bg-slate-800 text-slate-400'
+                      ? 'bg-purple-500/20 text-purple-600 dark:text-purple-400'
+                      : 'bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
                   )}
                 >
                   <Headphones className="w-4 h-4" />
                 </div>
                 <span className="text-xs font-bold block">خدمة العملاء</span>
-                <span className="text-[10px] text-slate-400 mt-0.5">الشكاوى والمحادثات</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">الشكاوى والمحادثات</span>
               </button>
 
               {/* Admin */}
@@ -315,33 +315,33 @@ export function InviteStaffModal({
                 className={cn(
                   'flex flex-col items-center text-center p-3 rounded-2xl border transition-all duration-200',
                   formData.role === 'admin'
-                    ? 'bg-amber-500/15 border-amber-500/50 text-white shadow-md shadow-amber-500/10'
-                    : 'bg-slate-950/40 border-slate-800 text-slate-400 hover:bg-slate-800/60'
+                    ? 'bg-amber-500/15 border-amber-500/50 text-amber-700 dark:text-white shadow-xs shadow-amber-500/10'
+                    : 'bg-slate-50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60'
                 )}
               >
                 <div
                   className={cn(
                     'w-8 h-8 rounded-xl flex items-center justify-center mb-1.5',
                     formData.role === 'admin'
-                      ? 'bg-amber-500/20 text-amber-400'
-                      : 'bg-slate-800 text-slate-400'
+                      ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400'
+                      : 'bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
                   )}
                 >
                   <Crown className="w-4 h-4" />
                 </div>
                 <span className="text-xs font-bold block">مدير النظام</span>
-                <span className="text-[10px] text-slate-400 mt-0.5">صلاحيات كاملة 👑</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">صلاحيات كاملة 👑</span>
               </button>
             </div>
           </div>
 
           {/* Action buttons */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
             <button
               type="button"
               disabled={isSubmitting}
               onClick={onClose}
-              className="px-5 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 transition"
+              className="px-5 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition"
             >
               إلغاء
             </button>

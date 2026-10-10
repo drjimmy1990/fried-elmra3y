@@ -172,7 +172,7 @@ export function CommentsCenter({ role, initialEvents, initialRules, initialSetti
 
   return (
     <div className="space-y-6">
-      <div className="flex gap-1.5 p-1.5 rounded-2xl bg-slate-900/70 border border-slate-800 w-full sm:w-fit overflow-x-auto">
+      <div className="flex gap-1.5 p-1.5 rounded-2xl bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 w-full sm:w-fit overflow-x-auto shadow-xs">
         {tabs.map(([v, label, icon]) => (
           <button
             key={v}
@@ -180,7 +180,9 @@ export function CommentsCenter({ role, initialEvents, initialRules, initialSetti
             onClick={() => setTab(v)}
             className={cn(
               'flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition',
-              tab === v ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
+              tab === v
+                ? 'bg-amber-500 text-slate-950 shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
             )}
           >
             {icon}

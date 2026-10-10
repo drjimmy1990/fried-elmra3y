@@ -427,12 +427,12 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-black text-white">إدارة الطلبات المباشرة</h1>
+            <h1 className="text-2xl font-black text-slate-900 dark:text-white">إدارة الطلبات المباشرة</h1>
             <span
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${
                 isRealtimeActive
-                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                  : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                  : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
               }`}
             >
               <span
@@ -443,21 +443,21 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
               <span>{isRealtimeActive ? 'تحديث لحظي نشط' : 'جاري الاتصال...'}</span>
             </span>
           </div>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
             متابعة دورة تحضير وتسليم الوجبات وتحديث الحالات وإبلاغ العملاء فورياً
           </p>
         </div>
 
         {/* View Mode Toggle */}
         <div className="flex items-center gap-2 self-start sm:self-auto">
-          <div className="flex items-center rounded-xl bg-slate-900 border border-slate-800 p-1">
+          <div className="flex items-center rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-1">
             <button
               type="button"
               onClick={() => setViewMode('kanban')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 viewMode === 'kanban'
-                  ? 'bg-amber-600 text-white shadow-sm shadow-amber-600/30'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-amber-500 text-slate-950 shadow-sm shadow-amber-500/20 font-bold'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <LayoutGrid className="w-3.5 h-3.5" />
@@ -468,8 +468,8 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
               onClick={() => setViewMode('table')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 viewMode === 'table'
-                  ? 'bg-amber-600 text-white shadow-sm shadow-amber-600/30'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-amber-500 text-slate-950 shadow-sm shadow-amber-500/20 font-bold'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <TableIcon className="w-3.5 h-3.5" />
@@ -481,34 +481,34 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
 
       {/* Summary KPI Cards Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="rounded-2xl bg-slate-900/80 border border-slate-800 p-3.5 flex flex-col justify-between">
-          <span className="text-xs text-slate-400 font-medium">إجمالي الطلبات</span>
+        <div className="rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 shadow-xs flex flex-col justify-between">
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">إجمالي الطلبات</span>
           <div className="flex items-baseline justify-between mt-2">
-            <span className="text-xl font-black text-white">{totalOrdersCount}</span>
-            <ShoppingBag className="w-4 h-4 text-slate-500" />
+            <span className="text-xl font-black text-slate-900 dark:text-white">{totalOrdersCount}</span>
+            <ShoppingBag className="w-4 h-4 text-slate-400 dark:text-slate-500" />
           </div>
         </div>
 
-        <div className="rounded-2xl bg-amber-500/5 border border-amber-500/20 p-3.5 flex flex-col justify-between">
-          <span className="text-xs text-amber-400 font-medium">قيد الانتظار (جديدة)</span>
+        <div className="rounded-2xl bg-amber-500/10 dark:bg-amber-500/5 border border-amber-500/20 p-3.5 shadow-xs flex flex-col justify-between">
+          <span className="text-xs text-amber-700 dark:text-amber-400 font-medium">قيد الانتظار (جديدة)</span>
           <div className="flex items-baseline justify-between mt-2">
-            <span className="text-xl font-black text-amber-400">{pendingCount}</span>
+            <span className="text-xl font-black text-amber-700 dark:text-amber-400">{pendingCount}</span>
             <Clock className="w-4 h-4 text-amber-500" />
           </div>
         </div>
 
-        <div className="rounded-2xl bg-emerald-500/5 border border-emerald-500/20 p-3.5 flex flex-col justify-between">
-          <span className="text-xs text-emerald-400 font-medium">طلبات مؤكدة</span>
+        <div className="rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/5 border border-emerald-500/20 p-3.5 shadow-xs flex flex-col justify-between">
+          <span className="text-xs text-emerald-700 dark:text-emerald-400 font-medium">طلبات مؤكدة</span>
           <div className="flex items-baseline justify-between mt-2">
-            <span className="text-xl font-black text-emerald-400">{confirmedCount}</span>
+            <span className="text-xl font-black text-emerald-700 dark:text-emerald-400">{confirmedCount}</span>
             <CheckCircle2 className="w-4 h-4 text-emerald-500" />
           </div>
         </div>
 
-        <div className="rounded-2xl bg-slate-900/80 border border-slate-800 p-3.5 flex flex-col justify-between">
-          <span className="text-xs text-slate-400 font-medium">إجمالي المبيعات المؤكدة</span>
+        <div className="rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 shadow-xs flex flex-col justify-between">
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">إجمالي المبيعات المؤكدة</span>
           <div className="flex items-baseline justify-between mt-2">
-            <span className="text-lg font-black text-amber-400 font-mono">
+            <span className="text-lg font-black text-amber-600 dark:text-amber-400 font-mono">
               {formatCurrency(totalRevenue)}
             </span>
             <TrendingUp className="w-4 h-4 text-amber-500" />
@@ -517,22 +517,23 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="flex flex-col lg:flex-row items-center justify-between gap-3 bg-slate-900/80 border border-slate-800 p-3.5 rounded-2xl">
+      {/* Filter and Search Bar */}
+      <div className="flex flex-col lg:flex-row items-center justify-between gap-3 bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 rounded-2xl shadow-xs">
         {/* Search Input */}
         <div className="relative w-full lg:w-72">
-          <Search className="w-4 h-4 text-slate-500 absolute right-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute right-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="بحث بالاسم، الهاتف، أو رقم الطلب..."
-            className="w-full rounded-xl bg-slate-950 border border-slate-800 pr-9 pl-8 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
+            className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 pr-9 pl-8 py-2 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => setSearchQuery('')}
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-white"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -542,18 +543,18 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
         {/* Filters Group */}
         <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto">
           {/* Branch Filter Dropdown */}
-          <div className="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5">
-            <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-2.5 py-1.5">
+            <Building2 className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 shrink-0" />
             <select
               value={selectedBranchId}
               onChange={(e) => setSelectedBranchId(e.target.value)}
-              className="bg-transparent text-xs text-slate-200 focus:outline-hidden cursor-pointer"
+              className="bg-transparent text-xs text-slate-700 dark:text-slate-200 focus:outline-hidden cursor-pointer"
             >
-              <option value="all" className="bg-slate-900 text-slate-200">
+              <option value="all" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-200">
                 كل الفروع
               </option>
               {branchesList.map((b) => (
-                <option key={b.id} value={b.id} className="bg-slate-900 text-slate-200">
+                <option key={b.id} value={b.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-200">
                   {b.name}
                 </option>
               ))}
@@ -561,21 +562,21 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
           </div>
 
           {/* Offer Filter Dropdown */}
-          <div className="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5">
-            <Tag className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-2.5 py-1.5">
+            <Tag className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 shrink-0" />
             <select
               value={selectedOfferId}
               onChange={(e) => setSelectedOfferId(e.target.value)}
-              className="bg-transparent text-xs text-slate-200 focus:outline-hidden cursor-pointer max-w-[160px] truncate"
+              className="bg-transparent text-xs text-slate-700 dark:text-slate-200 focus:outline-hidden cursor-pointer max-w-[160px] truncate"
             >
-              <option value="all" className="bg-slate-900 text-slate-200">
+              <option value="all" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-200">
                 كل الطلبات
               </option>
-              <option value="has_offer" className="bg-slate-900 text-amber-300">
+              <option value="has_offer" className="bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-300">
                 طلبات العروض فقط ⭐
               </option>
               {offersList.map((o) => (
-                <option key={o.id} value={o.id} className="bg-slate-900 text-slate-200">
+                <option key={o.id} value={o.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-200">
                   {o.title}
                 </option>
               ))}
@@ -584,8 +585,8 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
 
           {/* Date Filter Tabs */}
           <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0">
-            <span className="text-xs text-slate-400 flex items-center gap-1 ml-1 shrink-0">
-              <Calendar className="w-3.5 h-3.5 text-slate-500" />
+            <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 ml-1 shrink-0">
+              <Calendar className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
               <span>الفترة:</span>
             </span>
 
@@ -594,8 +595,8 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
               onClick={() => setDateFilter('all')}
               className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${
                 dateFilter === 'all'
-                  ? 'bg-amber-600 text-white shadow-xs'
-                  : 'bg-slate-950 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-800'
+                  ? 'bg-amber-500 text-slate-950 font-bold shadow-xs'
+                  : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800'
               }`}
             >
               الكل
@@ -606,8 +607,8 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
               onClick={() => setDateFilter('today')}
               className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${
                 dateFilter === 'today'
-                  ? 'bg-amber-600 text-white shadow-xs'
-                  : 'bg-slate-950 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-800'
+                  ? 'bg-amber-500 text-slate-950 font-bold shadow-xs'
+                  : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800'
               }`}
             >
               اليوم
@@ -618,8 +619,8 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
               onClick={() => setDateFilter('yesterday')}
               className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${
                 dateFilter === 'yesterday'
-                  ? 'bg-amber-600 text-white shadow-xs'
-                  : 'bg-slate-950 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-800'
+                  ? 'bg-amber-500 text-slate-950 font-bold shadow-xs'
+                  : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800'
               }`}
             >
               أمس
@@ -630,8 +631,8 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
               onClick={() => setDateFilter('last_7_days')}
               className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${
                 dateFilter === 'last_7_days'
-                  ? 'bg-amber-600 text-white shadow-xs'
-                  : 'bg-slate-950 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-800'
+                  ? 'bg-amber-500 text-slate-950 font-bold shadow-xs'
+                  : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800'
               }`}
             >
               آخر 7 أيام
@@ -655,16 +656,16 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
             return (
               <div
                 key={column.id}
-                className="flex flex-col rounded-3xl bg-slate-900/60 border border-slate-800/80 shadow-xl overflow-hidden min-h-[500px]"
+                className="flex flex-col rounded-3xl bg-white/90 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 shadow-md dark:shadow-xl overflow-hidden min-h-[500px]"
               >
                 {/* Column Header */}
                 <div
-                  className={`p-4 border-b border-slate-800/80 ${column.bgLight} transition-colors`}
+                  className={`p-4 border-b border-slate-100 dark:border-slate-800/80 ${column.bgLight} transition-colors`}
                 >
                   <div className="flex items-center justify-between mb-1.5">
                     <div className="flex items-center gap-2">
                       <span className={`h-2.5 w-2.5 rounded-full ${column.dotColor}`} />
-                      <h3 className="font-extrabold text-base text-white">{column.title}</h3>
+                      <h3 className="font-extrabold text-base text-slate-900 dark:text-white">{column.title}</h3>
                     </div>
                     <span
                       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border ${column.badgeColor}`}
@@ -673,19 +674,19 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
                     </span>
                   </div>
 
-                  <div className="flex items-center justify-between text-xs text-slate-400">
+                  <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
                     <span>{column.subtitle}</span>
-                    <span className="font-mono font-medium text-slate-300">
+                    <span className="font-mono font-medium text-slate-700 dark:text-slate-300">
                       {formatCurrency(columnTotal)}
                     </span>
                   </div>
                 </div>
 
                 {/* Orders List */}
-                <div className="flex-1 p-3.5 space-y-3 overflow-y-auto max-h-[calc(100vh-280px)] scrollbar-thin scrollbar-thumb-slate-800">
+                <div className="flex-1 p-3.5 space-y-3 overflow-y-auto max-h-[calc(100vh-280px)] scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-800">
                   {columnOrders.length === 0 ? (
                     <div className="py-16 px-4 text-center">
-                      <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-900 text-slate-600 mb-2 border border-slate-800">
+                      <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-900 text-slate-400 dark:text-slate-600 mb-2 border border-slate-200 dark:border-slate-800">
                         <ShoppingBag className="w-5 h-5" />
                       </div>
                       <p className="text-xs text-slate-500">لا توجد طلبات هنا حالياً</p>
@@ -710,11 +711,11 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
         </div>
       ) : (
         /* Detailed Table View */
-        <div className="rounded-3xl bg-slate-900/90 border border-slate-800 shadow-xl overflow-hidden">
+        <div className="rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-md dark:shadow-xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-right text-xs">
               <thead>
-                <tr className="border-b border-slate-800 text-slate-400 bg-slate-950/70">
+                <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 bg-slate-50/80 dark:bg-slate-950/70">
                   <th className="py-3 px-4 font-semibold">رقم الطلب</th>
                   <th className="py-3 px-4 font-semibold">التاريخ والوقت</th>
                   <th className="py-3 px-4 font-semibold">العميل</th>
@@ -727,10 +728,10 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
                   <th className="py-3 px-4 font-semibold text-center">الإجراءات</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                 {filteredOrders.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="py-12 text-center text-slate-500">
+                    <td colSpan={10} className="py-12 text-center text-slate-400 dark:text-slate-500">
                       لا توجد طلبات مطابقة لمعايير البحث
                     </td>
                   </tr>
@@ -745,34 +746,34 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
                     return (
                       <tr
                         key={order.id}
-                        className="hover:bg-slate-800/40 transition-colors cursor-pointer"
+                        className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors cursor-pointer"
                         onClick={() => setSelectedOrder(order)}
                       >
-                        <td className="py-3.5 px-4 font-bold font-mono text-white">
+                        <td className="py-3.5 px-4 font-bold font-mono text-slate-900 dark:text-white">
                           #{order.order_number}
                         </td>
-                        <td className="py-3.5 px-4 text-slate-400 whitespace-nowrap">
+                        <td className="py-3.5 px-4 text-slate-500 dark:text-slate-400 whitespace-nowrap">
                           {formatDateTime(order.created_at)}
                         </td>
-                        <td className="py-3.5 px-4 font-bold text-white whitespace-nowrap">
+                        <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white whitespace-nowrap">
                           {order.customer_name}
                         </td>
-                        <td className="py-3.5 px-4 font-mono text-slate-300 whitespace-nowrap" dir="ltr">
+                        <td className="py-3.5 px-4 font-mono text-slate-700 dark:text-slate-300 whitespace-nowrap" dir="ltr">
                           {order.customer_phone}
                         </td>
-                        <td className="py-3.5 px-4 text-blue-400 font-medium whitespace-nowrap">
+                        <td className="py-3.5 px-4 text-blue-600 dark:text-blue-400 font-medium whitespace-nowrap">
                           {order.branch?.name || '-'}
                         </td>
                         <td
-                          className="py-3.5 px-4 text-slate-300 max-w-xs truncate"
+                          className="py-3.5 px-4 text-slate-700 dark:text-slate-300 max-w-xs truncate"
                           title={order.delivery_address}
                         >
                           {order.delivery_address}
                         </td>
-                        <td className="py-3.5 px-4 text-slate-300 whitespace-nowrap">
+                        <td className="py-3.5 px-4 text-slate-700 dark:text-slate-300 whitespace-nowrap">
                           {totalItems} أصناف
                         </td>
-                        <td className="py-3.5 px-4 font-bold font-mono text-amber-400 whitespace-nowrap">
+                        <td className="py-3.5 px-4 font-bold font-mono text-amber-600 dark:text-amber-400 whitespace-nowrap">
                           {formatCurrency(Number(order.total_amount) || 0)}
                         </td>
                         <td className="py-3.5 px-4 whitespace-nowrap">
@@ -790,10 +791,10 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
                             <button
                               type="button"
                               onClick={() => handlePrintReceipt(order)}
-                              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
+                              className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors"
                               title="طباعة إيصال الفاتورة"
                             >
-                              <Printer className="w-3.5 h-3.5 text-amber-400" />
+                              <Printer className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                             </button>
 
                             {order.status === 'pending' && (
@@ -815,7 +816,7 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
                             <button
                               type="button"
                               onClick={() => setSelectedOrder(order)}
-                              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
+                              className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
                               title="عرض التفاصيل"
                             >
                               <Eye className="w-3.5 h-3.5" />

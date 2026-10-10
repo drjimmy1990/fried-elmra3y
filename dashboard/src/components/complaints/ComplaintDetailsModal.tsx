@@ -158,7 +158,7 @@ export function ComplaintDetailsModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-xs animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/60 dark:bg-black/80 backdrop-blur-xs animate-in fade-in duration-200"
       role="dialog"
       aria-modal="true"
       aria-labelledby="complaint-modal-title"
@@ -166,16 +166,16 @@ export function ComplaintDetailsModal({
         if (e.target === e.currentTarget) handleSafeClose();
       }}
     >
-      <div className="relative flex flex-col w-full max-w-3xl max-h-[92vh] rounded-3xl bg-slate-900 border border-slate-800 shadow-2xl text-slate-100 overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="relative flex flex-col w-full max-w-3xl max-h-[92vh] rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl text-slate-900 dark:text-slate-100 overflow-hidden animate-in zoom-in-95 duration-200">
         {/* Header Bar */}
-        <div className="flex items-center justify-between p-5 sm:p-6 border-b border-slate-800 bg-slate-950/60">
+        <div className="flex items-center justify-between p-5 sm:p-6 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-500 dark:text-amber-400">
               <AlertTriangle className="h-6 w-6" />
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 id="complaint-modal-title" className="text-lg font-black text-white font-mono">
+                <h2 id="complaint-modal-title" className="text-lg font-black text-slate-900 dark:text-white font-mono">
                   تذكرة شكوى #{complaint.ticket_number}
                 </h2>
                 <span
@@ -183,7 +183,7 @@ export function ComplaintDetailsModal({
                 >
                   {statusBadge.label}
                 </span>
-                <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-slate-800 text-slate-300 border-slate-700">
+                <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700">
                   {complaint.source === 'messenger'
                     ? 'ماسنجر'
                     : complaint.source === 'comment'
@@ -195,19 +195,19 @@ export function ComplaintDetailsModal({
                 {complaint.order && (
                   <Link
                     href={`/dashboard/orders?orderId=${complaint.order_id}`}
-                    className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20 transition-colors"
+                    className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/20 transition-colors"
                   >
                     الأوردر #{complaint.order.order_number}
                   </Link>
                 )}
               </div>
-              <div className="flex items-center gap-3 text-xs text-slate-400 mt-1">
+              <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mt-1">
                 <span className="flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5 text-slate-500" />
+                  <Clock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
                   <span>تاريخ التسجيل: {formatDateTime(complaint.created_at)}</span>
                 </span>
                 {complaint.resolved_at && (
-                  <span className="flex items-center gap-1 text-emerald-400">
+                  <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
                     <CheckCircle2 className="w-3.5 h-3.5" />
                     <span>تاريخ الحل: {formatDateTime(complaint.resolved_at)}</span>
                   </span>
@@ -218,7 +218,7 @@ export function ComplaintDetailsModal({
 
           <button
             onClick={handleSafeClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/80 transition"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80 transition"
             aria-label="إغلاق النافذة"
           >
             <X className="w-5 h-5" />
@@ -230,20 +230,20 @@ export function ComplaintDetailsModal({
           {/* Customer Info & Chat Takeover Banner */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Customer Box */}
-            <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 p-4">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 بيانات صاحب الشكوى
               </span>
               <div className="mt-2 flex items-center justify-between">
                 <div>
-                  <div className="font-bold text-slate-100 text-base">
+                  <div className="font-bold text-slate-900 dark:text-slate-100 text-base">
                     {complaint.customer_name || 'عميل بدون اسم'}
                   </div>
-                  <div className="text-sm font-mono text-slate-300 mt-0.5" dir="ltr">
+                  <div className="text-sm font-mono text-slate-700 dark:text-slate-300 mt-0.5" dir="ltr">
                     {complaint.customer_phone}
                   </div>
                   {complaint.contact && (
-                    <div className="flex items-center gap-2 mt-1.5 text-[11px] text-slate-400">
+                    <div className="flex items-center gap-2 mt-1.5 text-[11px] text-slate-500 dark:text-slate-400">
                       <span>
                         المنصة:{' '}
                         {complaint.contact.platform === 'messenger'
@@ -259,16 +259,16 @@ export function ComplaintDetailsModal({
                 <div className="flex items-center gap-2">
                   <a
                     href={`tel:${complaint.customer_phone}`}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition border border-slate-700"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition border border-slate-200 dark:border-slate-700"
                   >
-                    <Phone className="w-3.5 h-3.5 text-amber-400" />
+                    <Phone className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
                     <span>اتصال</span>
                   </a>
                   <a
                     href={getWhatsAppLink(complaint.customer_phone)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 text-emerald-400 text-xs font-semibold transition border border-emerald-800/50"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/80 hover:bg-emerald-100 dark:hover:bg-emerald-900 text-emerald-600 dark:text-emerald-400 text-xs font-semibold transition border border-emerald-200 dark:border-emerald-800/50"
                   >
                     <MessageCircle className="w-3.5 h-3.5" />
                     <span>واتساب</span>
@@ -278,13 +278,13 @@ export function ComplaintDetailsModal({
             </div>
 
             {/* One-Click Chat Takeover Box */}
-            <div className="rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/10 via-slate-900 to-slate-950 p-4 flex flex-col justify-between">
+            <div className="rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent dark:via-slate-900 dark:to-slate-950 p-4 flex flex-col justify-between">
               <div>
-                <div className="flex items-center gap-2 text-amber-400 text-xs font-bold">
+                <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 text-xs font-bold">
                   <Sparkles className="w-4 h-4" />
                   <span>التدخل المباشر مع العميل (Chat Takeover)</span>
                 </div>
-                <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
                   إيقاف الرد الآلي للذكاء الاصطناعي فوراً وتولي المحادثة كدعم فني بشري لإرضاء العميل وحل مشكلته.
                 </p>
               </div>
@@ -293,7 +293,7 @@ export function ComplaintDetailsModal({
                 <button
                   onClick={handleChatTakeover}
                   disabled={isTakingOver || !complaint.contact_id}
-                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-amber-950/50 transition disabled:opacity-50"
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs sm:text-sm shadow-md shadow-amber-600/20 transition disabled:opacity-50"
                 >
                   {isTakingOver ? (
                     <>
@@ -315,8 +315,8 @@ export function ComplaintDetailsModal({
 
           {/* Full Issue Description */}
           <div className="space-y-2">
-            <span className="text-xs font-bold text-slate-300">نص الشكوى وبلاغ العميل:</span>
-            <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 text-slate-200 text-sm leading-relaxed whitespace-pre-wrap select-text">
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">نص الشكوى وبلاغ العميل:</span>
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 text-sm leading-relaxed whitespace-pre-wrap select-text">
               {complaint.issue_description}
             </div>
           </div>
@@ -324,8 +324,8 @@ export function ComplaintDetailsModal({
           {/* Operational Workflow Controls */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Status Transition Actions */}
-            <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4 space-y-3">
-              <span className="text-xs font-bold text-slate-300 block">
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 p-4 space-y-3">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
                 تحديث حالة التذكرة:
               </span>
               <div className="grid grid-cols-2 gap-2">
@@ -335,10 +335,10 @@ export function ComplaintDetailsModal({
                   className={`flex items-center justify-center gap-1.5 p-2.5 rounded-xl text-xs font-bold border transition ${
                     complaint.status === 'open'
                       ? 'bg-rose-600 text-white border-rose-500'
-                      : 'bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800'
+                      : 'bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800'
                   }`}
                 >
-                  <RotateCcw className="w-3.5 h-3.5 text-rose-400" />
+                  <RotateCcw className="w-3.5 h-3.5 text-rose-500 dark:text-rose-400" />
                   <span>مفتوحة</span>
                 </button>
 
@@ -348,25 +348,25 @@ export function ComplaintDetailsModal({
                   className={`flex items-center justify-center gap-1.5 p-2.5 rounded-xl text-xs font-bold border transition ${
                     complaint.status === 'resolved'
                       ? 'bg-emerald-600 text-white border-emerald-500'
-                      : 'bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800'
+                      : 'bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800'
                   }`}
                 >
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
                   <span>تم الحل بنجاح</span>
                 </button>
               </div>
             </div>
 
             {/* Staff Assignment */}
-            <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4 space-y-3">
-              <span className="text-xs font-bold text-slate-300 block">
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 p-4 space-y-3">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
                 إسناد التذكرة لموظف الدعم:
               </span>
               <select
                 value={complaint.assigned_to || ''}
                 onChange={(e) => handleAssignChange(e.target.value)}
                 disabled={isAssigning}
-                className="w-full rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-xs text-slate-200 focus:outline-hidden focus:border-amber-500 focus:ring-1 focus:ring-amber-500 disabled:opacity-50"
+                className="w-full rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-hidden focus:border-amber-500 focus:ring-1 focus:ring-amber-500 disabled:opacity-50"
               >
                 <option value="">-- غير مخصص (بدون موظف) --</option>
                 {staffList.map((staff) => (
@@ -385,16 +385,16 @@ export function ComplaintDetailsModal({
           </div>
 
           {/* Internal Resolution Notes */}
-          <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4 space-y-3">
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 p-4 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-amber-400" />
-                <span className="text-xs font-bold text-slate-200">
+                <FileText className="w-4 h-4 text-amber-500 dark:text-amber-400" />
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
                   ملاحظات الحل الداخلية والتعويضات (Resolution Notes):
                 </span>
               </div>
               {notesSaveSuccess && (
-                <span className="flex items-center gap-1 text-xs font-bold text-emerald-400 animate-in fade-in">
+                <span className="flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 animate-in fade-in">
                   <Check className="w-3.5 h-3.5" />
                   <span>تم الحفظ بنجاح ✓</span>
                 </span>
@@ -406,14 +406,14 @@ export function ComplaintDetailsModal({
               onChange={(e) => setResolutionNotes(e.target.value)}
               placeholder="اكتب تفاصيل حل المشكلة، الإجراء المتخذ، أو تفاصيل التعويض المقدم للعميل (وجبة بديلة، كود خصم، استرداد)..."
               rows={3}
-              className="w-full rounded-xl bg-slate-900/90 border border-slate-700/80 p-3 text-xs text-slate-200 placeholder-slate-500 focus:outline-hidden focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition leading-relaxed resize-none"
+              className="w-full rounded-xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/80 p-3 text-xs text-slate-900 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition leading-relaxed resize-none"
             />
 
             <div className="flex justify-end">
               <button
                 onClick={handleSaveNotes}
                 disabled={isSavingNotes || resolutionNotes === (complaint.resolution_notes || '')}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 transition disabled:opacity-40"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold border border-slate-200 dark:border-slate-700 transition disabled:opacity-40"
               >
                 {isSavingNotes ? (
                   <>
@@ -422,7 +422,7 @@ export function ComplaintDetailsModal({
                   </>
                 ) : (
                   <>
-                    <Save className="w-3.5 h-3.5 text-amber-400" />
+                    <Save className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
                     <span>حفظ ملاحظات الحل</span>
                   </>
                 )}
@@ -432,11 +432,11 @@ export function ComplaintDetailsModal({
         </div>
 
         {/* Modal Footer */}
-        <div className="flex items-center justify-between p-4 sm:p-5 border-t border-slate-800 bg-slate-950/80 text-xs">
-          <div className="text-slate-400">تحديث فوري عبر Supabase Realtime • المطعم</div>
+        <div className="flex items-center justify-between p-4 sm:p-5 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/80 text-xs">
+          <div className="text-slate-500 dark:text-slate-400">تحديث فوري عبر Supabase Realtime • المطعم</div>
           <button
             onClick={handleSafeClose}
-            className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold transition border border-slate-700"
+            className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold transition border border-slate-200 dark:border-slate-700"
           >
             إغلاق
           </button>

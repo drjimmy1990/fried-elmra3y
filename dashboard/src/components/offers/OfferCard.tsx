@@ -124,12 +124,12 @@ export function OfferCard({
     <>
       <div
         className={cn(
-          'group relative flex flex-col justify-between bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden transition-all duration-200 hover:border-slate-700 hover:shadow-xl hover:shadow-black/40',
-          !offer.is_active && 'opacity-75 border-slate-800/60'
+          'group relative flex flex-col justify-between bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden transition-all duration-200 hover:border-slate-300 dark:hover:border-slate-700 shadow-xs hover:shadow-md',
+          !offer.is_active && 'opacity-75 border-slate-200 dark:border-slate-800/60'
         )}
       >
         {/* Banner Section (aspect-video) */}
-        <div className="relative w-full aspect-video bg-slate-950 overflow-hidden">
+        <div className="relative w-full aspect-video bg-slate-100 dark:bg-slate-950 overflow-hidden">
           {offer.banner_url && !imageError ? (
             <img
               src={offer.banner_url}
@@ -138,10 +138,10 @@ export function OfferCard({
               onError={() => setImageError(true)}
             />
           ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center bg-radial from-slate-800 to-slate-950 text-slate-600">
-              <ImageIcon className="w-12 h-12 stroke-[1.5] text-slate-500 mb-1" />
-              <span className="text-xs text-slate-400 font-medium">بانر العرض الترويجي</span>
-              <span className="text-[10px] text-slate-600">🍗</span>
+            <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 dark:bg-radial dark:from-slate-800 dark:to-slate-950 text-slate-400 dark:text-slate-600">
+              <ImageIcon className="w-12 h-12 stroke-[1.5] text-slate-400 dark:text-slate-500 mb-1" />
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">بانر العرض الترويجي</span>
+              <span className="text-[10px] text-slate-400 dark:text-slate-600">🍗</span>
             </div>
           )}
 
@@ -170,7 +170,7 @@ export function OfferCard({
           {/* Inactive Ribbon Overlay */}
           {!offer.is_active && (
             <div className="absolute inset-0 bg-black/60 backdrop-blur-[1px] flex items-center justify-center">
-              <span className="px-3.5 py-1.5 rounded-xl bg-slate-850/95 border border-slate-700 text-slate-300 font-bold text-xs shadow-lg flex items-center gap-1.5">
+              <span className="px-3.5 py-1.5 rounded-xl bg-slate-900/90 dark:bg-slate-850/95 border border-slate-700 text-slate-200 font-bold text-xs shadow-lg flex items-center gap-1.5">
                 <XCircle className="w-4 h-4 text-slate-400" />
                 <span>العرض غير مفعل حالياً</span>
               </span>
@@ -182,36 +182,36 @@ export function OfferCard({
         <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-4">
           <div className="space-y-2">
             {/* Title */}
-            <h3 className="font-bold text-base sm:text-lg text-white group-hover:text-amber-400 transition-colors line-clamp-1">
+            <h3 className="font-bold text-base sm:text-lg text-slate-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors line-clamp-1">
               {offer.title}
             </h3>
 
             {/* Description */}
             {offer.description ? (
-              <p className="text-xs sm:text-sm text-slate-400 line-clamp-2 leading-relaxed">
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed">
                 {offer.description}
               </p>
             ) : (
-              <p className="text-xs text-slate-600 italic">لا يوجد وصف إضافي للعرض</p>
+              <p className="text-xs text-slate-400 dark:text-slate-600 italic">لا يوجد وصف إضافي للعرض</p>
             )}
           </div>
 
           {/* Date Window */}
-          <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-950/50 px-3 py-2 rounded-xl border border-slate-800/80">
-            <Calendar className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+          <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-950/50 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800/80">
+            <Calendar className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400 shrink-0" />
             <span className="truncate">{formattedDateRange}</span>
           </div>
 
           {/* Pricing Row */}
-          <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between">
+          <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
             <div className="flex flex-col">
-              <span className="text-[11px] text-slate-400 font-medium">سعر العرض الترويجي</span>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">سعر العرض الترويجي</span>
               <div className="flex items-baseline gap-2">
-                <span className="text-xl font-black text-emerald-400">
+                <span className="text-xl font-black text-emerald-600 dark:text-emerald-400">
                   {offer.price_after != null ? formatCurrency(offer.price_after) : '-'}
                 </span>
                 {offer.price_before != null && offer.price_after != null && offer.price_before > offer.price_after && (
-                  <del className="text-xs text-slate-500 font-medium">
+                  <del className="text-xs text-slate-400 dark:text-slate-500 font-medium">
                     {formatCurrency(offer.price_before)}
                   </del>
                 )}
@@ -226,20 +226,20 @@ export function OfferCard({
               className={cn(
                 'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border shadow-xs',
                 offer.is_active
-                  ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/25'
-                  : 'bg-rose-500/15 text-rose-300 border-rose-500/30 hover:bg-rose-500/25'
+                  ? 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/30 hover:bg-emerald-100 dark:hover:bg-emerald-500/25'
+                  : 'bg-rose-50 dark:bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-500/30 hover:bg-rose-100 dark:hover:bg-rose-500/25'
               )}
             >
               {isTogglingActive ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
               ) : offer.is_active ? (
                 <>
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                   <span>مفعل</span>
                 </>
               ) : (
                 <>
-                  <XCircle className="w-3.5 h-3.5 text-rose-400" />
+                  <XCircle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
                   <span>معطل</span>
                 </>
               )}
@@ -248,10 +248,10 @@ export function OfferCard({
         </div>
 
         {/* Card Footer: Creation Date & Actions */}
-        <div className="px-4 sm:px-5 py-2.5 bg-slate-950/60 border-t border-slate-800/80 flex items-center justify-between">
-          <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+        <div className="px-4 sm:px-5 py-2.5 bg-slate-50 dark:bg-slate-950/60 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+          <div className="flex items-center gap-1.5 text-[11px] text-slate-400 dark:text-slate-500">
             <span>تاريخ الإضافة:</span>
-            <span className="text-slate-400 font-medium">
+            <span className="text-slate-600 dark:text-slate-400 font-medium">
               {new Date(offer.created_at).toLocaleDateString('ar-EG', {
                 day: 'numeric',
                 month: 'short',
@@ -263,7 +263,7 @@ export function OfferCard({
             <button
               type="button"
               onClick={() => onEdit(offer)}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-amber-400 hover:bg-slate-800 transition-colors"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               title="تعديل بيانات العرض"
             >
               <Edit2 className="w-4 h-4" />
@@ -271,7 +271,7 @@ export function OfferCard({
             <button
               type="button"
               onClick={() => setIsConfirmingDelete(true)}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors"
               title="حذف العرض الترويجي"
             >
               <Trash2 className="w-4 h-4" />

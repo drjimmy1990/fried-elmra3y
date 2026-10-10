@@ -197,21 +197,21 @@ export function MenuManager({ initialSettings }: MenuManagerProps) {
   return (
     <div className="space-y-8">
       {/* 1. Images Gallery */}
-      <section className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-md">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-800">
+      <section className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-100 dark:border-slate-800">
           <div>
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <ImageIcon className="w-5 h-5 text-rose-400" />
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <ImageIcon className="w-5 h-5 text-rose-500 dark:text-rose-400" />
               صور المنيو
             </h2>
-            <p className="text-xs text-slate-400 mt-1">يتم إرسالها للعميل عند طلبه المنيو. الترتيب مهم.</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">يتم إرسالها للعميل عند طلبه المنيو. الترتيب مهم.</p>
           </div>
           <div>
             <input type="file" multiple accept="image/*" className="hidden" ref={imageInputRef} onChange={handleImageUpload} />
             <button
               onClick={() => imageInputRef.current?.click()}
               disabled={isUploadingImage}
-              className="inline-flex items-center gap-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 px-4 py-2 rounded-xl text-sm font-bold transition disabled:opacity-50"
+              className="inline-flex items-center gap-2 bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-100 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30 px-4 py-2 rounded-xl text-sm font-bold transition disabled:opacity-50"
             >
               {isUploadingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
               رفع صور جديدة
@@ -220,14 +220,14 @@ export function MenuManager({ initialSettings }: MenuManagerProps) {
         </div>
 
         {images.length === 0 ? (
-          <div className="text-center py-10 border-2 border-dashed border-slate-800 rounded-xl">
-            <ImageIcon className="w-8 h-8 mx-auto text-slate-600 mb-2" />
-            <p className="text-sm text-slate-400">لا توجد صور للمنيو حالياً</p>
+          <div className="text-center py-10 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
+            <ImageIcon className="w-8 h-8 mx-auto text-slate-400 dark:text-slate-600 mb-2" />
+            <p className="text-sm text-slate-500 dark:text-slate-400">لا توجد صور للمنيو حالياً</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {images.map((url, idx) => (
-              <div key={idx} className="group relative bg-slate-950 rounded-xl overflow-hidden border border-slate-800">
+              <div key={idx} className="group relative bg-slate-100 dark:bg-slate-950 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-xs">
                 <img src={url} alt={`Menu ${idx + 1}`} className="w-full h-48 object-cover" />
                 <div className="absolute top-2 right-2 bg-slate-900/80 text-white text-xs px-2 py-1 rounded-md backdrop-blur-sm border border-slate-700">
                   {idx + 1}
@@ -250,21 +250,21 @@ export function MenuManager({ initialSettings }: MenuManagerProps) {
       </section>
 
       {/* 2. PDF Upload */}
-      <section className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-md">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-800">
+      <section className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-100 dark:border-slate-800">
           <div>
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <FileText className="w-5 h-5 text-rose-400" />
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <FileText className="w-5 h-5 text-rose-500 dark:text-rose-400" />
               ملف المنيو (PDF)
             </h2>
-            <p className="text-xs text-slate-400 mt-1">نسخة للتحميل والمشاركة (اختياري)</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">نسخة للتحميل والمشاركة (اختياري)</p>
           </div>
           <div>
             <input type="file" accept="application/pdf" className="hidden" ref={pdfInputRef} onChange={handlePdfUpload} />
             <button
               onClick={() => pdfInputRef.current?.click()}
               disabled={isUploadingPdf}
-              className="inline-flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 px-4 py-2 rounded-xl text-sm font-bold transition disabled:opacity-50"
+              className="inline-flex items-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-xl text-sm font-bold transition disabled:opacity-50"
             >
               {isUploadingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
               {pdfUrl ? 'استبدال الملف' : 'رفع ملف PDF'}
@@ -273,38 +273,38 @@ export function MenuManager({ initialSettings }: MenuManagerProps) {
         </div>
 
         {pdfUrl ? (
-          <div className="flex items-center justify-between bg-slate-950 p-4 rounded-xl border border-slate-800">
+          <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-rose-500/10 text-rose-400 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-rose-500/10 text-rose-500 dark:text-rose-400 rounded-lg flex items-center justify-center">
                 <FileText className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-sm text-white font-medium">تم رفع ملف الـ PDF بنجاح</p>
-                <button onClick={() => copyLink(pdfUrl)} className="text-xs text-blue-400 hover:underline">نسخ الرابط</button>
+                <p className="text-sm text-slate-900 dark:text-white font-medium">تم رفع ملف الـ PDF بنجاح</p>
+                <button onClick={() => copyLink(pdfUrl)} className="text-xs text-blue-600 dark:text-blue-400 hover:underline">نسخ الرابط</button>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <a href={pdfUrl} target="_blank" rel="noreferrer" className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-white">
+              <a href={pdfUrl} target="_blank" rel="noreferrer" className="p-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg text-slate-700 dark:text-white">
                 <Eye className="w-4 h-4" />
               </a>
-              <button onClick={deletePdf} className="p-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-lg">
+              <button onClick={deletePdf} className="p-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-lg">
                 <Trash2 className="w-4 h-4" />
               </button>
             </div>
           </div>
         ) : (
-          <p className="text-sm text-slate-500 italic">لا يوجد ملف PDF مرفوع.</p>
+          <p className="text-sm text-slate-400 dark:text-slate-500 italic">لا يوجد ملف PDF مرفوع.</p>
         )}
       </section>
 
       {/* 3. Price List Editor */}
-      <section className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-md flex flex-col">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-800">
+      <section className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-100 dark:border-slate-800">
           <div>
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
               قائمة الأسعار النصية (Price List)
             </h2>
-            <p className="text-xs text-slate-400 mt-1">يستخدمها البوت للرد على الاستفسارات (Markdown). تقدر تستخدمها في n8n بالتعبير {'{{ $json.price_list }}'}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">يستخدمها البوت للرد على الاستفسارات (Markdown). تقدر تستخدمها في n8n بالتعبير {'{{ $json.price_list }}'}</p>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -313,7 +313,7 @@ export function MenuManager({ initialSettings }: MenuManagerProps) {
                 setPriceList(FRIED_CHICKEN_TEMPLATE);
                 setIsPriceListDirty(true);
               }}
-              className="inline-flex items-center gap-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 px-3 py-1.5 rounded-lg text-xs font-bold transition"
+              className="inline-flex items-center gap-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 px-3 py-1.5 rounded-lg text-xs font-bold transition"
             >
               <Sparkles className="w-3.5 h-3.5" />
               نموذج قائمة أسعار فرايد تشيكن
@@ -330,15 +330,15 @@ export function MenuManager({ initialSettings }: MenuManagerProps) {
         </div>
 
         {/* Mobile Tabs */}
-        <div className="flex md:hidden border-b border-slate-800 mb-4">
+        <div className="flex md:hidden border-b border-slate-200 dark:border-slate-800 mb-4">
           <button
-            className={cn('flex-1 pb-2 text-sm font-bold border-b-2 transition', activeTab === 'editor' ? 'border-amber-400 text-amber-400' : 'border-transparent text-slate-500')}
+            className={cn('flex-1 pb-2 text-sm font-bold border-b-2 transition', activeTab === 'editor' ? 'border-amber-500 text-amber-600 dark:text-amber-400' : 'border-transparent text-slate-400 dark:text-slate-500')}
             onClick={() => setActiveTab('editor')}
           >
             المحرر
           </button>
           <button
-            className={cn('flex-1 pb-2 text-sm font-bold border-b-2 transition', activeTab === 'preview' ? 'border-amber-400 text-amber-400' : 'border-transparent text-slate-500')}
+            className={cn('flex-1 pb-2 text-sm font-bold border-b-2 transition', activeTab === 'preview' ? 'border-amber-500 text-amber-600 dark:text-amber-400' : 'border-transparent text-slate-400 dark:text-slate-500')}
             onClick={() => setActiveTab('preview')}
           >
             المعاينة
@@ -347,7 +347,7 @@ export function MenuManager({ initialSettings }: MenuManagerProps) {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 min-h-[400px]">
           <div className={cn("flex-col", activeTab === 'editor' ? 'flex' : 'hidden md:flex')}>
-            <label className="text-xs font-bold text-slate-400 mb-2 block">المحرر (Markdown)</label>
+            <label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-2 block">المحرر (Markdown)</label>
             <textarea
               dir="auto"
               value={priceList}
@@ -355,14 +355,14 @@ export function MenuManager({ initialSettings }: MenuManagerProps) {
                 setPriceList(e.target.value);
                 setIsPriceListDirty(true);
               }}
-              className="flex-1 w-full bg-slate-950/70 border border-slate-700/80 focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 rounded-xl p-4 text-white text-sm font-mono outline-none transition resize-y min-h-[400px]"
+              className="flex-1 w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-700/80 focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 rounded-xl p-4 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-sm font-mono outline-none transition resize-y min-h-[400px]"
               placeholder="اكتب الأسعار هنا..."
             />
           </div>
 
           <div className={cn("flex-col", activeTab === 'preview' ? 'flex' : 'hidden md:flex')}>
-            <label className="text-xs font-bold text-slate-400 mb-2 block">المعاينة المباشرة (Live Preview)</label>
-            <div className="flex-1 w-full bg-slate-950 border border-slate-800 rounded-xl p-6 overflow-y-auto min-h-[400px]">
+            <label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-2 block">المعاينة المباشرة (Live Preview)</label>
+            <div className="flex-1 w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-6 overflow-y-auto min-h-[400px]">
               <MarkdownPreview source={priceList} />
             </div>
           </div>

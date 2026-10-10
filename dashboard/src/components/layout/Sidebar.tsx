@@ -87,9 +87,9 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 const BADGE_STYLES: Record<BadgeKind, string> = {
-  orders: 'bg-orange-500/20 text-orange-300 border border-orange-500/30',
-  complaints: 'bg-rose-500/20 text-rose-300 border border-rose-500/30',
-  chat: 'bg-amber-500/20 text-amber-300 border border-amber-500/30',
+  orders: 'bg-orange-500/10 text-orange-600 dark:bg-orange-500/20 dark:text-orange-300 border border-orange-500/25',
+  complaints: 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-300 border border-rose-500/25',
+  chat: 'bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-300 border border-amber-500/25',
 };
 
 export function Sidebar({
@@ -112,28 +112,28 @@ export function Sidebar({
       {isOpen && (
         <div
           onClick={onClose}
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-xs transition-opacity lg:hidden"
+          className="fixed inset-0 z-40 bg-black/50 dark:bg-black/70 backdrop-blur-xs transition-opacity lg:hidden"
           aria-hidden="true"
         />
       )}
 
       {/* Sidebar Drawer */}
       <aside
-        className={`fixed inset-y-0 right-0 z-50 flex w-72 flex-col border-l border-slate-800/80 bg-slate-950 text-slate-100 shadow-2xl transition-transform duration-300 ease-in-out lg:sticky lg:top-0 lg:h-screen lg:z-auto lg:translate-x-0 ${
+        className={`fixed inset-y-0 right-0 z-50 flex w-72 flex-col border-l border-slate-200/80 bg-white text-slate-800 shadow-xl dark:border-slate-800/80 dark:bg-[#0B0F17] dark:text-slate-100 dark:shadow-2xl transition-all duration-300 ease-in-out lg:sticky lg:top-0 lg:h-screen lg:z-auto lg:translate-x-0 ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
         {/* Branding & Logo Header */}
-        <div className="flex h-20 items-center justify-between border-b border-slate-800/80 px-6">
+        <div className="flex h-20 items-center justify-between border-b border-slate-200/80 dark:border-slate-800/80 px-6">
           <Link href="/dashboard" onClick={onClose} className="flex min-w-0 items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-orange-600 to-amber-500 text-white shadow-lg shadow-amber-500/20">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-600 text-slate-950 shadow-md shadow-amber-500/20">
               <Drumstick className="h-6 w-6" />
             </div>
             <div className="min-w-0">
-              <div className="truncate font-bold text-lg text-white" title={restaurantName}>
+              <div className="truncate font-extrabold text-base text-slate-900 dark:text-white" title={restaurantName}>
                 {restaurantName}
               </div>
-              <p className="text-xs text-amber-200/80">لوحة تحكم الأوردرات والبوت 🍗</p>
+              <p className="text-xs font-semibold text-amber-600 dark:text-amber-300/90">غرفة العمليات الذكية 🍗👑</p>
             </div>
           </Link>
 
@@ -141,7 +141,7 @@ export function Sidebar({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-2 text-slate-400 hover:bg-slate-900 hover:text-white lg:hidden"
+            className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white lg:hidden"
             aria-label="إغلاق القائمة"
           >
             <X className="h-5 w-5" />
@@ -149,7 +149,7 @@ export function Sidebar({
         </div>
 
         {/* Navigation Links */}
-        <div className="flex-1 overflow-y-auto px-4 py-4 scrollbar-thin scrollbar-thumb-slate-800">
+        <div className="flex-1 overflow-y-auto px-4 py-4 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800">
           <nav className="space-y-1">
             {visibleItems.map((item, index) => {
               const Icon = item.icon;
@@ -174,7 +174,7 @@ export function Sidebar({
                 <React.Fragment key={item.href}>
                   {isFirstInSection && (
                     <div className={`px-3 ${index === 0 ? 'pb-1.5' : 'pt-4 pb-1.5'}`}>
-                      <span className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+                      <span className="text-[10px] font-extrabold tracking-wider text-slate-400 dark:text-slate-500 uppercase">
                         {item.section}
                       </span>
                     </div>
@@ -184,16 +184,18 @@ export function Sidebar({
                     href={item.href}
                     onClick={onClose}
                     aria-current={isActive ? 'page' : undefined}
-                    className={`group relative flex items-center justify-between rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all ${
+                    className={`group relative flex items-center justify-between rounded-xl px-3.5 py-2.5 text-sm font-semibold transition-all ${
                       isActive
-                        ? 'bg-gradient-to-l from-amber-500/15 via-amber-500/10 to-transparent text-amber-300 font-semibold border-r-3 border-amber-500 shadow-xs'
-                        : 'text-slate-400 hover:bg-slate-900/80 hover:text-slate-200'
+                        ? 'bg-amber-500/10 text-amber-600 dark:bg-amber-500/15 dark:text-amber-300 border-r-3 border-amber-500 shadow-xs'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-900/80 dark:hover:text-slate-200'
                     }`}
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <Icon
                         className={`h-4.5 w-4.5 shrink-0 transition-transform group-hover:scale-110 ${
-                          isActive ? 'text-amber-400' : 'text-slate-500 group-hover:text-amber-400/80'
+                          isActive
+                            ? 'text-amber-600 dark:text-amber-400'
+                            : 'text-slate-400 dark:text-slate-500 group-hover:text-amber-500'
                         }`}
                       />
                       <span className="truncate">{item.title}</span>
@@ -206,7 +208,7 @@ export function Sidebar({
                         aria-label={`${item.badgeTitle ?? ''}: ${badgeCount}`}
                         className={`ml-1 inline-flex items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold ${
                           isActive
-                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                            ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40'
                             : BADGE_STYLES[item.badge]
                         }`}
                       >
@@ -221,13 +223,13 @@ export function Sidebar({
         </div>
 
         {/* Sidebar Footer Info */}
-        <div className="border-t border-slate-800/80 p-4 bg-slate-950/60">
-          <div className="flex items-center justify-between rounded-xl bg-slate-900/80 p-3 text-xs text-slate-400 border border-slate-800">
+        <div className="border-t border-slate-200/80 dark:border-slate-800/80 p-4 bg-slate-50/60 dark:bg-[#0B0F17]/60">
+          <div className="flex items-center justify-between rounded-xl bg-white dark:bg-slate-900/80 p-3 text-xs text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800">
             <span className="flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-              متصل
+              <span>المطعم متصل</span>
             </span>
-            <span className="font-mono text-[10px] text-slate-500">v2.0</span>
+            <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500 font-semibold">v2.1</span>
           </div>
         </div>
       </aside>

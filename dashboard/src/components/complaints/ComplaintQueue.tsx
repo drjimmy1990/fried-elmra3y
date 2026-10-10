@@ -343,12 +343,12 @@ export function ComplaintQueue({ initialComplaints, staffList }: ComplaintQueueP
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-black text-white">إدارة شكاوى العملاء</h1>
+            <h1 className="text-2xl font-black text-slate-900 dark:text-white">إدارة شكاوى العملاء</h1>
             <span
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${
                 isRealtimeActive
-                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                  : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                  : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
               }`}
             >
               <span
@@ -359,21 +359,21 @@ export function ComplaintQueue({ initialComplaints, staffList }: ComplaintQueueP
               <span>{isRealtimeActive ? 'مزامنة لحظية' : 'جاري الاتصال...'}</span>
             </span>
           </div>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
             متابعة المشكلات وحلها يدوياً مع إمكانية التدخل المباشر في الشات
           </p>
         </div>
 
         {/* View Mode Toggle: Table is default */}
         <div className="flex items-center gap-2 self-start sm:self-auto">
-          <div className="flex items-center rounded-xl bg-slate-900 border border-slate-800 p-1">
+          <div className="flex items-center rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-1">
             <button
               type="button"
               onClick={() => setViewMode('table')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 viewMode === 'table'
-                  ? 'bg-amber-600 text-white shadow-sm shadow-amber-600/30'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-amber-600 text-white shadow-xs'
+                  : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
               }`}
             >
               <TableIcon className="w-3.5 h-3.5" />
@@ -384,8 +384,8 @@ export function ComplaintQueue({ initialComplaints, staffList }: ComplaintQueueP
               onClick={() => setViewMode('cards')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 viewMode === 'cards'
-                  ? 'bg-amber-600 text-white shadow-sm shadow-amber-600/30'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-amber-600 text-white shadow-xs'
+                  : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
               }`}
             >
               <LayoutGrid className="w-3.5 h-3.5" />
@@ -397,58 +397,58 @@ export function ComplaintQueue({ initialComplaints, staffList }: ComplaintQueueP
 
       {/* Summary KPI Cards Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="rounded-2xl bg-slate-900/80 border border-slate-800 p-3.5 flex flex-col justify-between">
-          <span className="text-xs text-slate-400 font-medium">إجمالي التذاكر</span>
+        <div className="rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 flex flex-col justify-between shadow-xs">
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">إجمالي التذاكر</span>
           <div className="flex items-baseline justify-between mt-2">
-            <span className="text-xl font-black text-white">{totalCount}</span>
-            <AlertTriangle className="w-4 h-4 text-slate-500" />
+            <span className="text-xl font-black text-slate-900 dark:text-white">{totalCount}</span>
+            <AlertTriangle className="w-4 h-4 text-slate-400 dark:text-slate-500" />
           </div>
         </div>
 
         <div className="rounded-2xl bg-rose-500/5 border border-rose-500/20 p-3.5 flex flex-col justify-between">
-          <span className="text-xs text-rose-400 font-medium">شكاوى مفتوحة</span>
+          <span className="text-xs text-rose-600 dark:text-rose-400 font-medium">شكاوى مفتوحة</span>
           <div className="flex items-baseline justify-between mt-2">
-            <span className="text-xl font-black text-rose-400">{openCount}</span>
+            <span className="text-xl font-black text-rose-600 dark:text-rose-400">{openCount}</span>
             <Clock className="w-4 h-4 text-rose-500" />
           </div>
         </div>
 
         <div className="rounded-2xl bg-emerald-500/5 border border-emerald-500/20 p-3.5 flex flex-col justify-between">
-          <span className="text-xs text-emerald-400 font-medium">تم الحل بنجاح</span>
+          <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">تم الحل بنجاح</span>
           <div className="flex items-baseline justify-between mt-2">
-            <span className="text-xl font-black text-emerald-400">{resolvedCount}</span>
+            <span className="text-xl font-black text-emerald-600 dark:text-emerald-400">{resolvedCount}</span>
             <CheckCircle2 className="w-4 h-4 text-emerald-500" />
           </div>
         </div>
 
-        <div className="rounded-2xl bg-slate-900/80 border border-slate-800 p-3.5 flex flex-col justify-between">
-          <span className="text-xs text-slate-400 font-medium">نسبة الإغلاق والرضا</span>
+        <div className="rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 flex flex-col justify-between shadow-xs">
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">نسبة الإغلاق والرضا</span>
           <div className="flex items-baseline justify-between mt-2">
-            <span className="text-xl font-black text-amber-400 font-mono">
+            <span className="text-xl font-black text-amber-600 dark:text-amber-400 font-mono">
               {resolutionRate}%
             </span>
-            <span className="text-xs text-slate-500">مكتمل</span>
+            <span className="text-xs text-slate-400 dark:text-slate-500">مكتمل</span>
           </div>
         </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-900/80 border border-slate-800 p-3 rounded-2xl">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3 rounded-2xl shadow-xs">
         {/* Search Input */}
         <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 text-slate-500 absolute right-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute right-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="بحث برقم الشكوى، العميل، الهاتف، أو نص المشكلة..."
-            className="w-full rounded-xl bg-slate-950 border border-slate-800 pr-9 pl-8 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
+            className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 pr-9 pl-8 py-2 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => setSearchQuery('')}
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-white"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -463,7 +463,7 @@ export function ComplaintQueue({ initialComplaints, staffList }: ComplaintQueueP
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${
               statusFilter === 'all'
                 ? 'bg-amber-600 text-white shadow-xs'
-                : 'bg-slate-950 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-800'
+                : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800'
             }`}
           >
             كل الشكاوى ({totalCount})
@@ -475,7 +475,7 @@ export function ComplaintQueue({ initialComplaints, staffList }: ComplaintQueueP
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors flex items-center gap-1.5 ${
               statusFilter === 'open'
                 ? 'bg-rose-600 text-white shadow-xs'
-                : 'bg-slate-950 text-rose-400 hover:bg-slate-800 border border-slate-800'
+                : 'bg-slate-50 dark:bg-slate-950 text-rose-600 dark:text-rose-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
             }`}
           >
             <span className="w-2 h-2 rounded-full bg-rose-500" />
@@ -488,7 +488,7 @@ export function ComplaintQueue({ initialComplaints, staffList }: ComplaintQueueP
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors flex items-center gap-1.5 ${
               statusFilter === 'resolved'
                 ? 'bg-emerald-600 text-white shadow-xs'
-                : 'bg-slate-950 text-emerald-400 hover:bg-slate-800 border border-slate-800'
+                : 'bg-slate-50 dark:bg-slate-950 text-emerald-600 dark:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
             }`}
           >
             <span className="w-2 h-2 rounded-full bg-emerald-500" />
@@ -499,11 +499,11 @@ export function ComplaintQueue({ initialComplaints, staffList }: ComplaintQueueP
 
       {/* Main View: Table (Default) or Cards */}
       {viewMode === 'table' ? (
-        <div className="rounded-3xl bg-slate-900/90 border border-slate-800 shadow-xl overflow-hidden">
+        <div className="rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-right text-xs">
               <thead>
-                <tr className="border-b border-slate-800 text-slate-400 bg-slate-950/70">
+                <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-950/70">
                   <th className="py-3 px-4 font-semibold">رقم التذكرة</th>
                   <th className="py-3 px-4 font-semibold">التاريخ</th>
                   <th className="py-3 px-4 font-semibold">صاحب الشكوى</th>
@@ -516,10 +516,10 @@ export function ComplaintQueue({ initialComplaints, staffList }: ComplaintQueueP
                   <th className="py-3 px-4 font-semibold text-center">الإجراءات</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                 {filteredComplaints.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="py-12 text-center text-slate-500">
+                    <td colSpan={10} className="py-12 text-center text-slate-400 dark:text-slate-500">
                       لا توجد شكاوى مطابقة لمعايير البحث
                     </td>
                   </tr>
@@ -530,26 +530,26 @@ export function ComplaintQueue({ initialComplaints, staffList }: ComplaintQueueP
                     return (
                       <tr
                         key={complaint.id}
-                        className="hover:bg-slate-800/40 transition-colors cursor-pointer"
+                        className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors cursor-pointer"
                         onClick={() => setSelectedComplaint(complaint)}
                       >
-                        <td className="py-3.5 px-4 font-bold font-mono text-white whitespace-nowrap">
+                        <td className="py-3.5 px-4 font-bold font-mono text-slate-900 dark:text-white whitespace-nowrap">
                           #{complaint.ticket_number}
                         </td>
-                        <td className="py-3.5 px-4 text-slate-400 whitespace-nowrap">
+                        <td className="py-3.5 px-4 text-slate-500 dark:text-slate-400 whitespace-nowrap">
                           {formatDateTime(complaint.created_at)}
                         </td>
-                        <td className="py-3.5 px-4 font-bold text-white whitespace-nowrap">
+                        <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white whitespace-nowrap">
                           {complaint.customer_name || 'عميل'}
                         </td>
                         <td
-                          className="py-3.5 px-4 font-mono text-slate-300 whitespace-nowrap"
+                          className="py-3.5 px-4 font-mono text-slate-700 dark:text-slate-300 whitespace-nowrap"
                           dir="ltr"
                         >
                           {complaint.customer_phone || '-'}
                         </td>
                         <td className="py-3.5 px-4 whitespace-nowrap">
-                          <span className="rounded-md bg-slate-800 px-2 py-0.5 text-[10px] text-slate-300 font-medium border border-slate-700">
+                          <span className="rounded-md bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-[10px] text-slate-700 dark:text-slate-300 font-medium border border-slate-200 dark:border-slate-700">
                             {complaint.source === 'messenger'
                               ? 'ماسنجر'
                               : complaint.source === 'comment'
@@ -564,23 +564,23 @@ export function ComplaintQueue({ initialComplaints, staffList }: ComplaintQueueP
                             <Link
                               href={`/dashboard/orders?orderId=${complaint.order_id}`}
                               onClick={(e) => e.stopPropagation()}
-                              className="font-mono font-bold text-amber-400 hover:text-amber-300"
+                              className="font-mono font-bold text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300"
                             >
                               #{complaint.order.order_number}
                             </Link>
                           ) : (
-                            <span className="text-slate-500">-</span>
+                            <span className="text-slate-400 dark:text-slate-500">-</span>
                           )}
                         </td>
                         <td
-                          className="py-3.5 px-4 text-slate-300 max-w-xs truncate"
+                          className="py-3.5 px-4 text-slate-600 dark:text-slate-300 max-w-xs truncate"
                           title={complaint.issue_description}
                         >
                           {complaint.issue_description}
                         </td>
-                        <td className="py-3.5 px-4 text-slate-300 whitespace-nowrap">
+                        <td className="py-3.5 px-4 text-slate-600 dark:text-slate-300 whitespace-nowrap">
                           {complaint.assigned_profile?.full_name || (
-                            <span className="text-slate-500">غير مخصص</span>
+                            <span className="text-slate-400 dark:text-slate-500">غير مخصص</span>
                           )}
                         </td>
                         <td className="py-3.5 px-4 whitespace-nowrap">
@@ -610,7 +610,7 @@ export function ComplaintQueue({ initialComplaints, staffList }: ComplaintQueueP
                                 type="button"
                                 onClick={() => handleUpdateStatus(complaint.id, 'open')}
                                 disabled={isUpdatingStatus[complaint.id]}
-                                className="px-2.5 py-1 rounded-lg bg-rose-600/80 hover:bg-rose-600 text-white text-xs font-semibold transition flex items-center gap-1"
+                                className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold transition flex items-center gap-1"
                               >
                                 <RotateCcw className="w-3.5 h-3.5" />
                                 <span>إعادة فتح</span>
@@ -620,7 +620,7 @@ export function ComplaintQueue({ initialComplaints, staffList }: ComplaintQueueP
                             {complaint.contact_id && (
                               <Link
                                 href={`/dashboard/chat?contactId=${complaint.contact_id}`}
-                                className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 hover:text-amber-300 transition"
+                                className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 transition"
                                 title="فتح المحادثة المباشرة"
                               >
                                 <MessageCircle className="w-3.5 h-3.5" />
@@ -630,7 +630,7 @@ export function ComplaintQueue({ initialComplaints, staffList }: ComplaintQueueP
                             <button
                               type="button"
                               onClick={() => setSelectedComplaint(complaint)}
-                              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition"
+                              className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition"
                               title="عرض التفاصيل"
                             >
                               <Eye className="w-3.5 h-3.5" />
@@ -656,16 +656,16 @@ export function ComplaintQueue({ initialComplaints, staffList }: ComplaintQueueP
             return (
               <div
                 key={column.id}
-                className="flex flex-col rounded-3xl bg-slate-900/60 border border-slate-800/80 shadow-xl overflow-hidden min-h-[500px]"
+                className="flex flex-col rounded-3xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 shadow-xl overflow-hidden min-h-[500px]"
               >
                 {/* Column Header */}
                 <div
-                  className={`p-4 border-b border-slate-800/80 ${column.bgLight} transition-colors`}
+                  className={`p-4 border-b border-slate-200 dark:border-slate-800/80 ${column.bgLight} transition-colors`}
                 >
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
                       <span className={`h-2.5 w-2.5 rounded-full ${column.dotColor}`} />
-                      <h3 className="font-extrabold text-base text-white">{column.title}</h3>
+                      <h3 className="font-extrabold text-base text-slate-900 dark:text-white">{column.title}</h3>
                     </div>
                     <span
                       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border ${column.badgeColor}`}
@@ -673,17 +673,17 @@ export function ComplaintQueue({ initialComplaints, staffList }: ComplaintQueueP
                       {columnComplaints.length} شكوى
                     </span>
                   </div>
-                  <div className="text-xs text-slate-400">{column.subtitle}</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">{column.subtitle}</div>
                 </div>
 
                 {/* Complaints List */}
-                <div className="flex-1 p-3.5 space-y-3 overflow-y-auto max-h-[calc(100vh-280px)] scrollbar-thin scrollbar-thumb-slate-800">
+                <div className="flex-1 p-3.5 space-y-3 overflow-y-auto max-h-[calc(100vh-280px)] scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800">
                   {columnComplaints.length === 0 ? (
                     <div className="py-16 px-4 text-center">
-                      <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-900 text-slate-600 mb-2 border border-slate-800">
+                      <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-900 text-slate-400 dark:text-slate-600 mb-2 border border-slate-200 dark:border-slate-800">
                         <CheckCircle2 className="w-5 h-5" />
                       </div>
-                      <p className="text-xs text-slate-500">لا توجد شكاوى في هذه القائمة حالياً</p>
+                      <p className="text-xs text-slate-400 dark:text-slate-500">لا توجد شكاوى في هذه القائمة حالياً</p>
                     </div>
                   ) : (
                     columnComplaints.map((c) => (

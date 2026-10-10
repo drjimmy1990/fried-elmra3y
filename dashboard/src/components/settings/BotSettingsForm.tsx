@@ -190,10 +190,10 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
       {/* 1. Master Automation Status Banner */}
       <div
         className={cn(
-          'relative overflow-hidden rounded-2xl border p-6 transition-all duration-300 shadow-lg',
+          'relative overflow-hidden rounded-2xl border p-6 transition-all duration-300 shadow-xs',
           formData.bot_enabled
-            ? 'bg-gradient-to-r from-emerald-950/40 via-slate-900 to-slate-900 border-emerald-500/30'
-            : 'bg-gradient-to-r from-rose-950/40 via-slate-900 to-slate-900 border-rose-500/30'
+            ? 'bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-white dark:from-emerald-950/40 dark:via-slate-900 dark:to-slate-900 border-emerald-500/30'
+            : 'bg-gradient-to-r from-rose-500/10 via-rose-500/5 to-white dark:from-rose-950/40 dark:via-slate-900 dark:to-slate-900 border-rose-500/30'
         )}
       >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
@@ -202,35 +202,35 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
               className={cn(
                 'w-14 h-14 rounded-2xl flex items-center justify-center border shadow-inner transition-transform duration-300',
                 formData.bot_enabled
-                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                  : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                  : 'bg-rose-500/10 border-rose-500/30 text-rose-600 dark:text-rose-400'
               )}
             >
               <Power className="w-7 h-7" />
             </div>
             <div>
               <div className="flex items-center gap-3">
-                <h2 className="text-xl font-bold text-white">
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white">
                   المفتاح الرئيسي للأتمتة والرد الذكي
                 </h2>
                 <span
                   className={cn(
                     'inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-semibold border',
                     formData.bot_enabled
-                      ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
-                      : 'bg-rose-500/10 text-rose-300 border-rose-500/30'
+                      ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
+                      : 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/30'
                   )}
                 >
                   <span
                     className={cn(
                       'w-2 h-2 rounded-full',
-                      formData.bot_enabled ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'
+                      formData.bot_enabled ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'
                     )}
                   />
                   {formData.bot_enabled ? '🟢 البوت متصل ويعمل' : '🔴 البوت معطل بالكامل'}
                 </span>
               </div>
-              <p className="text-sm text-slate-400 mt-1 max-w-2xl leading-relaxed">
+              <p className="text-sm text-slate-600 dark:text-slate-400 mt-1 max-w-2xl leading-relaxed">
                 {formData.bot_enabled
                   ? 'المساعد الذكي (Gemini 2.0 Flash) نشط ويقوم بالرد الفوري على تعليقات ورسائل العملاء، واستقبال الطلبات تلقائياً.'
                   : 'تم إيقاف الأتمتة بالكامل. لن يقوم البوت بالرد على أي رسالة واردة، ويتعين على ممثلي خدمة العملاء الرد يدوياً.'}
@@ -245,19 +245,19 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
               onChange={(e) => handleInputChange('bot_enabled', e.target.checked)}
               className="sr-only peer"
             />
-            <div className="w-14 h-8 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:start-[4px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-emerald-600"></div>
+            <div className="w-14 h-8 bg-slate-200 dark:bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:start-[4px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-emerald-600"></div>
           </label>
         </div>
 
         {/* Sub-rule: Auto-pause on complaint */}
-        <div className="mt-6 pt-5 border-t border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <ShieldAlert className="w-5 h-5 text-amber-400 shrink-0" />
+            <ShieldAlert className="w-5 h-5 text-amber-500 shrink-0" />
             <div>
-              <span className="text-sm font-semibold text-slate-200 block">
+              <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 block">
                 إيقاف الذكاء الاصطناعي تلقائياً للعميل عند فتح شكوى (Auto-Pause on Complaint)
               </span>
-              <span className="text-xs text-slate-400 block mt-0.5">
+              <span className="text-xs text-slate-500 dark:text-slate-400 block mt-0.5">
                 تعليق ردود البوت مؤقتاً لأي عميل يقدم شكوى لحين تدخل موظف خدمة العملاء لتفادي الاستفزاز أو التكرار.
               </span>
             </div>
@@ -269,28 +269,28 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
               onChange={(e) => handleInputChange('auto_pause_on_complaint', e.target.checked)}
               className="sr-only peer"
             />
-            <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+            <div className="w-11 h-6 bg-slate-200 dark:bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
           </label>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* 2. Financial & Delivery Parameters */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-md flex flex-col justify-between">
+        <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col justify-between">
           <div>
-            <div className="flex items-center gap-3 mb-4 pb-3 border-b border-slate-800">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center">
+            <div className="flex items-center gap-3 mb-4 pb-3 border-b border-slate-200 dark:border-slate-800">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center">
                 <DollarSign className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-white">معايير التوصيل والأسعار</h3>
-                <p className="text-xs text-slate-400">تكلفة التوصيل الافتراضية والعملة المستخدمة في الفواتير</p>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">معايير التوصيل والأسعار</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">تكلفة التوصيل الافتراضية والعملة المستخدمة في الفواتير</p>
               </div>
             </div>
 
             <div className="space-y-5">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-2">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
                   سعر التوصيل الثابت الافتراضي
                 </label>
                 <div className="relative">
@@ -300,26 +300,26 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
                     step="0.5"
                     value={formData.delivery_fee}
                     onChange={(e) => handleInputChange('delivery_fee', parseFloat(e.target.value) || 0)}
-                    className="w-full bg-slate-950/70 border border-slate-700/80 focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 rounded-xl px-4 py-2.5 text-white text-sm outline-none transition"
+                    className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-700/80 focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 rounded-xl px-4 py-2.5 text-slate-900 dark:text-white text-sm outline-none transition placeholder:text-slate-400 dark:placeholder:text-slate-500"
                     placeholder="15.00"
                   />
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-bold">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-500 dark:text-slate-400 font-bold">
                     {formData.currency === 'EGP' ? 'ج.م' : formData.currency}
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-500 mt-1">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
                   يتم احتساب هذا المبلغ تلقائياً على إجمالي كل طلب جديد يُسجل عبر المحادثة.
                 </p>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-2">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
                   رمز العملة الرسمية
                 </label>
                 <select
                   value={formData.currency}
                   onChange={(e) => handleInputChange('currency', e.target.value)}
-                  className="w-full bg-slate-950/70 border border-slate-700/80 focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 rounded-xl px-4 py-2.5 text-white text-sm outline-none transition"
+                  className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-700/80 focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 rounded-xl px-4 py-2.5 text-slate-900 dark:text-white text-sm outline-none transition"
                 >
                   <option value="EGP">جنيه مصري (EGP - ج.م)</option>
                   <option value="SAR">ريال سعودي (SAR - ر.س)</option>
@@ -331,27 +331,27 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
         </div>
 
         {/* 3. Dashboard Alerts */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-md flex flex-col justify-between">
+        <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col justify-between">
           <div>
-            <div className="flex items-center gap-3 mb-4 pb-3 border-b border-slate-800">
-              <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center">
+            <div className="flex items-center gap-3 mb-4 pb-3 border-b border-slate-200 dark:border-slate-800">
+              <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-500 flex items-center justify-center">
                 <Bell className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-white">تنبيهات لوحة التحكم المباشرة</h3>
-                <p className="text-xs text-slate-400">التنبيهات الصوتية والبصرية للموظفين المناوبين</p>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">تنبيهات لوحة التحكم المباشرة</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">التنبيهات الصوتية والبصرية للموظفين المناوبين</p>
               </div>
             </div>
 
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 rounded-xl bg-slate-950/40 border border-slate-800/80">
+              <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800/80">
                 <div className="flex items-center gap-3">
-                  <Volume2 className="w-5 h-5 text-purple-400" />
+                  <Volume2 className="w-5 h-5 text-purple-500 shrink-0" />
                   <div>
-                    <span className="text-sm font-semibold text-white block">
+                    <span className="text-sm font-semibold text-slate-900 dark:text-white block">
                       التنبيهات الصوتية والفورية للطلبات والشكاوى
                     </span>
-                    <span className="text-xs text-slate-400 block mt-0.5">
+                    <span className="text-xs text-slate-500 dark:text-slate-400 block mt-0.5">
                       تشغيل نغمة تنبيه صوتية عند وصول طلب معلق جديد أو تسجيل شكوى عميل ذات أولوية.
                     </span>
                   </div>
@@ -363,12 +363,12 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
                     onChange={(e) => handleInputChange('notify_dashboard', e.target.checked)}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                  <div className="w-11 h-6 bg-slate-200 dark:bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
                 </label>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-purple-950/20 border border-purple-500/20 text-xs text-purple-300 flex items-start gap-2.5">
-                <Sparkles className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+              <div className="p-3.5 rounded-xl bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-500/20 text-xs text-purple-700 dark:text-purple-300 flex items-start gap-2.5">
+                <Sparkles className="w-4 h-4 text-purple-500 shrink-0 mt-0.5" />
                 <span>
                   نظام التنبيهات مرتبط بـ Supabase Realtime، ويعمل على جميع شاشات مسؤولي الطلبات وخدمة العملاء فوراً بدون الحاجة لتحديث الصفحة.
                 </span>
@@ -379,20 +379,20 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
       </div>
 
       {/* 4. Business Hours & Off-Hours Handling */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-md">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-800">
+      <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-500 flex items-center justify-center">
               <Clock className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-white">مواعيد العمل وخارج أوقات التشغيل</h3>
-              <p className="text-xs text-slate-400">تحديد أوقات عمل المطعم ورسالة الرد التلقائي أثناء الإغلاق</p>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">مواعيد العمل وخارج أوقات التشغيل</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">تحديد أوقات عمل المطعم ورسالة الرد التلقائي أثناء الإغلاق</p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="text-xs font-semibold text-slate-300">
+            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
               {formData.business_hours_enabled ? 'مفعلة' : 'معطلة (متاح 24/7)'}
             </span>
             <label className="relative inline-flex items-center cursor-pointer select-none">
@@ -402,7 +402,7 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
                 onChange={(e) => handleInputChange('business_hours_enabled', e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              <div className="w-11 h-6 bg-slate-200 dark:bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
             </label>
           </div>
         </div>
@@ -411,39 +411,39 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
           <div className="space-y-6 animate-in fade-in slide-in-from-top-2">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-2">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
                   وقت بدء العمل اليومي (Open Time)
                 </label>
                 <input
                   type="time"
                   value={formData.open_time}
                   onChange={(e) => handleInputChange('open_time', e.target.value)}
-                  className="w-full bg-slate-950/70 border border-slate-700/80 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 rounded-xl px-4 py-2.5 text-white text-sm outline-none transition"
+                  className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-700/80 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 rounded-xl px-4 py-2.5 text-slate-900 dark:text-white text-sm outline-none transition"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-2">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
                   وقت إغلاق العمل اليومي (Close Time)
                 </label>
                 <input
                   type="time"
                   value={formData.close_time}
                   onChange={(e) => handleInputChange('close_time', e.target.value)}
-                  className="w-full bg-slate-950/70 border border-slate-700/80 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 rounded-xl px-4 py-2.5 text-white text-sm outline-none transition"
+                  className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-700/80 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 rounded-xl px-4 py-2.5 text-slate-900 dark:text-white text-sm outline-none transition"
                 />
               </div>
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="text-xs font-semibold text-slate-300">
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                   رسالة الرد التلقائي خارج أوقات العمل الرسمية
                 </label>
                 <button
                   type="button"
                   onClick={() => handleInputChange('off_hours_message', DEFAULT_OFF_HOURS_MESSAGE)}
-                  className="text-[11px] text-blue-400 hover:text-blue-300 flex items-center gap-1 transition"
+                  className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 transition"
                 >
                   <RotateCcw className="w-3 h-3" />
                   استعادة النص النموذجي
@@ -454,9 +454,9 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
                 value={formData.off_hours_message}
                 onChange={(e) => handleInputChange('off_hours_message', e.target.value)}
                 placeholder="اكتب الرسالة التي تظهر للعملاء خارج مواعيد العمل..."
-                className="w-full bg-slate-950/70 border border-slate-700/80 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 rounded-xl p-3.5 text-white text-sm outline-none transition leading-relaxed"
+                className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-700/80 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 rounded-xl p-3.5 text-slate-900 dark:text-white text-sm outline-none transition leading-relaxed placeholder:text-slate-400 dark:placeholder:text-slate-500"
               />
-              <p className="text-[11px] text-slate-500 mt-1">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
                 تُرسل هذه الرسالة آلياً عند تواصل العملاء في الفترات التي تقع خارج ساعات العمل المحددة أعلاه.
               </p>
             </div>
@@ -464,27 +464,27 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
         )}
 
         {!formData.business_hours_enabled && (
-          <p className="text-xs text-slate-400 italic">
+          <p className="text-xs text-slate-500 dark:text-slate-400 italic">
             مواعيد العمل معطلة حالياً: يستقبل البوت الطلبات والاستفسارات على مدار الـ 24 ساعة بدون انقطاع.
           </p>
         )}
       </div>
 
       {/* 5. AI Agent System Prompt (Gemini 2.0 Flash) */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-md">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 pb-3 border-b border-slate-800">
+      <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 pb-3 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
               <Bot className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold text-white">توجيهات نموذج الذكاء الاصطناعي (AI System Prompt)</h3>
-                <span className="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full font-mono">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">توجيهات نموذج الذكاء الاصطناعي (AI System Prompt)</h3>
+                <span className="text-[10px] bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 dark:border-emerald-500/30 px-2 py-0.5 rounded-full font-mono font-semibold">
                   Gemini 2.0 Flash
                 </span>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 الشخصية، أسلوب التخاطب مع رواد المطعم، شروط تقديم الاقتراحات وإرشادات جمع الطلبات
               </p>
             </div>
@@ -493,7 +493,7 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
           <button
             type="button"
             onClick={() => handleInputChange('ai_system_prompt', DEFAULT_AI_PROMPT)}
-            className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1.5 transition self-start sm:self-center"
+            className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1.5 transition self-start sm:self-center"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             استعادة القالب الافتراضي
@@ -505,10 +505,10 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
             rows={10}
             value={formData.ai_system_prompt}
             onChange={(e) => handleInputChange('ai_system_prompt', e.target.value)}
-            className="w-full bg-slate-950/80 border border-slate-700/80 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 rounded-xl p-4 text-slate-100 text-sm font-mono leading-relaxed outline-none transition"
+            className="w-full bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-700/80 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 rounded-xl p-4 text-slate-900 dark:text-slate-100 text-sm font-mono leading-relaxed outline-none transition"
             placeholder="اكتب التوجيهات والأوامر التي يلتزم بها المساعد الذكي..."
           />
-          <div className="flex items-center justify-between text-[11px] text-slate-500 px-1">
+          <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 px-1">
             <span>💡 نصيحة: حدد نبرة الصوت، الأطباق المميزة، وقواعد جمع العنوان ورقم التليفون قبل تأكيد الأوردر.</span>
             <span>{formData.ai_system_prompt.length} حرف</span>
           </div>
@@ -516,20 +516,20 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
       </div>
 
       {/* 6. Telegram Operations Alerts */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-md">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-800">
+      <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-600 dark:text-sky-400 flex items-center justify-center">
               <Send className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-white">إشعارات عمليات تيليجرام (Telegram Operations)</h3>
-              <p className="text-xs text-slate-400">إرسال إشعار فوري لجروب الإدارة والمطبخ عند أي طلب أو شكوى جديدة</p>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">إشعارات عمليات تيليجرام (Telegram Operations)</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">إرسال إشعار فوري لجروب الإدارة والمطبخ عند أي طلب أو شكوى جديدة</p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="text-xs font-semibold text-slate-300">
+            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
               {formData.notify_telegram ? 'مفعلة' : 'معطلة'}
             </span>
             <label className="relative inline-flex items-center cursor-pointer select-none">
@@ -539,7 +539,7 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
                 onChange={(e) => handleInputChange('notify_telegram', e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-600"></div>
+              <div className="w-11 h-6 bg-slate-200 dark:bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-600"></div>
             </label>
           </div>
         </div>
@@ -548,7 +548,7 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
           <div className="space-y-5 animate-in fade-in slide-in-from-top-2">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-2">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
                   رمز بوت تيليجرام (Telegram Bot Token)
                 </label>
                 <div className="relative">
@@ -557,12 +557,12 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
                     value={formData.telegram_bot_token}
                     onChange={(e) => handleInputChange('telegram_bot_token', e.target.value)}
                     placeholder="123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ"
-                    className="w-full bg-slate-950/70 border border-slate-700/80 focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30 rounded-xl px-4 py-2.5 text-white font-mono text-xs outline-none transition"
+                    className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-700/80 focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30 rounded-xl px-4 py-2.5 text-slate-900 dark:text-white font-mono text-xs outline-none transition placeholder:text-slate-400 dark:placeholder:text-slate-500"
                   />
                   <button
                     type="button"
                     onClick={() => setShowTelegramToken(!showTelegramToken)}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-white transition"
                     title={showTelegramToken ? 'إخفاء الرمز' : 'إظهار الرمز'}
                   >
                     {showTelegramToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -571,7 +571,7 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-2">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
                   معرف قناة أو جروب تيليجرام (Telegram Chat ID)
                 </label>
                 <input
@@ -579,20 +579,20 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
                   value={formData.telegram_chat_id}
                   onChange={(e) => handleInputChange('telegram_chat_id', e.target.value)}
                   placeholder="-1001234567890 أو @khedewy_orders"
-                  className="w-full bg-slate-950/70 border border-slate-700/80 focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30 rounded-xl px-4 py-2.5 text-white font-mono text-xs outline-none transition"
+                  className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-700/80 focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30 rounded-xl px-4 py-2.5 text-slate-900 dark:text-white font-mono text-xs outline-none transition placeholder:text-slate-400 dark:placeholder:text-slate-500"
                 />
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-3 border-t border-slate-800/80">
-              <span className="text-xs text-slate-400">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-3 border-t border-slate-200 dark:border-slate-800/80">
+              <span className="text-xs text-slate-500 dark:text-slate-400">
                 يمكنك الضغط على زر الاختبار للتحقق من وصول الرسالة إلى الجروب مباشرة.
               </span>
               <button
                 type="button"
                 disabled={isTestingTelegram || !formData.telegram_bot_token || !formData.telegram_chat_id}
                 onClick={handleTestTelegram}
-                className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-sky-300 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-sky-700 dark:text-sky-300 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 transition disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <Send className="w-3.5 h-3.5" />
                 {isTestingTelegram ? 'جارِ الاختبار...' : 'اختبار إرسال إشعار تيليجرام'}
@@ -603,32 +603,32 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
       </div>
 
       {/* Link Card for Channels and Menu */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-md grid grid-cols-1 md:grid-cols-2 gap-4">
-        <a href="/dashboard/channels" className="flex items-center gap-4 p-4 rounded-xl border border-slate-700 hover:border-blue-500/50 bg-slate-950/50 transition group">
-          <div className="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center group-hover:bg-blue-500/20 transition">
+      <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs grid grid-cols-1 md:grid-cols-2 gap-4">
+        <a href="/dashboard/channels" className="flex items-center gap-4 p-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-blue-500/50 bg-slate-50/50 dark:bg-slate-950/50 transition group">
+          <div className="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-500 dark:text-blue-400 flex items-center justify-center group-hover:bg-blue-500/20 transition">
             <Facebook className="w-6 h-6" />
           </div>
           <div>
-            <h4 className="font-bold text-white text-sm mb-1 group-hover:text-blue-400 transition">إعدادات فيسبوك وماسنجر</h4>
-            <p className="text-xs text-slate-400">انتقل لربط الصفحة والردود التلقائية</p>
+            <h4 className="font-bold text-slate-900 dark:text-white text-sm mb-1 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition">إعدادات فيسبوك وماسنجر</h4>
+            <p className="text-xs text-slate-500 dark:text-slate-400">انتقل لربط الصفحة والردود التلقائية</p>
           </div>
         </a>
 
-        <a href="/dashboard/menu" className="flex items-center gap-4 p-4 rounded-xl border border-slate-700 hover:border-rose-500/50 bg-slate-950/50 transition group">
-          <div className="w-12 h-12 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center group-hover:bg-rose-500/20 transition">
+        <a href="/dashboard/menu" className="flex items-center gap-4 p-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-rose-500/50 bg-slate-50/50 dark:bg-slate-950/50 transition group">
+          <div className="w-12 h-12 rounded-xl bg-rose-500/10 text-rose-500 dark:text-rose-400 flex items-center justify-center group-hover:bg-rose-500/20 transition">
             <FileText className="w-6 h-6" />
           </div>
           <div>
-            <h4 className="font-bold text-white text-sm mb-1 group-hover:text-rose-400 transition">إعدادات المنيو والأسعار</h4>
-            <p className="text-xs text-slate-400">انتقل لرفع المنيو وتحديث قائمة الأسعار</p>
+            <h4 className="font-bold text-slate-900 dark:text-white text-sm mb-1 group-hover:text-rose-500 dark:group-hover:text-rose-400 transition">إعدادات المنيو والأسعار</h4>
+            <p className="text-xs text-slate-500 dark:text-slate-400">انتقل لرفع المنيو وتحديث قائمة الأسعار</p>
           </div>
         </a>
       </div>
 
       {/* Save Action Sticky Footer */}
-      <div className="sticky bottom-4 z-40 bg-slate-900/90 backdrop-blur-xl border border-slate-700/80 rounded-2xl p-4 shadow-2xl flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2 text-xs text-slate-400">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+      <div className="sticky bottom-4 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200 dark:border-slate-700/80 rounded-2xl p-4 shadow-xl flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
           <span>تأكد من مراجعة التغييرات قبل الحفظ لتطبيقها على محادثات مسنجر فوراً.</span>
         </div>
 

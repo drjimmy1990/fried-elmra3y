@@ -31,7 +31,7 @@ export function Switch({
       className={cn(
         'relative shrink-0 rounded-full transition-colors disabled:opacity-40 disabled:cursor-not-allowed',
         size === 'md' ? 'w-11 h-6' : 'w-9 h-5',
-        checked ? 'bg-emerald-500' : 'bg-slate-700'
+        checked ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'
       )}
     >
       <span
@@ -91,7 +91,7 @@ export function TagInput({
           type="button"
           onClick={add}
           disabled={disabled || !draft.trim()}
-          className="shrink-0 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 disabled:opacity-40"
+          className="shrink-0 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 disabled:opacity-40 transition"
           aria-label="إضافة"
         >
           <Plus className="w-4 h-4" />
@@ -105,8 +105,8 @@ export function TagInput({
               className={cn(
                 'inline-flex items-center gap-1 pl-1.5 pr-2.5 py-1 rounded-lg text-xs font-semibold border',
                 tone === 'rose'
-                  ? 'bg-rose-500/10 text-rose-200 border-rose-500/25'
-                  : 'bg-amber-500/10 text-amber-200 border-amber-500/25'
+                  ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-200 border-rose-200 dark:border-rose-500/25'
+                  : 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-200 border-amber-200 dark:border-amber-500/25'
               )}
             >
               {t}

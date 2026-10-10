@@ -249,17 +249,17 @@ export function ThermalReceipt({
             }
           }}
         >
-          <div className="relative w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="relative w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] transition-colors">
             {/* Modal Top Bar */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800 bg-slate-950/70">
-              <div className="flex items-center gap-2 text-white font-bold text-sm">
-                <Printer className="w-4 h-4 text-amber-500" />
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/70">
+              <div className="flex items-center gap-2 text-slate-900 dark:text-white font-bold text-sm">
+                <Printer className="w-4 h-4 text-amber-600 dark:text-amber-500" />
                 <span>معاينة إيصال الطابعة الحرارية (80mm)</span>
               </div>
               <button
                 type="button"
                 onClick={onClose}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 aria-label="إغلاق"
               >
                 <X className="w-5 h-5" />
@@ -267,25 +267,25 @@ export function ThermalReceipt({
             </div>
 
             {/* Scrollable Receipt Slip Preview */}
-            <div className="p-6 overflow-y-auto bg-slate-950/40 flex justify-center">
+            <div className="p-6 overflow-y-auto bg-slate-100/60 dark:bg-slate-950/40 flex justify-center">
               <div className="shadow-xl rounded-sm overflow-hidden border border-gray-200">
                 {receiptContent}
               </div>
             </div>
 
             {/* Modal Bottom Actions */}
-            <div className="flex items-center justify-between p-4 border-t border-slate-800 bg-slate-950">
+            <div className="flex items-center justify-between p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors"
+                className="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               >
                 إغلاق
               </button>
               <button
                 type="button"
                 onClick={handlePrint}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-sm shadow-lg shadow-amber-600/30 transition-all hover:scale-102"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm shadow-md shadow-amber-500/20 transition-all hover:scale-102"
               >
                 <Printer className="w-4 h-4" />
                 <span>طباعة الفاتورة الآن</span>

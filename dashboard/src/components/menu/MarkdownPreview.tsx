@@ -9,7 +9,7 @@ function Inline({ segments }: { segments: InlineSegment[] }) {
     <>
       {segments.map((s, i) =>
         s.bold ? (
-          <strong key={i} className="font-bold text-amber-200">
+          <strong key={i} className="font-bold text-amber-700 dark:text-amber-200">
             {s.text}
           </strong>
         ) : (
@@ -25,33 +25,33 @@ export function MarkdownPreview({ source, className }: { source: string; classNa
   const blocks = useMemo(() => parseMarkdown(source), [source]);
 
   if (!blocks.length) {
-    return <p className="text-sm text-slate-500 italic">مفيش محتوى لسه… اكتب قائمة الأسعار وهتظهر هنا.</p>;
+    return <p className="text-sm text-slate-400 dark:text-slate-500 italic">مفيش محتوى لسه… اكتب قائمة الأسعار وهتظهر هنا.</p>;
   }
 
   return (
-    <div dir="auto" className={cn('space-y-3 text-sm leading-relaxed text-slate-200', className)}>
+    <div dir="auto" className={cn('space-y-3 text-sm leading-relaxed text-slate-800 dark:text-slate-200', className)}>
       {blocks.map((b, i) => {
         switch (b.type) {
           case 'heading':
             if (b.level === 1)
               return (
-                <h3 key={i} className="text-xl font-black text-white pt-1">
+                <h3 key={i} className="text-xl font-black text-slate-900 dark:text-white pt-1">
                   <Inline segments={b.content} />
                 </h3>
               );
             if (b.level === 2)
               return (
-                <h4 key={i} className="text-base font-bold text-amber-300 pt-1 border-b border-slate-800 pb-1">
+                <h4 key={i} className="text-base font-bold text-amber-600 dark:text-amber-300 pt-1 border-b border-slate-200 dark:border-slate-800 pb-1">
                   <Inline segments={b.content} />
                 </h4>
               );
             return (
-              <h5 key={i} className="text-sm font-bold text-slate-100">
+              <h5 key={i} className="text-sm font-bold text-slate-900 dark:text-slate-100">
                 <Inline segments={b.content} />
               </h5>
             );
           case 'hr':
-            return <hr key={i} className="border-slate-700" />;
+            return <hr key={i} className="border-slate-200 dark:border-slate-700" />;
           case 'ul':
             return (
               <ul key={i} className="list-disc ps-5 space-y-1 marker:text-amber-500">

@@ -43,9 +43,9 @@ interface Props {
 type TestResult = { ok: boolean; checks: Array<{ label: string; ok: boolean; detail?: string }> };
 
 const STATUS_BADGE: Record<ChannelView['status'], { label: string; cls: string }> = {
-  connected: { label: 'متصلة وتعمل', cls: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/25' },
-  error: { label: 'فيها مشكلة', cls: 'bg-rose-500/10 text-rose-300 border-rose-500/25' },
-  disconnected: { label: 'مفصولة', cls: 'bg-slate-800 text-slate-400 border-slate-700' },
+  connected: { label: 'متصلة وتعمل', cls: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/25' },
+  error: { label: 'فيها مشكلة', cls: 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/25' },
+  disconnected: { label: 'مفصولة', cls: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700' },
 };
 
 export function ChannelsManager({ redirectUri, settingsId, initialWebhookUrl, oauthStatus, oauthError }: Props) {
@@ -181,17 +181,17 @@ export function ChannelsManager({ redirectUri, settingsId, initialWebhookUrl, oa
           role="status"
           className={cn(
             'p-4 rounded-2xl border flex items-start gap-3 text-sm',
-            notice.type === 'success' && 'bg-emerald-950/40 border-emerald-500/30 text-emerald-200',
-            notice.type === 'error' && 'bg-rose-950/50 border-rose-500/30 text-rose-200',
-            notice.type === 'warning' && 'bg-amber-950/40 border-amber-500/30 text-amber-200'
+            notice.type === 'success' && 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-200',
+            notice.type === 'error' && 'bg-rose-50 dark:bg-rose-950/50 border-rose-200 dark:border-rose-500/30 text-rose-800 dark:text-rose-200',
+            notice.type === 'warning' && 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-500/30 text-amber-800 dark:text-amber-200'
           )}
         >
           {notice.type === 'success' ? (
-            <CheckCircle2 className="w-5 h-5 shrink-0" />
+            <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
           ) : notice.type === 'error' ? (
-            <AlertCircle className="w-5 h-5 shrink-0" />
+            <AlertCircle className="w-5 h-5 shrink-0 text-rose-600 dark:text-rose-400" />
           ) : (
-            <AlertTriangle className="w-5 h-5 shrink-0" />
+            <AlertTriangle className="w-5 h-5 shrink-0 text-amber-600 dark:text-amber-400" />
           )}
           <span className="flex-1 whitespace-pre-line leading-relaxed">{notice.text}</span>
           <button type="button" onClick={() => setNotice(null)} aria-label="إغلاق" className="opacity-70 hover:opacity-100">
@@ -203,14 +203,14 @@ export function ChannelsManager({ redirectUri, settingsId, initialWebhookUrl, oa
       <SetupGuide />
 
       {/* ------------------------------------------------------------ Webhook URL */}
-      <section className="rounded-3xl border border-slate-800 bg-slate-900/60 p-5 space-y-4">
+      <section className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-5 space-y-4 shadow-xs">
         <div className="flex items-center gap-3">
-          <span className="w-10 h-10 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-300 flex items-center justify-center">
+          <span className="w-10 h-10 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-300 flex items-center justify-center">
             <Webhook className="w-5 h-5" />
           </span>
           <div>
-            <h2 className="text-sm font-bold text-white">رابط الويب هوك (n8n)</h2>
-            <p className="text-xs text-slate-400">
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white">رابط الويب هوك (n8n)</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               رابط واحد لكل الصفحات وكل التطبيقات — n8n بيعرف الصفحة من رقمها. ده اللي بتحطه في Callback URL في فيسبوك.
             </p>
           </div>
@@ -235,10 +235,10 @@ export function ChannelsManager({ redirectUri, settingsId, initialWebhookUrl, oa
       <section className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
-              <KeyRound className="w-4 h-4 text-amber-400" /> تطبيقات ميتا
+            <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <KeyRound className="w-4 h-4 text-amber-500" /> تطبيقات ميتا
             </h2>
-            <p className="text-xs text-slate-400">كل تطبيق له App ID و Secret — ممكن تضيف أكتر من تطبيق لو صفحاتك على تطبيقات مختلفة.</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">كل تطبيق له App ID و Secret — ممكن تضيف أكتر من تطبيق لو صفحاتك على تطبيقات مختلفة.</p>
           </div>
           <button type="button" className={btn.primary} onClick={() => setAppModal({ open: true, app: null })}>
             <Plus className="w-4 h-4" /> إضافة تطبيق ميتا
@@ -246,9 +246,9 @@ export function ChannelsManager({ redirectUri, settingsId, initialWebhookUrl, oa
         </div>
 
         {loading ? (
-          <div className="h-32 rounded-3xl bg-slate-900/60 border border-slate-800 animate-pulse" />
+          <div className="h-32 rounded-3xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 animate-pulse" />
         ) : apps.length === 0 ? (
-          <div className="rounded-3xl border border-dashed border-slate-700 p-8 text-center text-sm text-slate-400">
+          <div className="rounded-3xl border border-dashed border-slate-300 dark:border-slate-700 p-8 text-center text-sm text-slate-500 dark:text-slate-400">
             لسه مفيش تطبيقات. ابدأ بـ “إضافة تطبيق ميتا” (افتح الدليل فوق لو أول مرة).
           </div>
         ) : (
@@ -256,12 +256,12 @@ export function ChannelsManager({ redirectUri, settingsId, initialWebhookUrl, oa
             {apps.map((app) => (
               <article
                 key={app.id}
-                className={cn('rounded-3xl border bg-slate-900/60 p-5 space-y-4', app.is_active ? 'border-slate-800' : 'border-slate-800 opacity-60')}
+                className={cn('rounded-3xl border bg-white dark:bg-slate-900/60 p-5 space-y-4 shadow-xs', app.is_active ? 'border-slate-200 dark:border-slate-800' : 'border-slate-200 dark:border-slate-800 opacity-60')}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h3 className="text-sm font-bold text-white truncate">{app.name}</h3>
-                    <p className="text-[11px] text-slate-500">
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white truncate">{app.name}</h3>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
                       App ID: <span dir="ltr" className="font-mono">{app.app_id}</span> · Secret:{' '}
                       <span dir="ltr" className="font-mono">{app.secret_hint}</span> · {app.pages_count} صفحة
                       {app.login_config_id && ' · Login for Business'}
@@ -274,16 +274,16 @@ export function ChannelsManager({ redirectUri, settingsId, initialWebhookUrl, oa
                       disabled={busy === `app-${app.id}`}
                       className={cn(
                         'text-[11px] font-bold rounded-full px-2.5 py-1 border transition',
-                        app.is_active ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/25' : 'bg-slate-800 text-slate-400 border-slate-700'
+                        app.is_active ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/25' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'
                       )}
                       aria-pressed={app.is_active}
                     >
                       {app.is_active ? 'مفعّل' : 'موقوف'}
                     </button>
-                    <button type="button" onClick={() => setAppModal({ open: true, app })} className="p-2 rounded-lg hover:bg-slate-800 text-slate-400" aria-label="تعديل">
+                    <button type="button" onClick={() => setAppModal({ open: true, app })} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400" aria-label="تعديل">
                       <Pencil className="w-4 h-4" />
                     </button>
-                    <button type="button" onClick={() => deleteApp(app)} className="p-2 rounded-lg hover:bg-rose-500/10 text-slate-400 hover:text-rose-300" aria-label="حذف">
+                    <button type="button" onClick={() => deleteApp(app)} className="p-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-300" aria-label="حذف">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
@@ -311,11 +311,11 @@ export function ChannelsManager({ redirectUri, settingsId, initialWebhookUrl, oa
       <section className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
-              <Link2 className="w-4 h-4 text-amber-400" /> الصفحات المتصلة
-              <span className="text-xs font-semibold text-slate-400">({connectedCount} شغالة)</span>
+            <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <Link2 className="w-4 h-4 text-amber-500" /> الصفحات المتصلة
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">({connectedCount} شغالة)</span>
             </h2>
-            <p className="text-xs text-slate-400">مسنجر وتعليقات فيسبوك حالياً — انستجرام وواتساب هيتضافوا هنا بعدين.</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">مسنجر وتعليقات فيسبوك حالياً — انستجرام وواتساب هيتضافوا هنا بعدين.</p>
           </div>
           <div className="flex gap-2">
             <button type="button" className={btn.secondary} onClick={() => load()} aria-label="تحديث">
@@ -328,9 +328,9 @@ export function ChannelsManager({ redirectUri, settingsId, initialWebhookUrl, oa
         </div>
 
         {loading ? (
-          <div className="h-40 rounded-3xl bg-slate-900/60 border border-slate-800 animate-pulse" />
+          <div className="h-40 rounded-3xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 animate-pulse" />
         ) : channels.length === 0 ? (
-          <div className="rounded-3xl border border-dashed border-slate-700 p-8 text-center text-sm text-slate-400">
+          <div className="rounded-3xl border border-dashed border-slate-300 dark:border-slate-700 p-8 text-center text-sm text-slate-500 dark:text-slate-400">
             مفيش صفحات متصلة. اضغط “ربط صفحات عبر فيسبوك” من كارت التطبيق.
           </div>
         ) : (
@@ -340,24 +340,24 @@ export function ChannelsManager({ redirectUri, settingsId, initialWebhookUrl, oa
               const test = tests[ch.id];
               const isBusy = busy === `ch-${ch.id}`;
               return (
-                <article key={ch.id} className="rounded-3xl border border-slate-800 bg-slate-900/60 p-5 space-y-4">
+                <article key={ch.id} className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-5 space-y-4 shadow-xs">
                   <div className="flex items-start gap-3">
                     {ch.picture_url ? (
-                      <Image src={ch.picture_url} alt="" width={48} height={48} className="w-12 h-12 rounded-2xl object-cover" unoptimized />
+                      <Image src={ch.picture_url} alt="" width={48} height={48} className="w-12 h-12 rounded-2xl object-cover border border-slate-200 dark:border-slate-700" unoptimized />
                     ) : (
-                      <div className="w-12 h-12 rounded-2xl bg-blue-500/15 text-blue-300 flex items-center justify-center">
+                      <div className="w-12 h-12 rounded-2xl bg-blue-500/15 text-blue-600 dark:text-blue-300 flex items-center justify-center">
                         <Facebook className="w-6 h-6" />
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="text-sm font-bold text-white truncate">{ch.name || 'صفحة بدون اسم'}</h3>
+                        <h3 className="text-sm font-bold text-slate-900 dark:text-white truncate">{ch.name || 'صفحة بدون اسم'}</h3>
                         <span className={cn('text-[10px] font-bold rounded-full px-2 py-0.5 border', badge.cls)}>{badge.label}</span>
                       </div>
-                      <p dir="ltr" className="text-[11px] text-slate-500 font-mono text-right">
+                      <p dir="ltr" className="text-[11px] text-slate-500 dark:text-slate-400 font-mono text-right">
                         Page ID: {ch.external_id}
                       </p>
-                      <p className="text-[11px] text-slate-500">
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
                         {ch.status === 'disconnected'
                           ? 'لا يوجد رمز محفوظ'
                           : ch.token_expires_at
@@ -369,7 +369,7 @@ export function ChannelsManager({ redirectUri, settingsId, initialWebhookUrl, oa
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-400 mb-1">تطبيق ميتا</label>
+                    <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-400 mb-1">تطبيق ميتا</label>
                     <select
                       className={`${inputClass} py-2 text-xs`}
                       value={ch.meta_app_id ?? ''}
@@ -386,17 +386,17 @@ export function ChannelsManager({ redirectUri, settingsId, initialWebhookUrl, oa
                   </div>
 
                   {ch.last_error && ch.status === 'error' && (
-                    <p className="text-xs text-rose-300 bg-rose-950/40 border border-rose-500/20 rounded-xl p-3 leading-relaxed">{ch.last_error}</p>
+                    <p className="text-xs text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-500/20 rounded-xl p-3 leading-relaxed">{ch.last_error}</p>
                   )}
 
                   {test && (
                     <ul className="space-y-1.5 text-xs">
                       {test.checks.map((c) => (
                         <li key={c.label} className="flex items-start gap-2">
-                          {c.ok ? <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> : <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />}
-                          <span className="text-slate-300">
+                          {c.ok ? <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" /> : <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />}
+                          <span className="text-slate-700 dark:text-slate-300">
                             {c.label}
-                            {c.detail && <span className="block text-slate-500">{c.detail}</span>}
+                            {c.detail && <span className="block text-slate-500 dark:text-slate-400">{c.detail}</span>}
                           </span>
                         </li>
                       ))}

@@ -249,10 +249,10 @@ export function TeamManager({ initialStaff, currentUserId }: TeamManagerProps) {
       )}
 
       {/* Top Action Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-800">
         <div>
-          <h1 className="text-2xl font-black text-white tracking-tight">إدارة فريق العمل والصلاحيات</h1>
-          <p className="text-sm text-slate-400 mt-1">
+          <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">إدارة فريق العمل والصلاحيات</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
             إدارة حسابات الوكلاء، أدوار التشغيل (RBAC)، وتفعيل أو تعليق وصول الموظفين
           </p>
         </div>
@@ -270,61 +270,61 @@ export function TeamManager({ initialStaff, currentUserId }: TeamManagerProps) {
       {/* 1. Top 4 KPI Metrics */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Staff */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-sm">
+        <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400">إجمالي فريق العمل</span>
-            <div className="w-8 h-8 rounded-xl bg-slate-800 text-slate-300 flex items-center justify-center">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">إجمالي فريق العمل</span>
+            <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center">
               <Users className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-black text-white">{stats.totalStaff}</span>
-            <span className="text-xs text-emerald-400 font-semibold">({stats.activeStaff} نشط)</span>
+            <span className="text-3xl font-black text-slate-900 dark:text-white">{stats.totalStaff}</span>
+            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">({stats.activeStaff} نشط)</span>
           </div>
         </div>
 
         {/* Admins */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-sm">
+        <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-amber-400">المديرون 👑</span>
-            <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center">
+            <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">المديرون 👑</span>
+            <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-500 border border-amber-500/20 flex items-center justify-center">
               <Crown className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-3">
-            <span className="text-3xl font-black text-white">{stats.admins}</span>
+            <span className="text-3xl font-black text-slate-900 dark:text-white">{stats.admins}</span>
           </div>
         </div>
 
         {/* Order Agents */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-sm">
+        <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-blue-400">مسؤولو الطلبات 🍕</span>
-            <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center justify-center">
+            <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">مسؤولو الطلبات 🍕</span>
+            <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-500 border border-blue-500/20 flex items-center justify-center">
               <Pizza className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-3">
-            <span className="text-3xl font-black text-white">{stats.orderAgents}</span>
+            <span className="text-3xl font-black text-slate-900 dark:text-white">{stats.orderAgents}</span>
           </div>
         </div>
 
         {/* Support Agents */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-sm">
+        <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-purple-400">خدمة العملاء 🎧</span>
-            <div className="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20 flex items-center justify-center">
+            <span className="text-xs font-semibold text-purple-600 dark:text-purple-400">خدمة العملاء 🎧</span>
+            <div className="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-500 border border-purple-500/20 flex items-center justify-center">
               <Headphones className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-3">
-            <span className="text-3xl font-black text-white">{stats.supportAgents}</span>
+            <span className="text-3xl font-black text-slate-900 dark:text-white">{stats.supportAgents}</span>
           </div>
         </div>
       </div>
 
       {/* 2. Filters & Search Bar */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
         {/* Role Tabs */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
           <button
@@ -334,7 +334,7 @@ export function TeamManager({ initialStaff, currentUserId }: TeamManagerProps) {
               'px-3.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap',
               roleFilter === 'all'
                 ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                : 'bg-slate-950/60 text-slate-400 hover:text-white hover:bg-slate-800'
+                : 'bg-slate-100 dark:bg-slate-950/60 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800'
             )}
           >
             الكل ({stats.totalStaff})
@@ -345,8 +345,8 @@ export function TeamManager({ initialStaff, currentUserId }: TeamManagerProps) {
             className={cn(
               'px-3.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap',
               roleFilter === 'admin'
-                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                : 'bg-slate-950/60 text-slate-400 hover:text-white hover:bg-slate-800'
+                ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40'
+                : 'bg-slate-100 dark:bg-slate-950/60 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800'
             )}
           >
             المديرون 👑 ({stats.admins})
@@ -357,8 +357,8 @@ export function TeamManager({ initialStaff, currentUserId }: TeamManagerProps) {
             className={cn(
               'px-3.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap',
               roleFilter === 'order_agent'
-                ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40'
-                : 'bg-slate-950/60 text-slate-400 hover:text-white hover:bg-slate-800'
+                ? 'bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-500/40'
+                : 'bg-slate-100 dark:bg-slate-950/60 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800'
             )}
           >
             مسؤولو الطلبات 🍕 ({stats.orderAgents})
@@ -369,8 +369,8 @@ export function TeamManager({ initialStaff, currentUserId }: TeamManagerProps) {
             className={cn(
               'px-3.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap',
               roleFilter === 'support_agent'
-                ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
-                : 'bg-slate-950/60 text-slate-400 hover:text-white hover:bg-slate-800'
+                ? 'bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-500/40'
+                : 'bg-slate-100 dark:bg-slate-950/60 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800'
             )}
           >
             خدمة العملاء 🎧 ({stats.supportAgents})
@@ -384,25 +384,25 @@ export function TeamManager({ initialStaff, currentUserId }: TeamManagerProps) {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="بحث بالاسم أو الهاتف..."
-            className="w-full bg-slate-950/70 border border-slate-700/80 focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 rounded-xl px-4 py-2 pr-9 text-xs text-white outline-none transition placeholder:text-slate-500"
+            className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-700/80 focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 rounded-xl px-4 py-2 pr-9 text-xs text-slate-900 dark:text-white outline-none transition placeholder:text-slate-400 dark:placeholder:text-slate-500"
           />
           <Search className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
         </div>
       </div>
 
       {/* 3. Staff Members Table */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl shadow-md overflow-hidden">
+      <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs overflow-hidden">
         {filteredStaff.length === 0 ? (
           <div className="p-12 text-center">
-            <Users className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-            <p className="text-base font-bold text-slate-300">لا يوجد موظفون يطابقون خيارات البحث</p>
+            <Users className="w-12 h-12 text-slate-400 dark:text-slate-600 mx-auto mb-3" />
+            <p className="text-base font-bold text-slate-700 dark:text-slate-300">لا يوجد موظفون يطابقون خيارات البحث</p>
             <p className="text-xs text-slate-500 mt-1">جرّب تغيير فلتر الدور أو مسح نص البحث</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-right text-sm">
               <thead>
-                <tr className="border-b border-slate-800 bg-slate-950/40 text-xs font-bold text-slate-400">
+                <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/40 text-xs font-bold text-slate-500 dark:text-slate-400">
                   <th className="py-4 px-6">الموظف</th>
                   <th className="py-4 px-6">الدور الوظيفي والصلاحيات</th>
                   <th className="py-4 px-6">حالة الحساب</th>
@@ -410,7 +410,7 @@ export function TeamManager({ initialStaff, currentUserId }: TeamManagerProps) {
                   <th className="py-4 px-6 text-center">إجراءات</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/80">
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-800/80">
                 {filteredStaff.map((staff) => {
                   const roleConfig = ROLE_CONFIGS[staff.role] || ROLE_CONFIGS.order_agent;
                   const isCurrent = staff.id === currentUserId;
@@ -420,15 +420,15 @@ export function TeamManager({ initialStaff, currentUserId }: TeamManagerProps) {
                     <tr
                       key={staff.id}
                       className={cn(
-                        'hover:bg-slate-800/40 transition-colors',
-                        !staff.is_active && 'opacity-60 bg-slate-950/30'
+                        'hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors',
+                        !staff.is_active && 'opacity-60 bg-slate-50/40 dark:bg-slate-950/30'
                       )}
                     >
                       {/* Name & Avatar */}
                       <td className="py-4 px-6">
                         <div className="flex items-center gap-3.5">
                           <div className="relative">
-                            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-950 border border-slate-700 flex items-center justify-center text-sm font-bold text-amber-400 shadow-inner">
+                            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-950 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-sm font-bold text-amber-600 dark:text-amber-400 shadow-inner">
                               {staff.avatar_url ? (
                                 <img
                                   src={staff.avatar_url}
@@ -441,8 +441,8 @@ export function TeamManager({ initialStaff, currentUserId }: TeamManagerProps) {
                             </div>
                             <span
                               className={cn(
-                                'absolute -bottom-0.5 -left-0.5 w-3 h-3 rounded-full border-2 border-slate-900',
-                                staff.is_active ? 'bg-emerald-500' : 'bg-slate-500'
+                                'absolute -bottom-0.5 -left-0.5 w-3 h-3 rounded-full border-2 border-white dark:border-slate-900',
+                                staff.is_active ? 'bg-emerald-500' : 'bg-slate-400 dark:bg-slate-500'
                               )}
                               title={staff.is_active ? 'نشط' : 'معطل'}
                             />
@@ -450,23 +450,23 @@ export function TeamManager({ initialStaff, currentUserId }: TeamManagerProps) {
 
                           <div>
                             <div className="flex items-center gap-2">
-                              <span className="font-bold text-white text-sm">{staff.full_name}</span>
+                              <span className="font-bold text-slate-900 dark:text-white text-sm">{staff.full_name}</span>
                               {isCurrent && (
-                                <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-full font-bold">
+                                <span className="text-[10px] bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-full font-bold">
                                   أنت (الحساب الحالي)
                                 </span>
                               )}
                             </div>
-                            <div className="flex items-center gap-3 text-xs text-slate-400 mt-1">
+                            <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mt-1">
                               {staff.phone && (
                                 <span className="flex items-center gap-1 font-mono text-[11px]" dir="ltr">
-                                  <Phone className="w-3 h-3 text-slate-500" />
+                                  <Phone className="w-3 h-3 text-slate-400 dark:text-slate-500" />
                                   {staff.phone}
                                 </span>
                               )}
                               {staff.email && (
                                 <span className="flex items-center gap-1 font-mono text-[11px]" dir="ltr">
-                                  <Mail className="w-3 h-3 text-slate-500" />
+                                  <Mail className="w-3 h-3 text-slate-400 dark:text-slate-500" />
                                   {staff.email}
                                 </span>
                               )}
@@ -489,13 +489,13 @@ export function TeamManager({ initialStaff, currentUserId }: TeamManagerProps) {
                                 isCurrent && staff.role === 'admin' && 'cursor-not-allowed opacity-90'
                               )}
                             >
-                              <option value="admin" className="bg-slate-900 text-amber-300">
+                              <option value="admin" className="bg-white dark:bg-slate-900 text-amber-700 dark:text-amber-300">
                                 مدير النظام 👑
                               </option>
-                              <option value="order_agent" className="bg-slate-900 text-blue-300">
+                              <option value="order_agent" className="bg-white dark:bg-slate-900 text-blue-700 dark:text-blue-300">
                                 مسؤول الطلبات 🍕
                               </option>
-                              <option value="support_agent" className="bg-slate-900 text-purple-300">
+                              <option value="support_agent" className="bg-white dark:bg-slate-900 text-purple-700 dark:text-purple-300">
                                 خدمة العملاء 🎧
                               </option>
                             </select>
@@ -521,12 +521,12 @@ export function TeamManager({ initialStaff, currentUserId }: TeamManagerProps) {
                               onChange={() => handleToggleActive(staff)}
                               className="sr-only peer"
                             />
-                            <div className="w-10 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
+                            <div className="w-10 h-5 bg-slate-200 dark:bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
                           </label>
                           <span
                             className={cn(
                               'text-xs font-semibold',
-                              staff.is_active ? 'text-emerald-400' : 'text-slate-500'
+                              staff.is_active ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'
                             )}
                           >
                             {staff.is_active ? 'نشط' : 'معلق'}
@@ -535,9 +535,9 @@ export function TeamManager({ initialStaff, currentUserId }: TeamManagerProps) {
                       </td>
 
                       {/* Join Date */}
-                      <td className="py-4 px-6 text-xs text-slate-400">
+                      <td className="py-4 px-6 text-xs text-slate-500 dark:text-slate-400">
                         <div className="flex items-center gap-1.5">
-                          <Calendar className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                          <Calendar className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
                           <span>
                             {new Date(staff.created_at).toLocaleDateString('ar-EG', {
                               year: 'numeric',
@@ -555,13 +555,13 @@ export function TeamManager({ initialStaff, currentUserId }: TeamManagerProps) {
                             type="button"
                             onClick={() => setStaffToDelete(staff)}
                             title="حذف الموظف"
-                            className="p-2 rounded-xl text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition"
+                            className="p-2 rounded-xl text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
                         )}
                         {isCurrent && (
-                          <span className="text-slate-600 text-xs">-</span>
+                          <span className="text-slate-400 dark:text-slate-600 text-xs">-</span>
                         )}
                       </td>
                     </tr>
@@ -586,26 +586,26 @@ export function TeamManager({ initialStaff, currentUserId }: TeamManagerProps) {
           role="dialog"
           aria-modal="true"
           onClick={() => setStaffToDelete(null)}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-150"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 dark:bg-slate-950/80 backdrop-blur-xs animate-in fade-in duration-150"
         >
           <div
-            className="w-full max-w-md bg-slate-900 border border-slate-700/80 rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 duration-150"
+            className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center mb-4">
+            <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-500 flex items-center justify-center mb-4">
               <Trash2 className="w-6 h-6" />
             </div>
-            <h3 className="text-lg font-bold text-white mb-2">تأكيد حذف حساب الموظف</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">تأكيد حذف حساب الموظف</h3>
+            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
               هل أنت متأكد من رغبتك في حذف حساب الموظف{' '}
-              <strong className="text-white">({staffToDelete.full_name})</strong>؟ لن يتمكن من تسجيل الدخول بعد الآن، وسيتم تحرير أي مهام مسندة إليه.
+              <strong className="text-slate-900 dark:text-white">({staffToDelete.full_name})</strong>؟ لن يتمكن من تسجيل الدخول بعد الآن، وسيتم تحرير أي مهام مسندة إليه.
             </p>
             <div className="flex items-center justify-end gap-3 mt-6">
               <button
                 type="button"
                 disabled={isDeleting}
                 onClick={() => setStaffToDelete(null)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 transition"
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition"
               >
                 إلغاء
               </button>
