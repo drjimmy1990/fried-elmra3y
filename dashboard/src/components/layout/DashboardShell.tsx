@@ -53,9 +53,9 @@ export function DashboardShell({
           onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
         />
 
-        {/* Page Content — pages manage their own inner spacing */}
-        <main className="flex-1 p-3 sm:p-4 lg:p-6">
-          <div className="mx-auto max-w-7xl">{children}</div>
+        {/* Page Content — individual pages control their max-width & padding */}
+        <main className="flex-1 min-w-0 flex flex-col">
+          {children}
         </main>
       </div>
     </div>

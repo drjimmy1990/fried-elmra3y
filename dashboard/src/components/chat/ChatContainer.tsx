@@ -161,6 +161,30 @@ export function ChatContainer({
     [supabase]
   );
 
+  // Dismiss needs_human alert for a contact
+  const handleDismissNeedsHuman = useCallback(
+    async (contactId: string) => {
+      const targetId = contactId || activeContactRef.current?.id;
+      if (!targetId) return;
+
+      // Optimistic update
+      setActiveContact((prev) => (prev?.id === targetId ? { ...prev, needs_human: false, needs_human_at: null } : prev));
+      setContacts((prev) =>
+        prev.map((c) => (c.id === targetId ? { ...c, needs_human: false, needs_human_at: null } : c))
+      );
+
+      try {
+        await supabase
+          .from('contacts')
+          .update({ needs_human: false, needs_human_at: null })
+          .eq('id', targetId);
+      } catch (err) {
+        console.error('Failed to dismiss needs_human alert in Supabase:', err);
+      }
+    },
+    [supabase]
+  );
+
   // Handle agent message sending with reconciliation to prevent duplicates
   const handleSendMessage = useCallback(
     async (content: string): Promise<boolean> => {
@@ -377,7 +401,7 @@ export function ChatContainer({
   }, [supabase]);
 
   return (
-    <div className="flex h-[calc(100vh-5rem)] rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl dark:shadow-2xl overflow-hidden relative transition-colors">
+    <div className="flex flex-1 min-h-0 w-full rounded-2xl sm:rounded-3xl bg-white dark:bg-[#0E1523] border border-slate-200/90 dark:border-slate-800/90 shadow-xl dark:shadow-2xl overflow-hidden relative transition-colors">
       {/* Sidebar: Contacts List */}
       <ChatSidebar
         contacts={contacts}
@@ -400,6 +424,7 @@ export function ChatContainer({
         isSending={isSending}
         onSendMessage={handleSendMessage}
         onToggleAi={handleToggleAi}
+        onDismissNeedsHuman={handleDismissNeedsHuman}
         onBackToSidebar={() => setIsMobileSidebarOpen(true)}
         channels={channels}
       />

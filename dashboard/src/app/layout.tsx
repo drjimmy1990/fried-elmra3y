@@ -41,7 +41,7 @@ export default function RootLayout({
               (function() {
                 try {
                   var saved = localStorage.getItem('khedewy-theme');
-                  var isDark = saved ? (saved === 'dark' || (saved === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) : true;
+                  var isDark = saved ? (saved === 'dark' || (saved === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) : false;
                   var root = document.documentElement;
                   if (isDark) {
                     root.classList.add('dark');

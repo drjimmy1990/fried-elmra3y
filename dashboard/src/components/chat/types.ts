@@ -52,6 +52,7 @@ export interface ChatThreadProps {
   isTogglingAi?: boolean;
   onSendMessage: (content: string) => Promise<boolean>;
   isSending?: boolean;
+  onDismissNeedsHuman?: (contactId: string) => Promise<void> | void;
   onBackToSidebar?: () => void;
   channels: ChannelSimple[];
 }

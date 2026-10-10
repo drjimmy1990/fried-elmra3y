@@ -130,22 +130,22 @@ export function ChatSidebar({
 
   return (
     <aside
-      className={`flex flex-col h-full bg-slate-50/50 dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800/80 transition-all duration-200 select-none ${
+      className={`flex flex-col h-full bg-white dark:bg-[#0B0F17] border-l border-slate-200/80 dark:border-slate-800/80 transition-all duration-200 select-none ${
         isMobileOpen
           ? 'fixed inset-0 z-40 w-full sm:w-96'
           : 'w-full md:w-80 lg:w-96 shrink-0'
       }`}
     >
       {/* Sidebar Header & Search */}
-      <div className="p-4 border-b border-slate-200 dark:border-slate-800/80 bg-white/80 dark:bg-slate-950/80 space-y-3">
+      <div className="p-4 border-b border-slate-200/80 dark:border-slate-800/80 bg-slate-50/80 dark:bg-slate-950/70 backdrop-blur-xs space-y-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
               <MessageCircle className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="font-bold text-slate-900 dark:text-white text-base leading-tight">المحادثات المباشرة</h2>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              <h2 className="font-black text-slate-900 dark:text-white text-base leading-tight">المحادثات المباشرة</h2>
+              <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
                 {contacts.length} محادثة مسجلة
               </p>
             </div>
@@ -155,7 +155,7 @@ export function ChatSidebar({
           {onCloseMobile && (
             <button
               onClick={onCloseMobile}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900 md:hidden"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900 md:hidden cursor-pointer"
               aria-label="إغلاق القائمة"
             >
               <X className="w-5 h-5" />
@@ -171,12 +171,12 @@ export function ChatSidebar({
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="بحث بالاسم، الهاتف، أو محتوى الرسالة..."
-            className="w-full rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 pr-9 pl-8 py-2 text-xs text-slate-900 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition"
+            className="w-full rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 pr-9 pl-8 py-2 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition shadow-xs"
           />
           {searchQuery && (
             <button
               onClick={() => onSearchChange('')}
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-0.5"
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 cursor-pointer"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -187,10 +187,10 @@ export function ChatSidebar({
         <div className="flex items-center gap-1.5 pt-1">
           <button
             onClick={() => onFilterChange('all')}
-            className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold border transition text-center ${
+            className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold border transition text-center cursor-pointer ${
               filter === 'all'
-                ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30'
-                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-slate-200'
+                ? 'bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/40 shadow-xs'
+                : 'bg-white dark:bg-slate-900/80 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-100/80 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200'
             }`}
           >
             الكل ({counts.all})
@@ -198,22 +198,24 @@ export function ChatSidebar({
 
           <button
             onClick={() => onFilterChange('needs_human')}
-            className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold border transition flex items-center justify-center gap-1 ${
+            className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold border transition flex items-center justify-center gap-1.5 cursor-pointer ${
               filter === 'needs_human'
-                ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
-                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-slate-200'
+                ? 'bg-rose-500/15 text-rose-800 dark:text-rose-300 border-rose-500/40 shadow-xs'
+                : counts.needsHumanCount > 0
+                ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800/60 animate-pulse'
+                : 'bg-white dark:bg-slate-900/80 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-100/80 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200'
             }`}
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            <span className={`w-1.5 h-1.5 rounded-full ${counts.needsHumanCount > 0 ? 'bg-rose-500' : 'bg-slate-400'}`} />
             <span>يحتاج موظف ({counts.needsHumanCount})</span>
           </button>
 
           <button
             onClick={() => onFilterChange('ai_paused')}
-            className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold border transition flex items-center justify-center gap-1 ${
+            className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold border transition flex items-center justify-center gap-1.5 cursor-pointer ${
               filter === 'ai_paused'
-                ? 'bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/40'
-                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-slate-200'
+                ? 'bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/40 shadow-xs'
+                : 'bg-white dark:bg-slate-900/80 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-100/80 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200'
             }`}
           >
             <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
@@ -223,11 +225,11 @@ export function ChatSidebar({
       </div>
 
       {/* Conversations List */}
-      <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/50 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-800">
+      <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-800">
         {filteredContacts.length === 0 ? (
           <div className="p-8 text-center text-slate-400 dark:text-slate-500 space-y-2">
             <MessageCircle className="w-8 h-8 mx-auto opacity-30 text-slate-400" />
-            <p className="text-xs">لا توجد محادثات مطابقة للبحث</p>
+            <p className="text-xs font-medium">لا توجد محادثات مطابقة للبحث</p>
           </div>
         ) : (
           filteredContacts.map((contact) => {
@@ -248,24 +250,24 @@ export function ChatSidebar({
                   onSelectContact(contact);
                   if (onCloseMobile) onCloseMobile();
                 }}
-                className={`w-full text-right p-3.5 flex items-start gap-3 transition-colors relative group ${
+                className={`w-full text-right p-3.5 flex items-start gap-3 transition-all relative group cursor-pointer ${
                   isSelected
-                    ? 'bg-amber-500/10 dark:bg-slate-800/90 border-r-4 border-amber-500 text-slate-900 dark:text-white'
-                    : 'hover:bg-slate-100/80 dark:hover:bg-slate-900/80 text-slate-700 dark:text-slate-300'
+                    ? 'bg-amber-500/10 dark:bg-slate-800/80 border-r-3 border-amber-500 text-slate-900 dark:text-white shadow-xs'
+                    : 'hover:bg-slate-50 dark:hover:bg-slate-900/60 text-slate-700 dark:text-slate-300'
                 }`}
               >
                 {/* Avatar with Platform Badge */}
                 <div className="relative shrink-0 mt-0.5">
                   <div
-                    className={`w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-sm shadow-inner ${
+                    className={`w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-sm shadow-xs ${
                       contact.ai_enabled
-                        ? 'bg-emerald-950/60 border border-emerald-500/30 text-emerald-300'
-                        : 'bg-amber-950/60 border border-amber-500/30 text-amber-300'
+                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/60 dark:border-emerald-500/30 dark:text-emerald-300'
+                        : 'bg-amber-50 text-amber-800 border border-amber-200 dark:bg-amber-950/60 dark:border-amber-500/30 dark:text-amber-300'
                     }`}
                   >
                     {getInitials(contact.name)}
                   </div>
-                  <div className="absolute -bottom-1 -left-1 ring-2 ring-slate-950 rounded-full">
+                  <div className="absolute -bottom-1 -left-1 ring-2 ring-white dark:ring-[#0B0F17] rounded-full">
                     {renderPlatformBadge(contact.platform)}
                   </div>
                 </div>
@@ -276,18 +278,19 @@ export function ChatSidebar({
                     <span className="font-bold text-sm text-slate-900 dark:text-slate-100 truncate flex items-center gap-1.5">
                       {contact.name || contact.phone || 'عميل بدون اسم'}
                       {contact.needs_human && (
-                        <span className="inline-flex items-center justify-center bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] px-1.5 py-0.5 rounded font-bold border border-amber-500/30" title="يحتاج موظف">
-                          🙋
+                        <span className="inline-flex items-center gap-1 bg-rose-500/15 text-rose-700 dark:text-rose-300 text-[10px] px-1.5 py-0.2 rounded-md font-bold border border-rose-500/30 animate-pulse" title="العميل طلب التحدث مع موظف">
+                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                          طلب موظف
                         </span>
                       )}
                     </span>
-                    <span className="text-[11px] text-slate-500 shrink-0 font-medium">
+                    <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500 shrink-0 font-medium">
                       {timeElapsed}
                     </span>
                   </div>
                   
                   {channels.length > 1 && contact.channel_id && (
-                    <div className="text-[10px] text-slate-500 mb-0.5 truncate">
+                    <div className="text-[10px] text-slate-500 dark:text-slate-400 mb-0.5 truncate">
                       الصفحة: {channels.find(c => c.id === contact.channel_id)?.name || 'غير معروف'}
                     </div>
                   )}
@@ -295,14 +298,14 @@ export function ChatSidebar({
                   {/* Message Snippet */}
                   <p
                     className={`text-xs truncate ${
-                      unreadCount > 0 ? 'text-slate-900 dark:text-white font-semibold' : 'text-slate-600 dark:text-slate-400'
+                      unreadCount > 0 ? 'text-slate-900 dark:text-white font-bold' : 'text-slate-600 dark:text-slate-400'
                     }`}
                   >
                     {contact.latest_message?.sender_type === 'bot' && (
-                      <span className="text-purple-400 font-normal">🤖 البوت: </span>
+                      <span className="text-purple-600 dark:text-purple-400 font-medium">🤖 البوت: </span>
                     )}
                     {contact.latest_message?.sender_type === 'agent' && (
-                      <span className="text-amber-400 font-normal">👤 موظف الدعم: </span>
+                      <span className="text-amber-600 dark:text-amber-400 font-medium">👤 موظف الدعم: </span>
                     )}
                     {lastSnippet}
                   </p>
@@ -312,13 +315,13 @@ export function ChatSidebar({
                     {/* AI Status Badge */}
                     <div className="flex items-center gap-1 text-[11px]">
                       {contact.ai_enabled ? (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 font-medium text-[10px]">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                           البوت مفعل
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-300 border border-amber-500/30 font-semibold">
-                          <PauseCircle className="w-3 h-3 text-amber-400" />
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30 font-semibold text-[10px]">
+                          <PauseCircle className="w-3 h-3 text-amber-600 dark:text-amber-400" />
                           البوت متوقف (بشري)
                         </span>
                       )}
