@@ -4,8 +4,11 @@ import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { Radio } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { toPublicMetaApp } from '@/lib/meta/channels';
 import { oauthRedirectUri } from '@/lib/site-url';
 import { ChannelsManager } from '@/components/channels/ChannelsManager';
+import type { MetaAppView, ChannelView } from '@/components/channels/types';
 
 export const metadata: Metadata = {
   title: 'القنوات وربط الصفحات',
@@ -27,11 +30,47 @@ export default async function ChannelsPage({
   const { data: profile } = await supabase.from('profiles').select('role, is_active').eq('id', user.id).single();
   if (!profile || profile.role !== 'admin' || !profile.is_active) redirect('/dashboard');
 
+  let initialApps: MetaAppView[] = [];
+  let initialChannels: ChannelView[] = [];
+
   const [{ data: settings }, sp, h] = await Promise.all([
     supabase.from('bot_settings').select('id, n8n_webhook_url').limit(1).maybeSingle(),
     searchParams,
     headers(),
   ]);
+
+  try {
+    const adminDb = createAdminClient();
+    const [{ data: apps }, { data: activeChannels }, { data: allChannels }, { data: secrets }] = await Promise.all([
+      adminDb.from('meta_apps').select('*').order('created_at', { ascending: true }),
+      adminDb.from('channels').select('meta_app_id').neq('status', 'disconnected'),
+      adminDb.from('channels').select('*').order('created_at', { ascending: true }),
+      adminDb.from('channel_secrets').select('channel_id'),
+    ]);
+
+    const counts = new Map<string, number>();
+    for (const c of activeChannels ?? []) {
+      if (c.meta_app_id) counts.set(c.meta_app_id, (counts.get(c.meta_app_id) ?? 0) + 1);
+    }
+    initialApps = (apps ?? []).map((a) => toPublicMetaApp(a, counts.get(a.id) ?? 0));
+
+    const appById = new Map((apps ?? []).map((a) => [a.id, a]));
+    const withToken = new Set((secrets ?? []).map((s) => s.channel_id));
+    initialChannels = (allChannels ?? []).map((c) => ({
+      ...c,
+      has_token: withToken.has(c.id),
+      meta_app:
+        c.meta_app_id && appById.has(c.meta_app_id)
+          ? {
+              id: appById.get(c.meta_app_id)!.id,
+              name: appById.get(c.meta_app_id)!.name,
+              app_id: appById.get(c.meta_app_id)!.app_id,
+            }
+          : null,
+    }));
+  } catch (err) {
+    console.error('SSR prefetch error in ChannelsPage:', err);
+  }
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-6">
@@ -51,6 +90,8 @@ export default async function ChannelsPage({
         initialWebhookUrl={settings?.n8n_webhook_url ?? ''}
         oauthStatus={sp.oauth ?? null}
         oauthError={sp.oauth_error ?? null}
+        initialApps={initialApps}
+        initialChannels={initialChannels}
       />
     </div>
   );

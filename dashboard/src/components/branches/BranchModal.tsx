@@ -121,18 +121,18 @@ export function BranchModal({ branch, isOpen, onClose, onSaved }: BranchModalPro
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="relative flex flex-col w-full max-w-lg rounded-3xl bg-slate-900 border border-slate-800 shadow-2xl text-slate-100 overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="relative flex flex-col w-full max-w-lg rounded-3xl bg-white dark:bg-[#101726] border border-slate-200/90 dark:border-slate-800 shadow-2xl text-slate-800 dark:text-slate-100 overflow-hidden animate-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-slate-800 bg-slate-950/60">
+        <div className="flex items-center justify-between p-5 border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-950/60">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
               <Building2 className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-white">
+              <h2 className="text-base font-bold text-slate-900 dark:text-white">
                 {isEditing ? `تعديل بيانات: ${branch?.name}` : 'إضافة فرع مطعم جديد'}
               </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                 تحديد اسم الفرع وعنوانه وأرقام التواصل للبوت والعملاء
               </p>
             </div>
@@ -141,7 +141,7 @@ export function BranchModal({ branch, isOpen, onClose, onSaved }: BranchModalPro
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
             aria-label="إغلاق"
           >
             <X className="w-5 h-5" />
@@ -151,79 +151,79 @@ export function BranchModal({ branch, isOpen, onClose, onSaved }: BranchModalPro
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           {errorMsg && (
-            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs">
+            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs">
               {errorMsg}
             </div>
           )}
 
           {/* Branch Name */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              اسم الفرع <span className="text-rose-400">*</span>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              اسم الفرع <span className="text-rose-500">*</span>
             </label>
             <div className="relative">
-              <Building2 className="w-4 h-4 text-slate-500 absolute right-3 top-1/2 -translate-y-1/2" />
+              <Building2 className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute right-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="مثال: فرع الدقي، فرع المهندسين..."
                 required
-                className="w-full rounded-xl bg-slate-950 border border-slate-800 pr-9 pl-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-hidden focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                className="w-full rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 pr-9 pl-3.5 py-2.5 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition shadow-2xs"
               />
             </div>
           </div>
 
           {/* Phone */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
               رقم هاتف الفرع (للتواصل أو الطيارين)
             </label>
             <div className="relative">
-              <Phone className="w-4 h-4 text-slate-500 absolute right-3 top-1/2 -translate-y-1/2" />
+              <Phone className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute right-3 top-1/2 -translate-y-1/2" />
               <input
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="010XXXXXXXX"
                 dir="ltr"
-                className="w-full rounded-xl bg-slate-950 border border-slate-800 pr-9 pl-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-hidden focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-right"
+                className="w-full rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 pr-9 pl-3.5 py-2.5 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-right transition shadow-2xs"
               />
             </div>
           </div>
 
           {/* Address */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              عنوان الفرع بالتفصيل <span className="text-rose-400">*</span>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              عنوان الفرع بالتفصيل <span className="text-rose-500">*</span>
             </label>
             <div className="relative">
-              <MapPin className="w-4 h-4 text-slate-500 absolute right-3 top-3" />
+              <MapPin className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute right-3 top-3" />
               <textarea
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 placeholder="مثال: شارع مصدق تقاطع محيي الدين، بجوار سينما التحرير..."
                 rows={2}
                 required
-                className="w-full rounded-xl bg-slate-950 border border-slate-800 pr-9 pl-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-hidden focus:border-amber-500 focus:ring-1 focus:ring-amber-500 leading-relaxed resize-none"
+                className="w-full rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 pr-9 pl-3.5 py-2.5 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:border-amber-500 focus:ring-1 focus:ring-amber-500 leading-relaxed resize-none transition shadow-2xs"
               />
             </div>
           </div>
 
           {/* Google Maps URL */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
               رابط موقع الفرع على خرائط جوجل (Google Maps)
             </label>
             <div className="relative">
-              <Globe className="w-4 h-4 text-slate-500 absolute right-3 top-1/2 -translate-y-1/2" />
+              <Globe className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute right-3 top-1/2 -translate-y-1/2" />
               <input
                 type="url"
                 value={googleMapsUrl}
                 onChange={(e) => setGoogleMapsUrl(e.target.value)}
                 placeholder="https://maps.app.goo.gl/..."
                 dir="ltr"
-                className="w-full rounded-xl bg-slate-950 border border-slate-800 pr-9 pl-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-hidden focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                className="w-full rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 pr-9 pl-3.5 py-2.5 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition shadow-2xs"
               />
             </div>
             <p className="text-[11px] text-slate-500 mt-1">
@@ -232,10 +232,10 @@ export function BranchModal({ branch, isOpen, onClose, onSaved }: BranchModalPro
           </div>
 
           {/* Active Switch */}
-          <div className="flex items-center justify-between p-3 rounded-xl bg-slate-950/60 border border-slate-800">
+          <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/90 dark:border-slate-800">
             <div>
-              <span className="text-xs font-bold text-slate-200 block">حالة الفرع للتشغيل</span>
-              <span className="text-[11px] text-slate-400">
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">حالة الفرع للتشغيل</span>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400">
                 عند التعطيل، لن يقترح البوت هذا الفرع ولن يستقبل طلبات جديدة
               </span>
             </div>
@@ -243,7 +243,7 @@ export function BranchModal({ branch, isOpen, onClose, onSaved }: BranchModalPro
               type="button"
               onClick={() => setIsActive(!isActive)}
               className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
-                isActive ? 'bg-emerald-600' : 'bg-slate-700'
+                isActive ? 'bg-emerald-600' : 'bg-slate-300 dark:bg-slate-700'
               }`}
             >
               <span
@@ -255,18 +255,18 @@ export function BranchModal({ branch, isOpen, onClose, onSaved }: BranchModalPro
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-800">
+          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-200/80 dark:border-slate-800">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition"
+              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
             >
               إلغاء
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold shadow-lg shadow-amber-950/50 transition disabled:opacity-50"
+              className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold shadow-md shadow-amber-600/20 transition disabled:opacity-50"
             >
               {isSubmitting ? (
                 <>

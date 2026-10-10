@@ -318,47 +318,47 @@ export function BranchesManager({ initialBranches }: BranchesManagerProps) {
                 </div>
               </div>
 
-              {/* Card Footer: Delivery Zones Button & Actions */}
-              <div className="pt-4 space-y-2.5">
+              {/* Card Footer: Unified Action Row */}
+              <div className="pt-3.5 flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => {
                     setSelectedBranchForZones(branch);
                     setIsZonesModalOpen(true);
                   }}
-                  className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-amber-500/40 text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white transition group"
+                  className="flex-1 flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200/90 dark:border-amber-500/25 text-amber-900 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-500/20 transition group shadow-2xs active:scale-98"
                 >
-                  <div className="flex items-center gap-2">
-                    <Bike className="w-4 h-4 text-amber-500 group-hover:scale-110 transition" />
-                    <span className="text-xs font-semibold">مناطق وأسعار التوصيل</span>
-                  </div>
-                  <span className="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 text-[11px] font-bold">
+                  <span className="flex items-center gap-2 text-xs font-bold">
+                    <Bike className="w-4 h-4 text-amber-600 dark:text-amber-400 group-hover:scale-110 transition shrink-0" />
+                    <span>مناطق وأسعار التوصيل</span>
+                  </span>
+                  <span className="px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/30 text-[11px] font-black">
                     {branch.zones_count || 0} منطقة
                   </span>
                 </button>
 
-                <div className="flex items-center justify-end gap-1.5 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedBranchForEdit(branch);
-                      setIsBranchModalOpen(true);
-                    }}
-                    className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition"
-                    title="تعديل بيانات الفرع"
-                  >
-                    <Edit2 className="w-3.5 h-3.5" />
-                  </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedBranchForEdit(branch);
+                    setIsBranchModalOpen(true);
+                  }}
+                  className="p-2.5 rounded-xl border border-slate-200/90 dark:border-slate-700/80 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition shadow-2xs"
+                  title="تعديل بيانات الفرع"
+                  aria-label="تعديل بيانات الفرع"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
 
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteBranch(branch.id, branch.name)}
-                    className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-500/20 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition"
-                    title="حذف الفرع"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteBranch(branch.id, branch.name)}
+                  className="p-2.5 rounded-xl border border-slate-200/90 dark:border-slate-700/80 bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 transition shadow-2xs"
+                  title="حذف الفرع"
+                  aria-label="حذف الفرع"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
               </div>
             </div>
           ))}

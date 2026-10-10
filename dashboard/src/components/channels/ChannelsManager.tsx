@@ -38,6 +38,8 @@ interface Props {
   initialWebhookUrl: string;
   oauthStatus: string | null;
   oauthError: string | null;
+  initialApps?: MetaAppView[];
+  initialChannels?: ChannelView[];
 }
 
 type TestResult = { ok: boolean; checks: Array<{ label: string; ok: boolean; detail?: string }> };
@@ -48,13 +50,21 @@ const STATUS_BADGE: Record<ChannelView['status'], { label: string; cls: string }
   disconnected: { label: 'مفصولة', cls: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700' },
 };
 
-export function ChannelsManager({ redirectUri, settingsId, initialWebhookUrl, oauthStatus, oauthError }: Props) {
+export function ChannelsManager({
+  redirectUri,
+  settingsId,
+  initialWebhookUrl,
+  oauthStatus,
+  oauthError,
+  initialApps = [],
+  initialChannels = [],
+}: Props) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
 
-  const [apps, setApps] = useState<MetaAppView[]>([]);
-  const [channels, setChannels] = useState<ChannelView[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [apps, setApps] = useState<MetaAppView[]>(initialApps);
+  const [channels, setChannels] = useState<ChannelView[]>(initialChannels);
+  const [loading, setLoading] = useState(initialApps.length === 0 && initialChannels.length === 0);
   const [notice, setNotice] = useState<Notice>(oauthError ? { type: 'error', text: oauthError } : null);
   const [busy, setBusy] = useState<string | null>(null);
   const [tests, setTests] = useState<Record<string, TestResult>>({});
@@ -67,7 +77,8 @@ export function ChannelsManager({ redirectUri, settingsId, initialWebhookUrl, oa
   const [savedWebhookUrl, setSavedWebhookUrl] = useState(initialWebhookUrl);
   const [savingWebhook, setSavingWebhook] = useState(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     try {
       const [a, c] = await Promise.all([
         api<{ apps: MetaAppView[] }>('/api/meta-apps'),
@@ -83,8 +94,10 @@ export function ChannelsManager({ redirectUri, settingsId, initialWebhookUrl, oa
   }, []);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    if (initialApps.length === 0 && initialChannels.length === 0) {
+      load(true);
+    }
+  }, [load, initialApps.length, initialChannels.length]);
 
   // Drop ?oauth / ?oauth_error from the URL once handled so a refresh doesn't repeat them
   useEffect(() => {

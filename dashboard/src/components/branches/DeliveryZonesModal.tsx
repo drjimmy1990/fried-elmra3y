@@ -211,18 +211,18 @@ export function DeliveryZonesModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="relative flex flex-col w-full max-w-2xl max-h-[90vh] rounded-3xl bg-slate-900 border border-slate-800 shadow-2xl text-slate-100 overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="relative flex flex-col w-full max-w-2xl max-h-[90vh] rounded-3xl bg-white dark:bg-[#101726] border border-slate-200/90 dark:border-slate-800 shadow-2xl text-slate-800 dark:text-slate-100 overflow-hidden animate-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-slate-800 bg-slate-950/60">
+        <div className="flex items-center justify-between p-5 border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-950/60">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
               <Bike className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-white">
+              <h2 className="text-base font-bold text-slate-900 dark:text-white">
                 مناطق وأسعار توصيل: {branch.name}
               </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                 تحديد الأحياء والمناطق التابعة للفرع وتكلفة ومدة التوصيل لكل منطقة للبوت
               </p>
             </div>
@@ -231,7 +231,7 @@ export function DeliveryZonesModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
             aria-label="إغلاق"
           >
             <X className="w-5 h-5" />
@@ -243,18 +243,18 @@ export function DeliveryZonesModal({
           {/* Add / Edit Form */}
           <form
             onSubmit={handleSubmit}
-            className="rounded-2xl bg-slate-950/60 border border-slate-800 p-4 space-y-3"
+            className="rounded-2xl bg-slate-50/90 dark:bg-slate-950/60 border border-slate-200/90 dark:border-slate-800 p-4 space-y-3 shadow-2xs"
           >
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                <Plus className="w-3.5 h-3.5 text-amber-400" />
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                <Plus className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                 <span>{editingZoneId ? 'تعديل المنطقة' : 'إضافة منطقة توصيل جديدة للفرع'}</span>
               </span>
               {editingZoneId && (
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="text-xs text-slate-400 hover:text-white"
+                  className="text-xs text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition"
                 >
                   إلغاء التعديل
                 </button>
@@ -262,28 +262,28 @@ export function DeliveryZonesModal({
             </div>
 
             {errorMsg && (
-              <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs">
+              <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs">
                 {errorMsg}
               </div>
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
-                <label className="block text-[11px] font-semibold text-slate-400 mb-1">
-                  اسم المنطقة / الحي <span className="text-rose-400">*</span>
+                <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                  اسم المنطقة / الحي <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={zoneName}
                   onChange={(e) => setZoneName(e.target.value)}
                   placeholder="مثال: المهندسين، الدقي..."
-                  className="w-full rounded-xl bg-slate-900 border border-slate-800 px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-hidden focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                  className="w-full rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition shadow-2xs"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-slate-400 mb-1">
-                  سعر التوصيل (ج.م) <span className="text-rose-400">*</span>
+                <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                  سعر التوصيل (ج.م) <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="number"
@@ -292,12 +292,12 @@ export function DeliveryZonesModal({
                   value={deliveryFee}
                   onChange={(e) => setDeliveryFee(e.target.value)}
                   placeholder="20"
-                  className="w-full rounded-xl bg-slate-900 border border-slate-800 px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-hidden focus:border-amber-500 focus:ring-1 focus:ring-amber-500 font-mono"
+                  className="w-full rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:border-amber-500 focus:ring-1 focus:ring-amber-500 font-mono transition shadow-2xs"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-slate-400 mb-1">
+                <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
                   الوقت التقديري للتوصيل
                 </label>
                 <input
@@ -305,18 +305,18 @@ export function DeliveryZonesModal({
                   value={estimatedTime}
                   onChange={(e) => setEstimatedTime(e.target.value)}
                   placeholder="30-45 دقيقة"
-                  className="w-full rounded-xl bg-slate-900 border border-slate-800 px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-hidden focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                  className="w-full rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition shadow-2xs"
                 />
               </div>
             </div>
 
             <div className="flex items-center justify-between pt-1">
-              <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-300">
+              <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-700 dark:text-slate-300">
                 <input
                   type="checkbox"
                   checked={isZoneActive}
                   onChange={(e) => setIsZoneActive(e.target.checked)}
-                  className="rounded border-slate-700 bg-slate-900 text-amber-500 focus:ring-amber-500/20"
+                  className="rounded border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-amber-500 focus:ring-amber-500/20"
                 />
                 <span>منطقة متاحة ومفعلة للطلب</span>
               </label>
@@ -324,7 +324,7 @@ export function DeliveryZonesModal({
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition disabled:opacity-50"
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition shadow-xs disabled:opacity-50"
               >
                 {isSubmitting ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -339,7 +339,7 @@ export function DeliveryZonesModal({
           {/* Zones List */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-300">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
                 قائمة المناطق الحالية ({zones.length})
               </span>
             </div>
@@ -350,9 +350,9 @@ export function DeliveryZonesModal({
                 <span>جاري تحميل مناطق التوصيل...</span>
               </div>
             ) : zones.length === 0 ? (
-              <div className="py-12 px-4 rounded-2xl bg-slate-950/40 border border-slate-800 text-center">
-                <MapPin className="w-8 h-8 text-slate-600 mx-auto mb-2" />
-                <p className="text-xs text-slate-400">
+              <div className="py-12 px-4 rounded-2xl bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 text-center">
+                <MapPin className="w-8 h-8 text-slate-400 dark:text-slate-600 mx-auto mb-2" />
+                <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">
                   لم يتم إضافة أي مناطق توصيل لهذا الفرع بعد.
                 </p>
                 <p className="text-[11px] text-slate-500 mt-1">
@@ -360,33 +360,33 @@ export function DeliveryZonesModal({
                 </p>
               </div>
             ) : (
-              <div className="divide-y divide-slate-800/60 rounded-2xl bg-slate-950/40 border border-slate-800 overflow-hidden">
+              <div className="divide-y divide-slate-200/80 dark:divide-slate-800/60 rounded-2xl bg-white dark:bg-slate-950/40 border border-slate-200/90 dark:border-slate-800 overflow-hidden shadow-2xs">
                 {zones.map((zone) => (
                   <div
                     key={zone.id}
-                    className="flex items-center justify-between p-3.5 hover:bg-slate-800/30 transition-colors"
+                    className="flex items-center justify-between p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
                   >
                     <div className="flex items-center gap-3">
                       <button
                         type="button"
                         onClick={() => handleToggleZone(zone)}
                         className={`h-2.5 w-2.5 rounded-full ${
-                          zone.is_active ? 'bg-emerald-500' : 'bg-slate-600'
+                          zone.is_active ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'
                         }`}
                         title={zone.is_active ? 'مفعلة (انقر للتعطيل)' : 'معطلة (انقر للتفعيل)'}
                       />
                       <div>
-                        <div className="font-bold text-xs text-white flex items-center gap-2">
+                        <div className="font-bold text-xs text-slate-900 dark:text-white flex items-center gap-2">
                           <span>{zone.zone_name}</span>
                           {!zone.is_active && (
-                            <span className="px-1.5 py-0.5 rounded-sm bg-slate-800 text-slate-400 text-[10px]">
+                            <span className="px-1.5 py-0.5 rounded-sm bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[10px] border border-slate-200 dark:border-slate-700">
                               متوقفة
                             </span>
                           )}
                         </div>
                         {zone.estimated_delivery_time && (
-                          <div className="flex items-center gap-1 text-[11px] text-slate-400 mt-0.5">
-                            <Clock className="w-3 h-3 text-slate-500" />
+                          <div className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                            <Clock className="w-3 h-3 text-slate-400 dark:text-slate-500" />
                             <span>{zone.estimated_delivery_time}</span>
                           </div>
                         )}
@@ -394,7 +394,7 @@ export function DeliveryZonesModal({
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <span className="font-mono font-bold text-xs text-amber-400">
+                      <span className="font-mono font-bold text-xs text-amber-600 dark:text-amber-400">
                         {formatCurrency(Number(zone.delivery_fee) || 0)}
                       </span>
 
@@ -402,7 +402,7 @@ export function DeliveryZonesModal({
                         <button
                           type="button"
                           onClick={() => handleEditClick(zone)}
-                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition"
+                          className="p-1.5 rounded-lg border border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition shadow-2xs"
                           title="تعديل المنطقة"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
@@ -410,7 +410,7 @@ export function DeliveryZonesModal({
                         <button
                           type="button"
                           onClick={() => handleDeleteZone(zone.id)}
-                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition"
+                          className="p-1.5 rounded-lg border border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-500/20 text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 transition shadow-2xs"
                           title="حذف المنطقة"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -425,14 +425,14 @@ export function DeliveryZonesModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between p-4 border-t border-slate-800 bg-slate-950/80 text-xs">
-          <span className="text-slate-400">
+        <div className="flex items-center justify-between p-4 border-t border-slate-200/80 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-950/80 text-xs">
+          <span className="text-slate-500 dark:text-slate-400">
             يستخدم البوت هذه المناطق وأسعارها لحساب الإجمالي بدقة للعميل
           </span>
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold transition"
+            className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold transition shadow-2xs"
           >
             إغلاق
           </button>
