@@ -12,6 +12,8 @@ import {
   Bot,
   Volume2,
   VolumeX,
+  Bell,
+  BellOff,
   Loader2,
   ShieldCheck,
   Headphones,
@@ -34,7 +36,13 @@ interface TopbarProps {
 export function Topbar({ user, botEnabled = true, onToggleSidebar }: TopbarProps) {
   const [signingOut, setSigningOut] = useState(false);
   const router = useRouter();
-  const { isMuted, setIsMuted, playChime } = useRealtimeAudio();
+  const {
+    isMuted,
+    toggleSound,
+    notificationsEnabled,
+    toggleNotifications,
+    notificationPermission,
+  } = useRealtimeAudio();
 
   const handleSignOut = async () => {
     setSigningOut(true);
@@ -124,24 +132,45 @@ export function Topbar({ user, botEnabled = true, onToggleSidebar }: TopbarProps
         {/* Sound alerts mute/unmute toggle */}
         <button
           type="button"
-          onClick={() => {
-            if (isMuted) {
-              setIsMuted(false);
-              playChime();
-            } else {
-              setIsMuted(true);
-            }
-          }}
+          onClick={toggleSound}
           className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-xs font-semibold transition ${
             isMuted
               ? 'border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-300 hover:bg-rose-500/20'
-              : 'border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800'
+              : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20'
           }`}
           aria-label={isMuted ? 'تفعيل أصوات التنبيهات' : 'كتم أصوات التنبيهات'}
-          title={isMuted ? 'تفعيل أصوات التنبيهات' : 'كتم أصوات التنبيهات'}
+          title={isMuted ? 'الصوت مكتوم - اضغط للتشغيل وتجربة الصوت' : 'الصوت مفعل - اضغط للكتم'}
         >
           {isMuted ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
           <span className="hidden md:inline">{isMuted ? 'الصوت مكتوم' : 'الصوت مفعل'}</span>
+        </button>
+
+        {/* Browser Native Notifications toggle */}
+        <button
+          type="button"
+          onClick={toggleNotifications}
+          className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-xs font-semibold transition ${
+            !notificationsEnabled || notificationPermission === 'denied'
+              ? 'border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800'
+              : 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20'
+          }`}
+          aria-label={notificationsEnabled ? 'تعطيل إشعارات المتصفح' : 'تفعيل إشعارات المتصفح'}
+          title={
+            notificationPermission === 'denied'
+              ? 'الإشعارات محظورة من إعدادات المتصفح'
+              : notificationsEnabled
+              ? 'إشعارات المتصفح مفعلة - اضغط للتعطيل'
+              : 'إشعارات المتصفح معطلة - اضغط للتفعيل'
+          }
+        >
+          {notificationsEnabled && notificationPermission !== 'denied' ? (
+            <Bell className="h-3.5 w-3.5" />
+          ) : (
+            <BellOff className="h-3.5 w-3.5" />
+          )}
+          <span className="hidden md:inline">
+            {notificationsEnabled && notificationPermission !== 'denied' ? 'الإشعارات مفعلة' : 'الإشعارات معطلة'}
+          </span>
         </button>
       </div>
 
