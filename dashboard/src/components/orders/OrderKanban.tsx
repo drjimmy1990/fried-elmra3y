@@ -165,10 +165,27 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
     fetchSettings();
   }, [supabase]);
 
+  // Sync state with initialOrders from server
+  useEffect(() => {
+    if (initialOrders && initialOrders.length > 0) {
+      setOrders((prev) => {
+        const initialMap = new Map(initialOrders.map((o) => [o.id, o]));
+        const merged = [...initialOrders];
+        for (const existing of prev) {
+          if (!initialMap.has(existing.id)) {
+            merged.unshift(existing);
+          }
+        }
+        return merged;
+      });
+    }
+  }, [initialOrders]);
+
   // Realtime subscription on orders and complaints
   useEffect(() => {
+    const channelName = `realtime_orders_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const channel = supabase
-      .channel('realtime_orders_pipeline')
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -176,22 +193,55 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
           schema: 'public',
           table: 'orders',
         },
-        async (payload) => {
+        (payload) => {
           setIsRealtimeActive(true);
 
           if (payload.eventType === 'INSERT') {
             const newOrder = payload.new as OrderRow;
-            const { data: items } = await supabase
-              .from('order_items')
-              .select('*')
-              .eq('order_id', newOrder.id);
 
+            // Construct full order immediately with zero delay
             const fullOrder: OrderWithItems = {
               ...newOrder,
-              order_items: (items as any) || [],
+              order_items: [],
+              branch: branchesList.find((b) => b.id === newOrder.branch_id) || null,
+              offer: offersList.find((o) => o.id === newOrder.offer_id) || null,
             };
 
-            setOrders((prev) => [fullOrder, ...prev]);
+            // 1. Immediately prepend order to state so card appears instantly with 0ms latency
+            setOrders((prev) => {
+              if (prev.some((o) => o.id === newOrder.id)) {
+                return prev.map((o) => (o.id === newOrder.id ? { ...o, ...newOrder } : o));
+              }
+              return [fullOrder, ...prev];
+            });
+
+            // 2. Fetch order items asynchronously in background without blocking card rendering
+            const fetchItems = async () => {
+              try {
+                const { data: items, error } = await supabase
+                  .from('order_items')
+                  .select('*')
+                  .eq('order_id', newOrder.id);
+
+                if (!error && items && items.length > 0) {
+                  setOrders((prev) =>
+                    prev.map((o) =>
+                      o.id === newOrder.id ? { ...o, order_items: items as any } : o
+                    )
+                  );
+                  setSelectedOrder((prev) =>
+                    prev?.id === newOrder.id ? { ...prev, order_items: items as any } : prev
+                  );
+                }
+              } catch (err) {
+                console.warn('Non-blocking items fetch warning:', err);
+              }
+            };
+
+            // Immediate fetch
+            fetchItems();
+            // Retry fetch after 1.5s to catch items created in background by n8n
+            setTimeout(fetchItems, 1500);
           } else if (payload.eventType === 'UPDATE') {
             const updatedOrder = payload.new as OrderRow;
             setOrders((prev) =>
@@ -212,7 +262,7 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
           schema: 'public',
           table: 'complaints',
         },
-        async (payload) => {
+        (payload) => {
           if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
             const c = payload.new as any;
             if (!c.order_id) return;
@@ -228,14 +278,35 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
           }
         }
       )
-      .subscribe((status) => {
-        setIsRealtimeActive(status === 'SUBSCRIBED');
+      .subscribe((status, err) => {
+        if (status === 'SUBSCRIBED') {
+          setIsRealtimeActive(true);
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.warn(`Realtime channel status: ${status}`, err);
+          setIsRealtimeActive(false);
+        }
       });
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase]);
+  }, [supabase, branchesList, offersList]);
+
+  // Robust date parser for Postgres UTC / ISO timestamps in browser timezone
+  const parseOrderDate = (dateStr: string): Date => {
+    if (!dateStr) return new Date();
+    let s = dateStr.trim();
+    if (s.includes(' ') && !s.includes('T')) {
+      s = s.replace(' ', 'T');
+    }
+    if (!s.endsWith('Z') && !s.includes('+') && !s.includes('-')) {
+      s = s + 'Z';
+    } else if (!s.endsWith('Z') && s.split('T')[1] && !s.split('T')[1].includes('+') && !s.split('T')[1].includes('-')) {
+      s = s + 'Z';
+    }
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? new Date(dateStr) : d;
+  };
 
   // Filtered orders based on Search, Date, Branch, Offer
   const filteredOrders = useMemo(() => {
@@ -253,15 +324,19 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
 
       // 2. Date filter
       if (dateFilter !== 'all') {
-        const orderDate = new Date(order.created_at);
+        const orderDate = parseOrderDate(order.created_at);
         const now = new Date();
 
+        // Any order created within the last 3 hours is always considered "today" regardless of timezone drift
+        const isVeryRecent = Math.abs(now.getTime() - orderDate.getTime()) < 3 * 60 * 60 * 1000;
+
         if (dateFilter === 'today') {
-          const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-          if (orderDate < startOfToday) return false;
+          const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+          const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+          if (!isVeryRecent && (orderDate < startOfToday || orderDate > endOfToday)) return false;
         } else if (dateFilter === 'yesterday') {
-          const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-          const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+          const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+          const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
           if (orderDate < startOfYesterday || orderDate >= startOfToday) return false;
         } else if (dateFilter === 'last_7_days') {
           const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -415,7 +490,7 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
 
   // Summary Metrics calculations
   const totalOrdersCount = filteredOrders.length;
-  const pendingCount = filteredOrders.filter((o) => o.status === 'pending').length;
+  const pendingCount = filteredOrders.filter((o) => o.status !== 'confirmed').length;
   const confirmedCount = filteredOrders.filter((o) => o.status === 'confirmed').length;
   const totalRevenue = filteredOrders
     .filter((o) => o.status === 'confirmed')
@@ -644,9 +719,11 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
       {viewMode === 'kanban' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
           {KANBAN_COLUMNS.map((column) => {
-            const columnOrders = filteredOrders.filter((order) =>
-              column.allowedStatuses.includes(order.status)
-            );
+            const columnOrders = filteredOrders.filter((order) => {
+              if (column.allowedStatuses.includes(order.status)) return true;
+              if (column.id === 'pending' && order.status !== 'confirmed') return true;
+              return false;
+            });
             const columnTotal = columnOrders.reduce(
               (sum, o) => sum + (Number(o.total_amount) || 0),
               0
@@ -737,7 +814,7 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
                 ) : (
                   filteredOrders.map((order) => {
                     const badge = getOrderStatusBadge(order.status);
-                    const totalItems = order.order_items.reduce(
+                    const totalItems = (order.order_items || []).reduce(
                       (acc, it) => acc + (it.quantity || 1),
                       0
                     );

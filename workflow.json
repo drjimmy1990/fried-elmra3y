@@ -701,7 +701,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"recipient\": {\n    \"comment_id\": \"{{ $json.comment_id }}\"\n  },\n  \"message\": {\n    \"text\": \"{{ $json.dm_message || 'معك إدارة المطعم.. نعتذر لحضرتك جداً وممكن توضحلنا تفاصيل المشكلة لحلها فوراً؟' }}\"\n  },\n  \"messaging_type\": \"RESPONSE\"\n}",
+        "jsonBody": "={{\n  JSON.stringify({\n    recipient: {\n      comment_id: $json.comment_id\n    },\n    message: {\n      text: $json.dm_message || 'معك إدارة المطعم.. نعتذر لحضرتك جداً وممكن توضحلنا تفاصيل المشكلة لحلها فوراً؟'\n    },\n    messaging_type: \"RESPONSE\"\n  })\n}}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -2216,7 +2216,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $json.psid }}\"\n  },\n  \"message\": {\n    \"text\": \"{{ $json.reply }}\"\n  },\n  \"messaging_type\": \"RESPONSE\"\n} ",
+        "jsonBody": "={{\n  JSON.stringify({\n    recipient: {\n      id: $json.psid\n    },\n    message: {\n      text: $json.reply\n    },\n    messaging_type: \"RESPONSE\"\n  })\n}}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -2452,7 +2452,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $('Code in JavaScript3').first().json.psid }}\"\n  },\n  \"message\": {\n    \"text\": \"={{ $('Code in JavaScript3').first().json.reply }}\\n\\n🛵 رقم طلبك: #{{ $('Create a row5').first().json.order_number }}\\n⏳ الحالة: قيد المراجعة والتأكيد من الفرع\"\n  },\n  \"messaging_type\": \"RESPONSE\"\n}",
+        "jsonBody": "={{\n  JSON.stringify({\n    recipient: {\n      id: $('Code in JavaScript3').first().json.psid\n    },\n    message: {\n      text: `${$('Code in JavaScript3').first().json.reply}\\n\\n🛵 رقم طلبك: #${$('Create a row5').first().json.order_number}\\n⏳ الحالة: قيد المراجعة والتأكيد من الفرع`\n    },\n    messaging_type: \"RESPONSE\"\n  })\n}}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -2522,7 +2522,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $('Code in JavaScript3').first().json.psid }}\"\n  },\n  \"message\": {\n    \"text\": \"={{ $('Code in JavaScript3').first().json.reply }}\\n\\n📋 رقم تذكرة الشكوى: #{{ $('Create Complaint').first().json.ticket_number }}\\nوسيقوم مشرف الفرع بالتواصل معك فوراً.\"\n  },\n  \"messaging_type\": \"RESPONSE\"\n}",
+        "jsonBody": "={{\n  JSON.stringify({\n    recipient: {\n      id: $('Code in JavaScript3').first().json.psid\n    },\n    message: {\n      text: `${$('Code in JavaScript3').first().json.reply}\\n\\n📋 رقم تذكرة الشكوى: #${$('Create Complaint').first().json.ticket_number}\\nوسيقوم مشرف الفرع بالتواصل معك فوراً.`\n    },\n    messaging_type: \"RESPONSE\"\n  })\n}}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -2639,7 +2639,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $json.psid }}\"\n  },\n  \"message\": {\n    \"text\": \"{{ $json.reply }}\"\n  },\n  \"messaging_type\": \"RESPONSE\"\n} ",
+        "jsonBody": "={{\n  JSON.stringify({\n    recipient: {\n      id: $json.psid\n    },\n    message: {\n      text: $json.reply\n    },\n    messaging_type: \"RESPONSE\"\n  })\n}}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
