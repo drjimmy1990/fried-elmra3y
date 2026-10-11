@@ -125,16 +125,28 @@ WHERE id IS NOT NULL;
 
 
 -- 2. إدخال وتحديث الفروع الستة الرسمية لمطعم تشيكن مراعي
-INSERT INTO public.branches (name, phone, address, is_active)
-VALUES
-    ('فرع فيصل', '17330', 'شارع جلال - قرية اللوتس - اللبيني - فيصل', true),
-    ('فرع إمبابة', '17330', '156 شارع إمبابة الرياضي - مدينة التحرير - إمبابة', true),
-    ('فرع حدائق أكتوبر', '17330', 'الممشى السياحي - أمام مول الحسن - حدائق أكتوبر', true),
-    ('فرع الهرم', '17330', '49 شارع الهنيدي مع خاتم المرسلين - الهرم', true),
-    ('فرع الوراق', '17330', 'بنزينة الوطنية - سنترال وراق العرب - الوراق', true),
-    ('فرع السيدة زينب', '17330', 'حديقة أم هاشم - من ميدان السيدة زينب', true)
-ON CONFLICT (name) DO UPDATE 
-SET 
-    phone = EXCLUDED.phone,
-    address = EXCLUDED.address,
-    is_active = true;
+-- استخدام كود آمن ومحمي 100% يعمل بدون اشتراط وجود قيد فريد (Unique Constraint) مسبق
+DO $$
+DECLARE
+    r RECORD;
+    v_branches jsonb := '[
+        {"name": "فرع فيصل", "phone": "17330", "address": "شارع جلال - قرية اللوتس - اللبيني - فيصل"},
+        {"name": "فرع إمبابة", "phone": "17330", "address": "156 شارع إمبابة الرياضي - مدينة التحرير - إمبابة"},
+        {"name": "فرع حدائق أكتوبر", "phone": "17330", "address": "الممشى السياحي - أمام مول الحسن - حدائق أكتوبر"},
+        {"name": "فرع الهرم", "phone": "17330", "address": "49 شارع الهنيدي مع خاتم المرسلين - الهرم"},
+        {"name": "فرع الوراق", "phone": "17330", "address": "بنزينة الوطنية - سنترال وراق العرب - الوراق"},
+        {"name": "فرع السيدة زينب", "phone": "17330", "address": "حديقة أم هاشم - من ميدان السيدة زينب"}
+    ]'::jsonb;
+BEGIN
+    FOR r IN SELECT * FROM jsonb_to_recordset(v_branches) AS x(name text, phone text, address text)
+    LOOP
+        UPDATE public.branches 
+        SET phone = r.phone, address = r.address, is_active = true, updated_at = now()
+        WHERE name = r.name;
+        
+        IF NOT FOUND THEN
+            INSERT INTO public.branches (name, phone, address, is_active)
+            VALUES (r.name, r.phone, r.address, true);
+        END IF;
+    END LOOP;
+END $$;
