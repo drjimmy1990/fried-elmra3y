@@ -132,8 +132,8 @@ export function MenuManager({ initialSettings }: MenuManagerProps) {
   const supabase = createClient();
   const [images, setImages] = useState<string[]>(initialSettings.menu_images || []);
   const [pdfUrl, setPdfUrl] = useState<string | null>(initialSettings.menu_pdf_url);
-  const [priceList, setPriceList] = useState<string>(initialSettings.price_list || '');
-  const [isPriceListDirty, setIsPriceListDirty] = useState(false);
+  const [priceList, setPriceList] = useState<string>(initialSettings.price_list || FRIED_CHICKEN_TEMPLATE);
+  const [isPriceListDirty, setIsPriceListDirty] = useState(!initialSettings.price_list);
   const [activeTab, setActiveTab] = useState<'editor' | 'preview'>('editor');
   
   const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -385,14 +385,15 @@ export function MenuManager({ initialSettings }: MenuManagerProps) {
           <div className="flex items-center gap-2">
             <button
               onClick={() => {
-                if (priceList && !confirm('هل أنت متأكد من مسح المحتوى الحالي وتطبيق النموذج؟')) return;
+                if (priceList && priceList.trim() && !confirm('هل تريد استبدال المحتوى الحالي بنموذج منيو تشيكن مراعي الافتراضي؟')) return;
                 setPriceList(FRIED_CHICKEN_TEMPLATE);
                 setIsPriceListDirty(true);
               }}
-              className="inline-flex items-center gap-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 px-3 py-1.5 rounded-lg text-xs font-bold transition"
+              className="inline-flex items-center gap-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 px-3.5 py-1.5 rounded-lg text-xs font-bold transition border border-amber-500/20"
+              title="تطبيق نموذج قائمة أسعار تشيكن مراعي الرسمية المفرغة من المنيو"
             >
-              <Sparkles className="w-3.5 h-3.5" />
-              نموذج قائمة أسعار فرايد تشيكن
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              نموذج منيو تشيكن مراعي 🍗
             </button>
             <button
               onClick={handleSavePriceList}
