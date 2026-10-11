@@ -22,7 +22,7 @@ export interface OrderCardProps {
   order: OrderWithItems;
   complaints?: any[];
   onSelectOrder: (order: OrderWithItems) => void;
-  onAdvanceStatus: (orderId: string, currentStatus: OrderStatus) => Promise<void>;
+  onAdvanceStatus: (orderId: string, currentStatus?: OrderStatus) => Promise<void>;
   onPrintReceipt: (order: OrderWithItems) => void;
   isUpdating?: boolean;
 }
@@ -228,8 +228,11 @@ function OrderCardComponent({
               {order.status === 'pending' && (
                 <button
                   type="button"
-                  onClick={() => onAdvanceStatus(order.id, 'confirmed')}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition-all hover:scale-102"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAdvanceStatus(order.id, 'pending');
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition-all hover:scale-102 cursor-pointer"
                 >
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   <span>تأكيد الطلب وإبلاغ العميل</span>

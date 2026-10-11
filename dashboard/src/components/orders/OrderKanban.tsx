@@ -405,8 +405,9 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
   };
 
   // Workflow status advancement
-  const handleAdvanceStatus = async (orderId: string, currentStatus: OrderStatus) => {
-    if (currentStatus === 'pending') {
+  const handleAdvanceStatus = async (orderId: string, statusArg?: OrderStatus) => {
+    const targetOrder = orders.find((o) => o.id === orderId);
+    if (!targetOrder || targetOrder.status === 'pending' || statusArg === 'pending' || statusArg === 'confirmed') {
       await handleConfirmOrder(orderId);
     }
   };
