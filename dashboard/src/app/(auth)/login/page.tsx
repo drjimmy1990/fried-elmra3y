@@ -84,18 +84,23 @@ function LoginForm() {
 
       {/* Brand Header */}
       <div className="text-center pb-6 relative z-10">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-600 text-slate-950 shadow-xl shadow-amber-500/20 ring-4 ring-amber-500/10">
-          <Drumstick className="h-8 w-8" />
+        <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-tr from-red-600 to-amber-500 p-1 shadow-2xl shadow-red-500/30 ring-4 ring-amber-500/20">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo-icon.svg"
+            alt="تشيكن مراعي"
+            className="h-full w-full rounded-2xl object-cover"
+          />
         </div>
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-xs font-semibold text-amber-300 mb-2">
           <Sparkles className="h-3 w-3 text-amber-400" />
-          <span>غرفة العمليات الذكية</span>
+          <span>غرفة العمليات والرد الذكي</span>
         </div>
         <h1 className="text-2xl font-black text-white tracking-tight">
-          بروستد الخديوي
+          تشيكن مراعي
         </h1>
-        <p className="mt-1 text-xs text-slate-400 leading-relaxed">
-          لوحة تحكم الأوردرات والبوت والمحادثات والشكاوى
+        <p className="mt-1 text-xs text-amber-400/90 font-medium leading-relaxed">
+          ★ لأكيلة مراعي 🍗👑 ★
         </p>
       </div>
 

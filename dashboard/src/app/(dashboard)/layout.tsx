@@ -5,7 +5,7 @@ import { RealtimeAudioProvider } from '@/components/providers/RealtimeAudioProvi
 import { DashboardShell } from '@/components/layout/DashboardShell';
 import { UserRole } from '@/types/database.types';
 
-const DEFAULT_RESTAURANT_NAME = 'بروستد الخديوي';
+const DEFAULT_RESTAURANT_NAME = 'تشيكن مراعي';
 
 /** Extracts `restaurant_name` from the get_public_settings() JSON payload. */
 function readRestaurantName(payload: unknown): string {

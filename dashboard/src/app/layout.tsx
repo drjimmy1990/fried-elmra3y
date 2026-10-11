@@ -18,8 +18,15 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: 'بروستد الخديوي | غرفة العمليات ولوحة التحكم الذكية',
-  description: 'إدارة أوردرات وشكاوى ومحادثات وتعليقات مطعم بروستد الخديوي والبوت الذكي',
+  title: 'تشيكن مراعي | Chicken Maraei - غرفة العمليات والرد الذكي',
+  description: 'لوحة التحكم الذكية لمطعم تشيكن مراعي (Chicken Maraei) - إدارة الطلبات والشكاوى ومحادثات العملاء وقنوات فيسبوك',
+  icons: {
+    icon: [
+      { url: '/favicon.ico' },
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+    ],
+    apple: [{ url: '/apple-touch-icon.png' }],
+  },
 };
 
 export default function RootLayout({

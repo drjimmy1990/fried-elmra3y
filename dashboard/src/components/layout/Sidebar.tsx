@@ -94,7 +94,7 @@ const BADGE_STYLES: Record<BadgeKind, string> = {
 
 export function Sidebar({
   role,
-  restaurantName = 'بروستد الخديوي',
+  restaurantName = 'تشيكن مراعي',
   issueOrdersCount = 0,
   openComplaintsCount = 0,
   needsHumanCount = 0,
@@ -124,16 +124,21 @@ export function Sidebar({
         }`}
       >
         {/* Branding & Logo Header */}
-        <div className="flex h-20 items-center justify-between border-b border-slate-200 dark:border-slate-800 px-6">
+        <div className="flex h-20 items-center justify-between border-b border-slate-200 dark:border-slate-800 px-5">
           <Link href="/dashboard" onClick={onClose} className="flex min-w-0 items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-600 text-slate-950 shadow-md shadow-amber-500/20">
-              <Drumstick className="h-6 w-6" />
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-tr from-red-600 to-amber-500 p-0.5 shadow-md shadow-red-500/20">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/logo-icon.svg"
+                alt="تشيكن مراعي"
+                className="h-full w-full rounded-2xl object-cover"
+              />
             </div>
             <div className="min-w-0">
               <div className="truncate font-extrabold text-base text-slate-900 dark:text-white" title={restaurantName}>
                 {restaurantName}
               </div>
-              <p className="text-xs font-semibold text-amber-600 dark:text-amber-300/90">غرفة العمليات الذكية 🍗👑</p>
+              <p className="text-xs font-bold text-amber-600 dark:text-amber-400">لأكيلة مراعي 🍗👑</p>
             </div>
           </Link>
 

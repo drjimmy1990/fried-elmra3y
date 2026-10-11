@@ -114,7 +114,7 @@ export default async function OverviewDashboardPage() {
               <span>{formattedTodayDate}</span>
             </div>
             <h1 className="mt-3 text-2xl sm:text-3xl font-black tracking-tight flex items-center gap-3">
-              <span>غرفة عمليات بروستد الخديوي</span>
+              <span>غرفة عمليات تشيكن مراعي</span>
               <span className="text-2xl">🍗👑</span>
             </h1>
             <p className="mt-1.5 text-sm text-slate-600 dark:text-slate-300 max-w-2xl leading-relaxed">

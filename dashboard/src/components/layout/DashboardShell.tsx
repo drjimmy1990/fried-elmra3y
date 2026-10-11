@@ -23,7 +23,7 @@ interface DashboardShellProps {
 
 export function DashboardShell({
   user,
-  restaurantName = 'بروستد الخديوي',
+  restaurantName = 'تشيكن مراعي',
   botEnabled = true,
   issueOrdersCount = 0,
   openComplaintsCount = 0,
