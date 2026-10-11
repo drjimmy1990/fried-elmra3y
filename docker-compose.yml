@@ -21,4 +21,7 @@ services:
       - APP_BASE_URL=${APP_BASE_URL:-}
       - META_GRAPH_VERSION=${META_GRAPH_VERSION:-v23.0}
     env_file:
-      - ./dashboard/.env
+      - path: ./.env
+        required: false
+      - path: ./dashboard/.env
+        required: false
