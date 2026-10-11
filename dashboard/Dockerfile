@@ -1,5 +1,5 @@
-# 1. Base image
-FROM node:20-alpine AS base
+# 1. Base image (Node 22 LTS)
+FROM node:22-alpine AS base
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
