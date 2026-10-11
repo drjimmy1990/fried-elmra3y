@@ -1,0 +1,24 @@
+services:
+  dashboard:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+        APP_BASE_URL: ${APP_BASE_URL:-}
+        META_GRAPH_VERSION: ${META_GRAPH_VERSION:-v23.0}
+    container_name: khedewy-dashboard
+    restart: unless-stopped
+    ports:
+      # Port mapped to host (aaPanel will reverse-proxy to 127.0.0.1:3000)
+      - "127.0.0.1:3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - APP_BASE_URL=${APP_BASE_URL:-}
+      - META_GRAPH_VERSION=${META_GRAPH_VERSION:-v23.0}
+    env_file:
+      - ./dashboard/.env
