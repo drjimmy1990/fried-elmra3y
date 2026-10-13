@@ -20,6 +20,7 @@ import { createClient } from '@/lib/supabase/client';
 import { BranchWithZones, BranchRow } from './types';
 import { BranchModal } from './BranchModal';
 import { DeliveryZonesModal } from './DeliveryZonesModal';
+import { Switch } from '@/components/ui/FormControls';
 
 interface BranchesManagerProps {
   initialBranches: BranchWithZones[];
@@ -196,30 +197,44 @@ export function BranchesManager({ initialBranches }: BranchesManagerProps) {
         </div>
       </div>
 
-      {/* Search Input */}
-      <div className="flex items-center justify-between gap-3 bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3 rounded-2xl shadow-xs">
-        <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="بحث باسم الفرع، العنوان، أو الهاتف..."
-            className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 pr-9 pl-8 py-2 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery('')}
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-white"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
+      {/* Search and Action Bar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3 rounded-2xl shadow-xs">
+        <div className="flex items-center gap-3">
+          <div className="relative w-full sm:w-80">
+            <Search className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="بحث باسم الفرع، العنوان، أو الهاتف..."
+              className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 pr-9 pl-8 py-2 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-white"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+          <span className="text-xs text-slate-500 dark:text-slate-400 hidden sm:inline">
+            عرض {filteredBranches.length} من {branches.length} فرع
+          </span>
         </div>
-        <span className="text-xs text-slate-500 dark:text-slate-400 hidden sm:inline">
-          عرض {filteredBranches.length} من {branches.length} فرع
-        </span>
+
+        <button
+          type="button"
+          onClick={() => {
+            setSelectedBranchForEdit(null);
+            setIsBranchModalOpen(true);
+          }}
+          className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl font-bold text-xs text-slate-950 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 shadow-md shadow-amber-500/20 transition-all shrink-0 cursor-pointer active:scale-95"
+        >
+          <Plus className="w-4 h-4 stroke-[3]" />
+          <span>إضافة فرع جديد</span>
+        </button>
       </div>
 
       {/* Branches Grid */}
@@ -265,20 +280,12 @@ export function BranchesManager({ initialBranches }: BranchesManagerProps) {
                   </div>
 
                   {/* Active Switch */}
-                  <button
-                    type="button"
-                    onClick={() => handleToggleActive(branch)}
-                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
-                      branch.is_active ? 'bg-emerald-600' : 'bg-slate-200 dark:bg-slate-700'
-                    }`}
-                    title={branch.is_active ? 'تعطيل الفرع' : 'تفعيل الفرع'}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition duration-200 ease-in-out ${
-                        branch.is_active ? 'translate-x-4' : 'translate-x-0'
-                      }`}
-                    />
-                  </button>
+                  <Switch
+                    checked={branch.is_active}
+                    onChange={() => handleToggleActive(branch)}
+                    label={branch.is_active ? 'تعطيل الفرع' : 'تفعيل الفرع'}
+                    size="sm"
+                  />
                 </div>
 
                 {/* Details */}
