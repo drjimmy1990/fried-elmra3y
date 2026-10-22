@@ -49,6 +49,10 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# Harden production container: create cache mountpoint and strip network downloaders/package managers
+RUN mkdir -p /app/.next/cache && chown -R nextjs:nodejs /app/.next/cache \
+    && rm -rf /sbin/apk /usr/bin/wget /usr/bin/curl /var/cache/apk/* || true
+
 USER nextjs
 
 EXPOSE 3000

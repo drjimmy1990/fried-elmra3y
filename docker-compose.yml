@@ -10,6 +10,17 @@ services:
         META_GRAPH_VERSION: ${META_GRAPH_VERSION:-v23.0}
     container_name: khedewy-dashboard
     restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=64m
+      - /app/.next/cache:rw,noexec,nosuid,nodev,size=128m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cpus: 1.5
+    mem_limit: 1024m
+    pids_limit: 200
     ports:
       # Port mapped to host (aaPanel will reverse-proxy to 127.0.0.1:4050)
       - "127.0.0.1:4050:3000"
