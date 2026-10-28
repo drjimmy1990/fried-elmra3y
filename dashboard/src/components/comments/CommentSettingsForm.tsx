@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   Image as ImageIcon,
   Loader2,
+  MessageSquareText,
   Plus,
   RotateCcw,
   ShieldAlert,
@@ -24,7 +25,9 @@ import { cn } from '@/lib/utils';
 import type { Json } from '@/types/database.types';
 import {
   DEFAULT_ACTION_ASSETS,
+  DEFAULT_NORMAL_FIXED_REPLIES,
   parseActionAssets,
+  parseFixedRepliesConfig,
   type ActionAsset,
   type CommentSettings,
 } from './types';
@@ -72,10 +75,15 @@ interface Props {
 export function CommentSettingsForm({ settings, canEdit, onSave }: Props) {
   const supabase = useMemo(() => createClient(), []);
   const [s, setS] = useState(settings);
-  const [actionAssets, setActionAssets] = useState<ActionAsset[]>(() => {
-    const parsed = parseActionAssets(settings.action_assets as Json);
-    return parsed.length > 0 ? parsed : DEFAULT_ACTION_ASSETS;
-  });
+  const [actionAssets, setActionAssets] = useState<ActionAsset[]>(() =>
+    parseActionAssets(settings.action_assets as Json)
+  );
+  const [fixedRepliesEnabled, setFixedRepliesEnabled] = useState<boolean>(() =>
+    parseFixedRepliesConfig(settings.action_assets as Json).enabled
+  );
+  const [normalFixedReplies, setNormalFixedReplies] = useState<string[]>(() =>
+    parseFixedRepliesConfig(settings.action_assets as Json).normal_replies
+  );
 
   const [saving, setSaving] = useState(false);
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
@@ -84,15 +92,22 @@ export function CommentSettingsForm({ settings, canEdit, onSave }: Props) {
 
   useEffect(() => {
     setS(settings);
-    const parsed = parseActionAssets(settings.action_assets as Json);
-    setActionAssets(parsed.length > 0 ? parsed : DEFAULT_ACTION_ASSETS);
+    setActionAssets(parseActionAssets(settings.action_assets as Json));
+    const fixedCfg = parseFixedRepliesConfig(settings.action_assets as Json);
+    setFixedRepliesEnabled(fixedCfg.enabled);
+    setNormalFixedReplies(fixedCfg.normal_replies);
   }, [settings]);
 
   const set = <K extends keyof CommentSettings>(k: K, v: CommentSettings[K]) => setS((p) => ({ ...p, [k]: v }));
 
   const initialAssetsJson = JSON.stringify(parseActionAssets(settings.action_assets as Json));
   const currentAssetsJson = JSON.stringify(actionAssets);
-  const dirty = JSON.stringify(s) !== JSON.stringify(settings) || initialAssetsJson !== currentAssetsJson;
+  const initialFixedJson = JSON.stringify(parseFixedRepliesConfig(settings.action_assets as Json));
+  const currentFixedJson = JSON.stringify({ enabled: fixedRepliesEnabled, normal_replies: normalFixedReplies });
+  const dirty =
+    JSON.stringify(s) !== JSON.stringify(settings) ||
+    initialAssetsJson !== currentAssetsJson ||
+    initialFixedJson !== currentFixedJson;
 
   const save = async () => {
     if (s.reply_delay_max_sec < s.reply_delay_min_sec) {
@@ -106,6 +121,11 @@ export function CommentSettingsForm({ settings, canEdit, onSave }: Props) {
       }
     }
 
+    const cleanedFixedReplies = normalFixedReplies.map((r) => r.trim()).filter(Boolean);
+    if (fixedRepliesEnabled && cleanedFixedReplies.length === 0) {
+      return setMsg({ ok: false, text: 'يجب إضافة رد ثابت واحد على الأقل عند تفعيل الردود الثابتة' });
+    }
+
     setSaving(true);
     setMsg(null);
     try {
@@ -113,6 +133,16 @@ export function CommentSettingsForm({ settings, canEdit, onSave }: Props) {
       const branchesImg = actionAssets.find((a) => a.name === 'branches')?.image_url || null;
       const menuImg = actionAssets.find((a) => a.name === 'menu')?.image_url || null;
       const offersImg = actionAssets.find((a) => a.name === 'offers')?.image_url || null;
+
+      const combinedAssetsPayload = [
+        ...actionAssets,
+        {
+          id: '__fixed_replies_config__',
+          is_config: true,
+          enabled: fixedRepliesEnabled,
+          normal_replies: cleanedFixedReplies.length > 0 ? cleanedFixedReplies : DEFAULT_NORMAL_FIXED_REPLIES,
+        },
+      ];
 
       await onSave({
         ai_enabled: s.ai_enabled,
@@ -128,13 +158,13 @@ export function CommentSettingsForm({ settings, canEdit, onSave }: Props) {
         reply_delay_max_sec: s.reply_delay_max_sec,
         ignore_nested_replies: s.ignore_nested_replies,
         ignore_mentions_only: s.ignore_mentions_only,
-        action_assets: actionAssets as unknown as Json,
+        action_assets: combinedAssetsPayload as unknown as Json,
         fallback_dm_message: s.fallback_dm_message?.trim() || null,
         branches_image_url: branchesImg,
         menu_image_url: menuImg,
         offers_image_url: offersImg,
       });
-      setMsg({ ok: true, text: 'تم حفظ الإعدادات وقائمة الصور بنجاح' });
+      setMsg({ ok: true, text: 'تم حفظ الإعدادات والردود الثابتة بنجاح' });
     } catch (e) {
       setMsg({ ok: false, text: e instanceof Error ? e.message : 'تعذر الحفظ' });
     } finally {
@@ -279,9 +309,9 @@ export function CommentSettingsForm({ settings, canEdit, onSave }: Props) {
           <div className="pt-3 border-t border-slate-800 space-y-1.5">
             <div className="flex items-center justify-between">
               <label className="text-xs font-semibold text-slate-200">
-                الرسالة الخاصة التلقائية / الاحتياطية (Fallback DM Message)
+                الرسالة الخاصة التلقائية للتعليقات العادية (Fallback DM Message)
               </label>
-              <span className="text-[11px] text-amber-400">تُرسل في الخاص لكل المعلقين إذا لم يولد الذكاء الاصطناعي رسالة مخصصة</span>
+              <span className="text-[11px] text-amber-400">تُرسل في الخاص لكل المعلقين العاديين</span>
             </div>
             <textarea
               rows={2}
@@ -291,6 +321,143 @@ export function CommentSettingsForm({ settings, canEdit, onSave }: Props) {
               onChange={(e) => set('fallback_dm_message', e.target.value)}
               placeholder="أهلاً بحضرتك يا فندم نورتنا! 🍗 تقدر تطلب أو تستفسر عن أي حاجة من هنا مباشرة 🛵"
             />
+          </div>
+        </div>
+      </section>
+
+      {/* Fixed Comment Replies (AI Classifies Only) */}
+      <section className="p-5 rounded-3xl bg-white dark:bg-slate-900/80 border border-emerald-500/30 space-y-4 shadow-xl shadow-emerald-500/5">
+        <header className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+              <MessageSquareText className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                  الردود الثابتة على التعليقات (الذكاء الاصطناعي يصنف فقط)
+                </h3>
+                <span
+                  className={cn(
+                    'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border',
+                    fixedRepliesEnabled
+                      ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
+                      : 'bg-slate-800 text-slate-400 border-slate-700'
+                  )}
+                >
+                  {fixedRepliesEnabled ? 'يرد بالردود الثابتة فقط' : 'يرد بتأليف الذكاء الاصطناعي'}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">
+                عند تفعيل هذا الخيار، يقوم الذكاء الاصطناعي فقط بتصنيف التعليق (عادي / شكوى / حذف سبام) دون تأليف رد، ويقوم البوت بالرد من الردود الثابتة بالأسفل.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className={cn('text-xs font-bold', fixedRepliesEnabled ? 'text-emerald-400' : 'text-slate-500')}>
+              {fixedRepliesEnabled ? '🟢 الرد الثابت مفعل' : '⚪ غير مفعل'}
+            </span>
+            <Switch
+              checked={fixedRepliesEnabled}
+              onChange={setFixedRepliesEnabled}
+              disabled={!canEdit}
+              label="تفعيل الردود الثابتة على التعليقات"
+            />
+          </div>
+        </header>
+
+        <div className="space-y-4">
+          {/* Normal Comments Fixed Public Replies */}
+          <div className="space-y-2.5 p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                  1. الردود العلنية الثابتة للتعليقات العادية (يختار البوت واحداً منها عشوائياً)
+                </h4>
+                <p className="text-[11px] text-slate-500">
+                  أضف أكثر من صيغة رد لتنويع الردود تلقائياً على التعليقات العادية وحماية الصفحة من التقييد.
+                </p>
+              </div>
+              {canEdit && (
+                <button
+                  type="button"
+                  onClick={() => setNormalFixedReplies((prev) => [...prev, ''])}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-950 bg-amber-500 hover:bg-amber-400 transition shadow cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" /> إضافة صيغة رد
+                </button>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              {normalFixedReplies.map((replyText, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <span className="text-xs font-mono text-slate-500 w-6 text-center">#{idx + 1}</span>
+                  <input
+                    type="text"
+                    disabled={!canEdit}
+                    value={replyText}
+                    onChange={(e) =>
+                      setNormalFixedReplies((prev) => prev.map((item, i) => (i === idx ? e.target.value : item)))
+                    }
+                    placeholder="مثال: أهلاً بحضرتك يا فندم! تم إرسال كل التفاصيل في رسائل الصفحة 📩"
+                    className={cn(inputClass, 'text-xs flex-1')}
+                  />
+                  {canEdit && normalFixedReplies.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setNormalFixedReplies((prev) => prev.filter((_, i) => i !== idx))}
+                      className="p-2 rounded-xl text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition cursor-pointer"
+                      title="حذف هذا الرد"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Complaint Fixed Public Reply & DM */}
+          <div className="grid md:grid-cols-2 gap-3 p-4 rounded-2xl bg-rose-500/5 border border-rose-500/20">
+            <label className="space-y-1.5 block">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-rose-300 flex items-center gap-1.5">
+                  <ShieldAlert className="w-3.5 h-3.5" /> 2. الرد العلني الثابت عند اكتشاف شكوى
+                </span>
+              </div>
+              <textarea
+                rows={2}
+                disabled={!canEdit}
+                value={s.complaint_public_reply ?? ''}
+                onChange={(e) => set('complaint_public_reply', e.target.value)}
+                placeholder="نعتذر جداً لحضرتك يا فندم 🙏 تواصلنا معاك في الخاص عشان نحل المشكلة فوراً."
+                className={cn(inputClass, 'text-xs resize-y')}
+              />
+              <span className="block text-[10px] text-slate-500">
+                يُكتب كتعليق علني عندما يصنف الذكاء الاصطناعي تعليق العميل كشكوى (is_complaint = true).
+              </span>
+            </label>
+
+            <label className="space-y-1.5 block">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-rose-300">
+                  3. الرسالة الخاصة الثابتة عند اكتشاف شكوى (DM)
+                </span>
+              </div>
+              <textarea
+                rows={2}
+                disabled={!canEdit}
+                value={s.complaint_dm_message ?? ''}
+                onChange={(e) => set('complaint_dm_message', e.target.value)}
+                placeholder="أهلاً بحضرتك يا فندم، حقك علينا وبنعتذر جداً 🙏 ممكن توضحلنا المشكلة ورقم الموبايل والفرع؟ الإدارة هتتواصل معاك فوراً."
+                className={cn(inputClass, 'text-xs resize-y')}
+              />
+              <span className="block text-[10px] text-slate-500">
+                تُرسل في رسائل الماسنجر الخاصة للعميل صاحب الشكوى لسحب رقمه وتحويله للإدارة.
+              </span>
+            </label>
           </div>
         </div>
       </section>

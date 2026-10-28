@@ -48,11 +48,22 @@ export const DEFAULT_ACTION_ASSETS: ActionAsset[] = [
   },
 ];
 
+export interface FixedRepliesConfig {
+  enabled: boolean;
+  normal_replies: string[];
+}
+
+export const DEFAULT_NORMAL_FIXED_REPLIES: string[] = [
+  'أهلاً بحضرتك يا فندم في تشيكن مراعي! 🍗 تم إرسال كل التفاصيل في رسائل الصفحة 📩',
+  'منورنا يا فندم! 🌟 بعتنالك رسالة على الخاص حالاً بكل التفاصيل 🛵',
+  'تحت أمرك يا فندم! راجع رسائل الماسنجر، فريقنا معاك هناك فوراً ❤️',
+];
+
 export function parseActionAssets(value: Json): ActionAsset[] {
   if (!Array.isArray(value)) return [];
   return value
     .map((item) => (item && typeof item === 'object' && !Array.isArray(item) ? item : null))
-    .filter((item): item is { [k: string]: Json | undefined } => !!item)
+    .filter((item): item is { [k: string]: Json | undefined } => !!item && !item.is_config && item.id !== '__fixed_replies_config__')
     .map((item) => ({
       id: String(item.id || item.name || Math.random().toString(36).substring(2, 9)),
       name: String(item.name || '').trim().toLowerCase().replace(/\s+/g, '_'),
@@ -61,6 +72,28 @@ export function parseActionAssets(value: Json): ActionAsset[] {
       image_url: String(item.image_url || ''),
     }))
     .filter((item) => item.name);
+}
+
+export function parseFixedRepliesConfig(value: Json): FixedRepliesConfig {
+  if (Array.isArray(value)) {
+    const cfg = value.find(
+      (item): item is { [k: string]: Json | undefined } =>
+        !!item && typeof item === 'object' && !Array.isArray(item) && (item.id === '__fixed_replies_config__' || item.is_config === true)
+    );
+    if (cfg) {
+      const list = Array.isArray(cfg.normal_replies)
+        ? cfg.normal_replies.map((r) => String(r ?? '').trim()).filter(Boolean)
+        : [];
+      return {
+        enabled: Boolean(cfg.enabled),
+        normal_replies: list.length > 0 ? list : DEFAULT_NORMAL_FIXED_REPLIES,
+      };
+    }
+  }
+  return {
+    enabled: false,
+    normal_replies: DEFAULT_NORMAL_FIXED_REPLIES,
+  };
 }
 
 export interface DmButton {
