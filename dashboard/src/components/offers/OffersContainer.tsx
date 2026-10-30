@@ -1,33 +1,41 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   Sparkles,
   Plus,
   Search,
-  Filter,
   CheckCircle2,
-  Calendar,
-  Percent,
-  Layers,
-  Clock,
-  Tag,
-  AlertCircle,
   X,
-  TrendingUp,
+  Image as ImageIcon,
+  UploadCloud,
+  Loader2,
+  Save,
+  Trash2,
 } from 'lucide-react';
-import { Offer, OfferFilterTab, calculateDiscount } from './types';
+import { Offer, OfferFilterTab } from './types';
 import { OfferCard } from './OfferCard';
 import { OfferModal } from './OfferModal';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
+
+export const ALL_OFFERS_SENTINEL_TITLE = '__ALL_OFFERS_IMAGE__';
 
 interface OffersContainerProps {
   initialOffers: Offer[];
 }
 
 export function OffersContainer({ initialOffers }: OffersContainerProps) {
-  const [offers, setOffers] = useState<Offer[]>(initialOffers);
+  const existingMasterRow = initialOffers.find((o) => o.title === ALL_OFFERS_SENTINEL_TITLE) || null;
+  const [masterOfferRow, setMasterOfferRow] = useState<Offer | null>(existingMasterRow);
+  const [allOffersBannerUrl, setAllOffersBannerUrl] = useState<string>(existingMasterRow?.banner_url || '');
+  const [isUploadingAllBanner, setIsUploadingAllBanner] = useState(false);
+  const [isSavingAllBanner, setIsSavingAllBanner] = useState(false);
+  const allBannerFileInputRef = useRef<HTMLInputElement>(null);
+
+  const [offers, setOffers] = useState<Offer[]>(
+    initialOffers.filter((o) => o.title !== ALL_OFFERS_SENTINEL_TITLE)
+  );
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<OfferFilterTab>('all');
   const supabase = createClient();
@@ -44,6 +52,88 @@ export function OffersContainer({ initialOffers }: OffersContainerProps) {
     setTimeout(() => {
       setToastMessage((current) => (current === message ? null : current));
     }, 4000);
+  };
+
+  // Upload & Save All-Offers Master Image
+  const saveAllOffersBannerToDb = async (urlToSave: string) => {
+    setIsSavingAllBanner(true);
+    try {
+      const cleanUrl = urlToSave.trim() || null;
+      if (masterOfferRow?.id) {
+        const { data, error } = await supabase
+          .from('offers')
+          .update({
+            banner_url: cleanUrl,
+            is_active: true,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', masterOfferRow.id)
+          .select('*')
+          .single();
+        if (error) throw error;
+        if (data) setMasterOfferRow(data as Offer);
+      } else {
+        const { data, error } = await supabase
+          .from('offers')
+          .insert({
+            title: ALL_OFFERS_SENTINEL_TITLE,
+            description: 'صورة مجمعة لكل العروض الترويجية (تُرسل في الماسنجر عند السؤال عن كل العروض)',
+            price_before: null,
+            price_after: 0,
+            banner_url: cleanUrl,
+            is_active: true,
+          })
+          .select('*')
+          .single();
+        if (error) throw error;
+        if (data) setMasterOfferRow(data as Offer);
+      }
+      showToast('تم حفظ صورة "جميع العروض" المجمعة بنجاح.');
+    } catch (err: unknown) {
+      console.error('Failed to save all-offers banner:', err);
+      showToast('حدث خطأ أثناء حفظ صورة جميع العروض.');
+    } finally {
+      setIsSavingAllBanner(false);
+    }
+  };
+
+  const handleUploadAllOffersFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedMimeTypes.includes(file.type)) {
+      showToast('يرجى اختيار ملف صورة صالح (JPG, PNG, WEBP)');
+      return;
+    }
+
+    setIsUploadingAllBanner(true);
+    try {
+      const ext = file.name.split('.').pop()?.toLowerCase() || 'webp';
+      const slug = Math.random().toString(36).substring(2, 8);
+      const path = `banners/all-offers-${Date.now()}-${slug}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('offer-banners')
+        .upload(path, file, { cacheControl: '3600', upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('offer-banners')
+        .getPublicUrl(path);
+
+      if (urlData?.publicUrl) {
+        setAllOffersBannerUrl(urlData.publicUrl);
+        await saveAllOffersBannerToDb(urlData.publicUrl);
+      }
+    } catch (err: unknown) {
+      console.error('All-offers banner upload failed:', err);
+      showToast('فشل رفع الصورة، يمكنك لصق رابط الصورة مباشرة ثم الضغط على حفظ.');
+    } finally {
+      setIsUploadingAllBanner(false);
+      e.target.value = '';
+    }
   };
 
   // Tab counts for badge indicator on filter tabs
@@ -167,6 +257,94 @@ export function OffersContainer({ initialOffers }: OffersContainerProps) {
           <Plus className="w-4 h-4 stroke-[3]" />
           <span>إضافة عرض ترويجي جديد</span>
         </button>
+      </div>
+
+      {/* All Offers Master Image Card (for intent = "all_offers") */}
+      <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#101726] border border-amber-500/30 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+        <div className="flex items-start gap-3.5 flex-1">
+          <div className="w-24 h-24 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 overflow-hidden shrink-0 flex items-center justify-center relative">
+            {allOffersBannerUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={allOffersBannerUrl}
+                alt="صورة جميع العروض"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <ImageIcon className="w-8 h-8 text-slate-400" />
+            )}
+          </div>
+          <div className="space-y-1.5 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white">
+                صورة جميع العروض المجمعة (تُرسل في الماسنجر عند السؤال عن كل العروض)
+              </h2>
+              <span className="px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-600 dark:text-amber-400 text-[11px] font-bold font-mono">
+                intent: all_offers
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              عندما يسأل العميل &quot;إيه العروض المتاحة؟&quot; بشكل عام، يرسل البوت قائمة العروض مع هذه الصورة المجمعة. أما عند السؤال عن عرض محدد (`single_offer`) فيرسل البوت صورة ذلك العرض من بطاقته بالأسفل.
+            </p>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
+              <input
+                type="text"
+                dir="ltr"
+                value={allOffersBannerUrl}
+                onChange={(e) => setAllOffersBannerUrl(e.target.value)}
+                placeholder="https://... رابط صورة كل العروض أو ارفع صورة من جهازك"
+                className="flex-1 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-amber-500/60"
+              />
+              <input
+                ref={allBannerFileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={handleUploadAllOffersFile}
+              />
+              <button
+                type="button"
+                disabled={isUploadingAllBanner}
+                onClick={() => allBannerFileInputRef.current?.click()}
+                className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition-colors cursor-pointer shrink-0"
+              >
+                {isUploadingAllBanner ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-amber-500" />
+                ) : (
+                  <UploadCloud className="w-4 h-4 text-amber-500" />
+                )}
+                <span>رفع صورة</span>
+              </button>
+              <button
+                type="button"
+                disabled={isSavingAllBanner}
+                onClick={() => saveAllOffersBannerToDb(allOffersBannerUrl)}
+                className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold transition-colors cursor-pointer shrink-0"
+              >
+                {isSavingAllBanner ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
+                <span>حفظ الصورة</span>
+              </button>
+              {allOffersBannerUrl && (
+                <button
+                  type="button"
+                  disabled={isSavingAllBanner}
+                  onClick={() => {
+                    setAllOffersBannerUrl('');
+                    saveAllOffersBannerToDb('');
+                  }}
+                  title="حذف الصورة"
+                  className="inline-flex items-center justify-center p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 transition-colors cursor-pointer shrink-0"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Filter and Search Bar */}
