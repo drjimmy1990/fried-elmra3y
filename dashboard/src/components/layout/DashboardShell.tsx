@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 import { UserRole } from '@/types/database.types';
+import { StaffPermission } from '@/lib/role-guard';
 
 interface DashboardShellProps {
   user: {
@@ -11,6 +12,7 @@ interface DashboardShellProps {
     email: string;
     full_name: string;
     role: UserRole;
+    permissions?: StaffPermission[];
     avatar_url?: string | null;
   };
   restaurantName?: string;
@@ -34,9 +36,10 @@ export function DashboardShell({
 
   return (
     <div className="flex min-h-screen bg-slate-50 text-slate-900 dark:bg-[#090D16] dark:text-slate-100 font-sans transition-colors duration-200">
-      {/* Role-Aware Sidebar */}
+      {/* Role & Permission-Aware Sidebar */}
       <Sidebar
         role={user.role}
+        permissions={user.permissions}
         restaurantName={restaurantName}
         issueOrdersCount={issueOrdersCount}
         openComplaintsCount={openComplaintsCount}

@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { createClient as createSupabaseClient, User } from '@supabase/supabase-js';
 import { Database, UserRole } from '@/types/database.types';
+import {
+  computeDatabaseRoleForPermissions,
+  defaultPermissionsForRole,
+  extractStaffAuth,
+  resolveUserPermissions,
+} from '@/lib/role-guard';
 
 // Helper to initialize service role client when available
 function getAdminClient() {
@@ -20,7 +26,7 @@ function getAdminClient() {
   });
 }
 
-// Security Helper: Verifies the requester is an active admin
+// Security Helper: Verifies the requester is an active staff member with 'team' permission
 async function verifyAdminCaller() {
   const supabase = await createClient();
   const {
@@ -38,14 +44,16 @@ async function verifyAdminCaller() {
     .eq('id', user.id)
     .single();
 
-  if (profileError || !callerProfile || callerProfile.role !== 'admin' || !callerProfile.is_active) {
-    return { error: 'عذراً، هذه العملية مخصصة لمديري النظام النشطين فقط (Admin)', status: 403 };
+  const { permissions, isActive } = extractStaffAuth(user, callerProfile);
+
+  if (profileError || !callerProfile || !isActive || !permissions.includes('team')) {
+    return { error: 'عذراً، هذه العملية مخصصة لمديري فريق العمل النشطين فقط', status: 403 };
   }
 
   return { user, callerProfile, supabase };
 }
 
-// GET /api/team - List all staff profiles with emails
+// GET /api/team - List all staff profiles with emails & granular permissions
 export async function GET() {
   try {
     const authCheck = await verifyAdminCaller();
@@ -67,14 +75,14 @@ export async function GET() {
       return NextResponse.json({ error: fetchError.message }, { status: 500 });
     }
 
-    // 2. Attempt to resolve emails from auth.users if service role is available
-    let emailMap = new Map<string, string>();
+    // 2. Attempt to resolve emails & permissions from auth.users if service role is available
+    const authUserMap = new Map<string, User>();
     if (adminClient) {
       try {
         const { data: authUsers } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
         if (authUsers?.users) {
           authUsers.users.forEach((u) => {
-            if (u.email) emailMap.set(u.id, u.email);
+            authUserMap.set(u.id, u);
           });
         }
       } catch (e) {
@@ -82,10 +90,16 @@ export async function GET() {
       }
     }
 
-    const staff = (profiles || []).map((p) => ({
-      ...p,
-      email: emailMap.get(p.id) || null,
-    }));
+    const staff = (profiles || []).map((p) => {
+      const authUser = authUserMap.get(p.id);
+      const { displayRole, permissions } = extractStaffAuth(authUser, p);
+      return {
+        ...p,
+        role: displayRole,
+        permissions,
+        email: authUser?.email || null,
+      };
+    });
 
     return NextResponse.json({ staff });
   } catch (err: any) {
@@ -94,7 +108,7 @@ export async function GET() {
   }
 }
 
-// POST /api/team - Create a new staff member account
+// POST /api/team - Create a new staff member account with custom permissions
 export async function POST(request: NextRequest) {
   try {
     const authCheck = await verifyAdminCaller();
@@ -106,7 +120,7 @@ export async function POST(request: NextRequest) {
     const adminClient = getAdminClient();
 
     const body = await request.json();
-    const { full_name, email, phone, password, role } = body;
+    const { full_name, email, phone, password, role, permissions: rawPermissions } = body;
 
     // Validation
     if (!full_name || typeof full_name !== 'string' || !full_name.trim()) {
@@ -126,6 +140,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'الدور الوظيفي المحدد غير صالح' }, { status: 400 });
     }
 
+    const effectivePermissions = resolveUserPermissions(role, rawPermissions);
+    const dbRole = computeDatabaseRoleForPermissions(role, effectivePermissions);
+
     const cleanEmail = email.trim().toLowerCase();
     const cleanName = full_name.trim();
     const cleanPhone = phone && typeof phone === 'string' ? phone.trim() : null;
@@ -133,7 +150,6 @@ export async function POST(request: NextRequest) {
     let createdUserId: string | null = null;
 
     if (adminClient) {
-      // Create user via Admin Auth API (bypasses rate limit and auto-confirms email)
       const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
         email: cleanEmail,
         password: password,
@@ -141,10 +157,14 @@ export async function POST(request: NextRequest) {
         user_metadata: {
           full_name: cleanName,
           phone: cleanPhone,
-          role: role,
+          role: dbRole,
+          display_role: role,
+          permissions: effectivePermissions,
         },
         app_metadata: {
-          role: role,
+          role: dbRole,
+          display_role: role,
+          permissions: effectivePermissions,
         },
       });
 
@@ -157,7 +177,6 @@ export async function POST(request: NextRequest) {
 
       createdUserId = authData.user.id;
     } else {
-      // Fallback: standard sign up
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: cleanEmail,
         password: password,
@@ -165,7 +184,9 @@ export async function POST(request: NextRequest) {
           data: {
             full_name: cleanName,
             phone: cleanPhone,
-            role: role,
+            role: dbRole,
+            display_role: role,
+            permissions: effectivePermissions,
           },
         },
       });
@@ -180,14 +201,14 @@ export async function POST(request: NextRequest) {
       createdUserId = authData.user.id;
     }
 
-    // Ensure profiles record is updated with exact desired attributes
+    // Upsert profiles row with dbRole so Supabase RLS permits access to all granted modules
     const dbClient = adminClient || supabase;
     const { data: profile, error: profileError } = await dbClient
       .from('profiles')
       .upsert({
         id: createdUserId,
         full_name: cleanName,
-        role: role,
+        role: dbRole,
         phone: cleanPhone,
         is_active: true,
         updated_at: new Date().toISOString(),
@@ -205,9 +226,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'تم إضافة الموظف بنجاح إلى فريق العمل',
+      message: 'تم إضافة الموظف وتخصيص صلاحياته بنجاح',
       staff: {
         ...profile,
+        role,
+        permissions: effectivePermissions,
         email: cleanEmail,
       },
     });
@@ -217,7 +240,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// PATCH /api/team - Update staff role or active status
+// PATCH /api/team - Update staff role, granular permissions, or active status
 export async function PATCH(request: NextRequest) {
   try {
     const authCheck = await verifyAdminCaller();
@@ -229,13 +252,13 @@ export async function PATCH(request: NextRequest) {
     const adminClient = getAdminClient();
 
     const body = await request.json();
-    const { id, role, is_active } = body;
+    const { id, role, permissions: rawPermissions, is_active } = body;
 
     if (!id || typeof id !== 'string') {
       return NextResponse.json({ error: 'معرف الموظف (id) مطلوب' }, { status: 400 });
     }
 
-    // Protection Guards: Current Admin cannot deactivate or demote self
+    // Protection Guards: Current Admin cannot deactivate self or remove 'team' permission from self
     if (id === user.id) {
       if (is_active === false) {
         return NextResponse.json(
@@ -249,19 +272,58 @@ export async function PATCH(request: NextRequest) {
           { status: 400 }
         );
       }
+      if (Array.isArray(rawPermissions) && !rawPermissions.includes('team')) {
+        return NextResponse.json(
+          { error: 'لا يمكنك سحب صلاحية إدارة فريق العمل عن حسابك الشخصي الحالي' },
+          { status: 400 }
+        );
+      }
     }
+
+    const dbClient = adminClient || supabase;
+    const { data: existingProfile } = await dbClient
+      .from('profiles')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (!existingProfile) {
+      return NextResponse.json({ error: 'الموظف غير موجود' }, { status: 404 });
+    }
+
+    let existingAuthUser: User | null = null;
+    if (adminClient) {
+      try {
+        const { data: uData } = await adminClient.auth.admin.getUserById(id);
+        existingAuthUser = uData?.user || null;
+      } catch {
+        // Ignore
+      }
+    }
+
+    const currentAuth = extractStaffAuth(existingAuthUser, existingProfile);
+    const validRoles: UserRole[] = ['admin', 'order_agent', 'support_agent'];
+
+    const nextDisplayRole: UserRole =
+      role !== undefined
+        ? validRoles.includes(role)
+          ? role
+          : currentAuth.displayRole
+        : currentAuth.displayRole;
+
+    const nextPermissions =
+      rawPermissions !== undefined
+        ? resolveUserPermissions(nextDisplayRole, rawPermissions)
+        : role !== undefined
+        ? defaultPermissionsForRole(nextDisplayRole)
+        : currentAuth.permissions;
+
+    const nextDbRole = computeDatabaseRoleForPermissions(nextDisplayRole, nextPermissions);
 
     const updates: Partial<Database['public']['Tables']['profiles']['Update']> = {
       updated_at: new Date().toISOString(),
+      role: nextDbRole,
     };
-
-    if (role !== undefined) {
-      const validRoles: UserRole[] = ['admin', 'order_agent', 'support_agent'];
-      if (!validRoles.includes(role)) {
-        return NextResponse.json({ error: 'الدور الوظيفي غير صالح' }, { status: 400 });
-      }
-      updates.role = role;
-    }
 
     if (is_active !== undefined) {
       if (typeof is_active !== 'boolean') {
@@ -270,7 +332,6 @@ export async function PATCH(request: NextRequest) {
       updates.is_active = is_active;
     }
 
-    const dbClient = adminClient || supabase;
     const { data: updatedProfile, error: updateError } = await dbClient
       .from('profiles')
       .update(updates)
@@ -282,12 +343,22 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: updateError.message }, { status: 500 });
     }
 
-    // Sync app_metadata role if adminClient is available
-    if (adminClient && role) {
+    // Sync app_metadata & user_metadata with display_role and permissions
+    if (adminClient) {
       try {
         await adminClient.auth.admin.updateUserById(id, {
-          app_metadata: { role },
-          user_metadata: { role },
+          app_metadata: {
+            ...(existingAuthUser?.app_metadata || {}),
+            role: nextDbRole,
+            display_role: nextDisplayRole,
+            permissions: nextPermissions,
+          },
+          user_metadata: {
+            ...(existingAuthUser?.user_metadata || {}),
+            role: nextDbRole,
+            display_role: nextDisplayRole,
+            permissions: nextPermissions,
+          },
         });
       } catch (err) {
         console.warn('Could not update user metadata in auth:', err);
@@ -296,8 +367,12 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'تم تحديث بيانات الموظف بنجاح',
-      staff: updatedProfile,
+      message: 'تم تحديث بيانات وصلاحيات الموظف بنجاح',
+      staff: {
+        ...updatedProfile,
+        role: nextDisplayRole,
+        permissions: nextPermissions,
+      },
     });
   } catch (err: any) {
     console.error('PATCH /api/team error:', err);
@@ -332,12 +407,10 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'معرف الموظف (id) مطلوب للحذف' }, { status: 400 });
     }
 
-    // Protection Guard: Cannot delete self
     if (targetId === user.id) {
       return NextResponse.json({ error: 'لا يمكنك حذف حسابك الشخصي الحالي' }, { status: 400 });
     }
 
-    // Check target exists
     const dbClient = adminClient || supabase;
     const { data: targetProfile } = await dbClient
       .from('profiles')
@@ -349,7 +422,6 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'الموظف غير موجود أو تم حذفه مسبقاً' }, { status: 404 });
     }
 
-    // Delete from auth.users (cascades to profiles) if adminClient available
     if (adminClient) {
       const { error: deleteAuthError } = await adminClient.auth.admin.deleteUser(targetId);
       if (deleteAuthError) {
@@ -357,7 +429,6 @@ export async function DELETE(request: NextRequest) {
       }
     }
 
-    // Also delete profile record directly in case cascade is not set or in client mode
     const { error: deleteProfileError } = await dbClient
       .from('profiles')
       .delete()

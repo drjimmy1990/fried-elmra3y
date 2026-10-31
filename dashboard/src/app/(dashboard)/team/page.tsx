@@ -2,10 +2,11 @@ import React from 'react';
 import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { createClient as createSupabaseClient, User } from '@supabase/supabase-js';
 import { TeamManager } from '@/components/team/TeamManager';
 import { StaffMember } from '@/components/team/types';
 import { Database } from '@/types/database.types';
+import { extractStaffAuth, homeRouteForRole } from '@/lib/role-guard';
 
 export const metadata: Metadata = {
   title: 'إدارة فريق العمل والصلاحيات | لوحة التحكم',
@@ -17,7 +18,7 @@ export const revalidate = 0; // Dynamic server component
 export default async function TeamPage() {
   const supabase = await createClient();
 
-  // 1. RBAC Guard: Strictly restricted to active admin
+  // 1. RBAC Guard: Restricted to staff with 'team' permission
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -32,8 +33,10 @@ export default async function TeamPage() {
     .eq('id', user.id)
     .single();
 
-  if (!profile || profile.role !== 'admin' || !profile.is_active) {
-    redirect('/dashboard');
+  const { displayRole, permissions, isActive } = extractStaffAuth(user, profile);
+
+  if (!profile || !isActive || !permissions.includes('team')) {
+    redirect(homeRouteForRole(displayRole, permissions));
   }
 
   // 2. Fetch staff profiles
@@ -46,11 +49,9 @@ export default async function TeamPage() {
     console.error('Failed to fetch team profiles:', fetchError);
   }
 
-  // 3. Resolve emails if admin service role is configured
-  let emailMap = new Map<string, string>();
-  if (user.email) {
-    emailMap.set(user.id, user.email);
-  }
+  // 3. Resolve emails & custom permissions from auth.users via service role
+  const authUserMap = new Map<string, User>();
+  authUserMap.set(user.id, user);
 
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -63,7 +64,7 @@ export default async function TeamPage() {
       const { data: authUsers } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
       if (authUsers?.users) {
         authUsers.users.forEach((u) => {
-          if (u.email) emailMap.set(u.id, u.email);
+          authUserMap.set(u.id, u);
         });
       }
     } catch (e) {
@@ -71,10 +72,16 @@ export default async function TeamPage() {
     }
   }
 
-  const initialStaff: StaffMember[] = (rawProfiles || []).map((p) => ({
-    ...p,
-    email: emailMap.get(p.id) || null,
-  }));
+  const initialStaff: StaffMember[] = (rawProfiles || []).map((p) => {
+    const authUser = authUserMap.get(p.id);
+    const { displayRole: staffRole, permissions: staffPerms } = extractStaffAuth(authUser, p);
+    return {
+      ...p,
+      role: staffRole,
+      permissions: staffPerms,
+      email: authUser?.email || null,
+    };
+  });
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">

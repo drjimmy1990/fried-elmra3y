@@ -20,8 +20,18 @@ import {
   ChevronDown,
   UserCheck,
   UserX,
+  SlidersHorizontal,
+  ShieldCheck,
+  X,
 } from 'lucide-react';
 import { StaffMember, UserRole, StaffRoleFilter, ROLE_CONFIGS } from './types';
+import {
+  PERMISSION_DEFINITIONS,
+  StaffPermission,
+  defaultPermissionsForRole,
+  resolveUserPermissions,
+  ALL_STAFF_PERMISSIONS,
+} from '@/lib/role-guard';
 import { InviteStaffModal } from './InviteStaffModal';
 import { cn } from '@/lib/utils';
 
@@ -41,8 +51,74 @@ export function TeamManager({ initialStaff, currentUserId }: TeamManagerProps) {
   const [staffToDelete, setStaffToDelete] = useState<StaffMember | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Edit Granular Permissions Modal State
+  const [staffToEditPerms, setStaffToEditPerms] = useState<StaffMember | null>(null);
+  const [editRole, setEditRole] = useState<UserRole>('order_agent');
+  const [editPermissions, setEditPermissions] = useState<StaffPermission[]>([]);
+  const [isSavingPerms, setIsSavingPerms] = useState(false);
+
   // Active updating tracker to avoid duplicate clicks
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  const openEditPermissionsModal = (staff: StaffMember) => {
+    setStaffToEditPerms(staff);
+    setEditRole(staff.role);
+    setEditPermissions(resolveUserPermissions(staff.role, staff.permissions));
+  };
+
+  const handleToggleEditPermission = (permKey: StaffPermission) => {
+    setEditPermissions((prev) =>
+      prev.includes(permKey) ? prev.filter((p) => p !== permKey) : [...prev, permKey]
+    );
+  };
+
+  const handleSavePermissions = async () => {
+    if (!staffToEditPerms) return;
+    if (editPermissions.length === 0) {
+      showToast('error', 'يرجى تحديد صلاحية واحدة على الأقل للموظف');
+      return;
+    }
+    if (staffToEditPerms.id === currentUserId && !editPermissions.includes('team')) {
+      showToast('error', 'لا يمكنك سحب صلاحية إدارة فريق العمل عن حسابك الشخصي الحالي');
+      return;
+    }
+
+    setIsSavingPerms(true);
+    try {
+      const res = await fetch('/api/team', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: staffToEditPerms.id,
+          role: editRole,
+          permissions: editPermissions,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'فشل حفظ الصلاحيات المخصصة');
+      }
+
+      setStaffList((prev) =>
+        prev.map((s) =>
+          s.id === staffToEditPerms.id
+            ? {
+                ...s,
+                role: editRole,
+                permissions: editPermissions,
+              }
+            : s
+        )
+      );
+      showToast('success', `تم تحديث صلاحيات (${staffToEditPerms.full_name}) بنجاح ✅`);
+      setStaffToEditPerms(null);
+    } catch (err: any) {
+      showToast('error', err.message || 'حدث خطأ أثناء حفظ الصلاحيات');
+    } finally {
+      setIsSavingPerms(false);
+    }
+  };
 
   const showToast = (type: 'success' | 'error', text: string) => {
     setToastMessage({ type, text });
@@ -112,18 +188,26 @@ export function TeamManager({ initialStaff, currentUserId }: TeamManagerProps) {
     }
 
     const previousRole = targetStaff.role;
+    const previousPerms = targetStaff.permissions;
+    const newDefaultPerms = defaultPermissionsForRole(newRole);
     setUpdatingId(targetStaff.id);
 
     // Optimistic Update
     setStaffList((prev) =>
-      prev.map((s) => (s.id === targetStaff.id ? { ...s, role: newRole } : s))
+      prev.map((s) =>
+        s.id === targetStaff.id ? { ...s, role: newRole, permissions: newDefaultPerms } : s
+      )
     );
 
     try {
       const res = await fetch('/api/team', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: targetStaff.id, role: newRole }),
+        body: JSON.stringify({
+          id: targetStaff.id,
+          role: newRole,
+          permissions: newDefaultPerms,
+        }),
       });
 
       const data = await res.json();
@@ -135,7 +219,9 @@ export function TeamManager({ initialStaff, currentUserId }: TeamManagerProps) {
     } catch (err: any) {
       // Rollback on failure
       setStaffList((prev) =>
-        prev.map((s) => (s.id === targetStaff.id ? { ...s, role: previousRole } : s))
+        prev.map((s) =>
+          s.id === targetStaff.id ? { ...s, role: previousRole, permissions: previousPerms } : s
+        )
       );
       showToast('error', err.message || 'حدث خطأ أثناء تغيير الدور');
     } finally {
@@ -475,31 +561,67 @@ export function TeamManager({ initialStaff, currentUserId }: TeamManagerProps) {
                         </div>
                       </td>
 
-                      {/* Role Dropdown / Selector */}
+                      {/* Role Dropdown & Granular Permissions Badges */}
                       <td className="py-4 px-6">
-                        <div className="flex items-center gap-2">
-                          <div className="relative inline-block text-right">
-                            <select
-                              disabled={isBusy || (isCurrent && staff.role === 'admin')}
-                              value={staff.role}
-                              onChange={(e) => handleRoleChange(staff, e.target.value as UserRole)}
-                              className={cn(
-                                'appearance-none font-bold text-xs rounded-xl px-3 py-1.5 pr-8 border transition cursor-pointer outline-none',
-                                roleConfig.badgeClass,
-                                isCurrent && staff.role === 'admin' && 'cursor-not-allowed opacity-90'
-                              )}
+                        <div className="space-y-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <div className="relative inline-block text-right">
+                              <select
+                                disabled={isBusy || (isCurrent && staff.role === 'admin')}
+                                value={staff.role}
+                                onChange={(e) => handleRoleChange(staff, e.target.value as UserRole)}
+                                className={cn(
+                                  'appearance-none font-bold text-xs rounded-xl px-3 py-1.5 pr-8 border transition cursor-pointer outline-none',
+                                  roleConfig.badgeClass,
+                                  isCurrent && staff.role === 'admin' && 'cursor-not-allowed opacity-90'
+                                )}
+                              >
+                                <option value="admin" className="bg-white dark:bg-slate-900 text-amber-700 dark:text-amber-300">
+                                  مدير النظام 👑
+                                </option>
+                                <option value="order_agent" className="bg-white dark:bg-slate-900 text-blue-700 dark:text-blue-300">
+                                  مسؤول الطلبات 🍕
+                                </option>
+                                <option value="support_agent" className="bg-white dark:bg-slate-900 text-purple-700 dark:text-purple-300">
+                                  خدمة العملاء 🎧
+                                </option>
+                              </select>
+                              <ChevronDown className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none opacity-60" />
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => openEditPermissionsModal(staff)}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-bold bg-slate-100 dark:bg-slate-800/80 hover:bg-amber-500/15 text-slate-700 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 border border-slate-200 dark:border-slate-700 hover:border-amber-500/40 transition"
+                              title="تخصيص الصفحات والصلاحيات المسموحة لهذا الموظف"
                             >
-                              <option value="admin" className="bg-white dark:bg-slate-900 text-amber-700 dark:text-amber-300">
-                                مدير النظام 👑
-                              </option>
-                              <option value="order_agent" className="bg-white dark:bg-slate-900 text-blue-700 dark:text-blue-300">
-                                مسؤول الطلبات 🍕
-                              </option>
-                              <option value="support_agent" className="bg-white dark:bg-slate-900 text-purple-700 dark:text-purple-300">
-                                خدمة العملاء 🎧
-                              </option>
-                            </select>
-                            <ChevronDown className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none opacity-60" />
+                              <SlidersHorizontal className="w-3.5 h-3.5" />
+                              <span>تخصيص الصلاحيات</span>
+                            </button>
+                          </div>
+
+                          {/* Active Permission Badges */}
+                          <div className="flex flex-wrap items-center gap-1 max-w-md">
+                            {(() => {
+                              const activePerms = resolveUserPermissions(staff.role, staff.permissions);
+                              if (activePerms.length === ALL_STAFF_PERMISSIONS.length) {
+                                return (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
+                                    ✨ جميع أقسام النظام ({ALL_STAFF_PERMISSIONS.length})
+                                  </span>
+                                );
+                              }
+                              return PERMISSION_DEFINITIONS.filter((p) =>
+                                activePerms.includes(p.key)
+                              ).map((perm) => (
+                                <span
+                                  key={perm.key}
+                                  className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-slate-100 dark:bg-slate-800/90 text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700/70"
+                                >
+                                  {perm.label}
+                                </span>
+                              ));
+                            })()}
                           </div>
                         </div>
                       </td>
@@ -550,19 +672,26 @@ export function TeamManager({ initialStaff, currentUserId }: TeamManagerProps) {
 
                       {/* Actions */}
                       <td className="py-4 px-6 text-center">
-                        {!isCurrent && (
+                        <div className="flex items-center justify-center gap-1">
                           <button
                             type="button"
-                            onClick={() => setStaffToDelete(staff)}
-                            title="حذف الموظف"
-                            className="p-2 rounded-xl text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition"
+                            onClick={() => openEditPermissionsModal(staff)}
+                            title="تعديل الصلاحيات المخصصة"
+                            className="p-2 rounded-xl text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10 transition"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <SlidersHorizontal className="w-4 h-4" />
                           </button>
-                        )}
-                        {isCurrent && (
-                          <span className="text-slate-400 dark:text-slate-600 text-xs">-</span>
-                        )}
+                          {!isCurrent && (
+                            <button
+                              type="button"
+                              onClick={() => setStaffToDelete(staff)}
+                              title="حذف الموظف"
+                              className="p-2 rounded-xl text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -579,6 +708,171 @@ export function TeamManager({ initialStaff, currentUserId }: TeamManagerProps) {
         onClose={() => setIsInviteModalOpen(false)}
         onStaffAdded={handleStaffAdded}
       />
+
+      {/* Edit Granular Permissions Modal */}
+      {staffToEditPerms && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setStaffToEditPerms(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 dark:bg-slate-950/80 backdrop-blur-xs animate-in fade-in duration-150"
+        >
+          <div
+            className="w-full max-w-2xl max-h-[90vh] flex flex-col bg-white dark:bg-[#101726] border border-slate-200/90 dark:border-slate-700/80 rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-800 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                    تخصيص صلاحيات الموظف: {staffToEditPerms.full_name}
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    اختر الأقسام والصفحات التي يُسمح لهذا الموظف بالوصول إليها وإدارتها (مثل: الطلبات + الشكاوى + العروض)
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setStaffToEditPerms(null)}
+                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 flex items-center justify-center transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 space-y-5 overflow-y-auto">
+              {/* Role Preset Selector */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
+                  المسمى الوظيفي للموظف:
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  {(['order_agent', 'support_agent', 'admin'] as UserRole[]).map((rKey) => {
+                    const cfg = ROLE_CONFIGS[rKey];
+                    const isSelected = editRole === rKey;
+                    const disabledRole = staffToEditPerms.id === currentUserId && rKey !== 'admin';
+                    return (
+                      <button
+                        key={rKey}
+                        type="button"
+                        disabled={disabledRole}
+                        onClick={() => {
+                          setEditRole(rKey);
+                          setEditPermissions(defaultPermissionsForRole(rKey));
+                        }}
+                        className={cn(
+                          'flex items-center justify-between p-3 rounded-2xl border text-right transition',
+                          isSelected
+                            ? cfg.badgeClass + ' font-bold shadow-xs'
+                            : 'bg-slate-50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60',
+                          disabledRole && 'opacity-40 cursor-not-allowed'
+                        )}
+                      >
+                        <span className="text-xs font-bold">{cfg.label}</span>
+                        {isSelected && <Check className="w-4 h-4 shrink-0" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Granular Checkboxes */}
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-slate-900 dark:text-white">
+                    الأقسام والصلاحيات المفعلة ({editPermissions.length} من {ALL_STAFF_PERMISSIONS.length})
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditPermissions([...ALL_STAFF_PERMISSIONS])}
+                      className="text-[11px] font-bold text-amber-600 dark:text-amber-400 hover:underline"
+                    >
+                      تحديد كل الصلاحيات
+                    </button>
+                    <span className="text-slate-300 dark:text-slate-700">|</span>
+                    <button
+                      type="button"
+                      onClick={() => setEditPermissions(defaultPermissionsForRole(editRole))}
+                      className="text-[11px] font-bold text-slate-500 dark:text-slate-400 hover:underline"
+                    >
+                      إعادة لافتراضي الدور
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {PERMISSION_DEFINITIONS.map((perm) => {
+                    const isChecked = editPermissions.includes(perm.key);
+                    const isSelfTeamLock =
+                      staffToEditPerms.id === currentUserId && perm.key === 'team';
+
+                    return (
+                      <button
+                        key={perm.key}
+                        type="button"
+                        disabled={isSelfTeamLock}
+                        onClick={() => handleToggleEditPermission(perm.key)}
+                        className={cn(
+                          'flex items-start gap-3 p-3 rounded-2xl border text-right transition-all',
+                          isChecked
+                            ? 'bg-emerald-500/10 border-emerald-500/40 text-slate-900 dark:text-white shadow-2xs'
+                            : 'bg-slate-50/70 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700',
+                          isSelfTeamLock && 'opacity-75 cursor-not-allowed'
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            'w-4 h-4 rounded-md mt-0.5 flex items-center justify-center shrink-0 border transition',
+                            isChecked
+                              ? 'bg-emerald-500 border-emerald-500 text-white'
+                              : 'border-slate-300 dark:border-slate-700 bg-transparent'
+                          )}
+                        >
+                          {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold leading-tight">{perm.label}</div>
+                          <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
+                            {perm.description}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-3 p-6 border-t border-slate-200 dark:border-slate-800 shrink-0">
+              <button
+                type="button"
+                disabled={isSavingPerms}
+                onClick={() => setStaffToEditPerms(null)}
+                className="px-5 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+              >
+                إلغاء
+              </button>
+              <button
+                type="button"
+                disabled={isSavingPerms}
+                onClick={handleSavePermissions}
+                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold text-slate-950 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 shadow-lg shadow-amber-500/20 transition disabled:opacity-50"
+              >
+                <ShieldCheck className="w-4 h-4" />
+                {isSavingPerms ? 'جارِ حفظ الصلاحيات...' : 'حفظ الصلاحيات المخصصة'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete Confirmation Modal */}
       {staffToDelete && (

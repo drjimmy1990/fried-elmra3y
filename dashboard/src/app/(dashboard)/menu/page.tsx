@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { MenuManager } from '@/components/menu/MenuManager';
 import { FileText, Sparkles } from 'lucide-react';
+import { extractStaffAuth, homeRouteForRole } from '@/lib/role-guard';
 
 export const metadata: Metadata = {
   title: 'المنيو | لوحة التحكم',
@@ -29,8 +30,9 @@ export default async function MenuPage() {
     .eq('id', user.id)
     .single();
 
-  if (!profile || profile.role !== 'admin' || !profile.is_active) {
-    redirect('/dashboard');
+  const { displayRole, permissions, isActive } = extractStaffAuth(user, profile);
+  if (!profile || !isActive || !permissions.includes('menu')) {
+    redirect(homeRouteForRole(displayRole, permissions));
   }
 
   const { data: settings } = await supabase

@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { BotSettingsForm } from '@/components/settings/BotSettingsForm';
 import { Sliders, Sparkles } from 'lucide-react';
 import { BotSettings } from '@/components/settings/types';
+import { extractStaffAuth, homeRouteForRole } from '@/lib/role-guard';
 
 export const metadata: Metadata = {
   title: 'إعدادات البوت والتشغيل | لوحة التحكم',
@@ -31,8 +32,9 @@ export default async function SettingsPage() {
     .eq('id', user.id)
     .single();
 
-  if (!profile || profile.role !== 'admin' || !profile.is_active) {
-    redirect('/dashboard');
+  const { displayRole, permissions, isActive } = extractStaffAuth(user, profile);
+  if (!profile || !isActive || !permissions.includes('settings')) {
+    redirect(homeRouteForRole(displayRole, permissions));
   }
 
   // 2. Fetch single row from bot_settings or seed default

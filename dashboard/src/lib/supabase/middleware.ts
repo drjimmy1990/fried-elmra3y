@@ -1,8 +1,8 @@
 import { createServerClient } from '@supabase/ssr';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { NextResponse, type NextRequest } from 'next/server';
-import { Database, UserRole } from '@/types/database.types';
-import { homeRouteForRole, isRouteAllowed } from '@/lib/role-guard';
+import { Database } from '@/types/database.types';
+import { extractStaffAuth, homeRouteForRole, isRouteAllowed } from '@/lib/role-guard';
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -63,8 +63,10 @@ export async function updateSession(request: NextRequest) {
   const { data: profile } = await supabase.from('profiles').select('role, is_active').eq('id', user.id).single();
   if (!profile || !profile.is_active) return redirectTo('/login', '?error=account_deactivated');
 
-  const role: UserRole = profile.role;
-  if (!isRouteAllowed(role, pathname, true)) return redirectTo(homeRouteForRole(role));
+  const { displayRole, permissions } = extractStaffAuth(user, profile);
+  if (!isRouteAllowed(displayRole, pathname, true, permissions)) {
+    return redirectTo(homeRouteForRole(displayRole, permissions));
+  }
 
   return supabaseResponse;
 }

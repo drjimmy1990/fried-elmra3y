@@ -14,14 +14,15 @@ import {
   Users,
   Settings,
   X,
-  Drumstick,
   Radio,
   Building2,
 } from 'lucide-react';
 import { UserRole } from '@/types/database.types';
+import { StaffPermission, defaultPermissionsForRole } from '@/lib/role-guard';
 
 interface SidebarProps {
   role: UserRole;
+  permissions?: StaffPermission[];
   restaurantName?: string;
   issueOrdersCount?: number;
   openComplaintsCount?: number;
@@ -35,6 +36,7 @@ type BadgeKind = 'orders' | 'complaints' | 'chat';
 interface NavItem {
   title: string;
   href: string;
+  permission: StaffPermission;
   icon: React.ComponentType<{ className?: string }>;
   roles: UserRole[];
   badge?: BadgeKind;
@@ -43,10 +45,18 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { title: 'الرئيسية', href: '/dashboard', icon: LayoutDashboard, roles: ['admin'], section: 'غرفة العمليات' },
+  {
+    title: 'الرئيسية',
+    href: '/dashboard',
+    permission: 'overview',
+    icon: LayoutDashboard,
+    roles: ['admin'],
+    section: 'غرفة العمليات',
+  },
   {
     title: 'الطلبات',
     href: '/dashboard/orders',
+    permission: 'orders',
     icon: ShoppingBag,
     roles: ['admin', 'order_agent'],
     badge: 'orders',
@@ -56,6 +66,7 @@ const NAV_ITEMS: NavItem[] = [
   {
     title: 'الشكاوى',
     href: '/dashboard/complaints',
+    permission: 'complaints',
     icon: AlertCircle,
     roles: ['admin', 'support_agent'],
     badge: 'complaints',
@@ -65,8 +76,9 @@ const NAV_ITEMS: NavItem[] = [
   {
     title: 'المحادثات',
     href: '/dashboard/chat',
+    permission: 'chat',
     icon: MessageSquare,
-    roles: ['admin'], // Strictly admin only per owner requirement
+    roles: ['admin'],
     badge: 'chat',
     badgeTitle: 'عملاء طالبين موظف',
     section: 'غرفة العمليات',
@@ -74,16 +86,59 @@ const NAV_ITEMS: NavItem[] = [
   {
     title: 'التعليقات',
     href: '/dashboard/comments',
+    permission: 'comments',
     icon: MessagesSquare,
     roles: ['admin', 'support_agent'],
     section: 'غرفة العمليات',
   },
-  { title: 'الفروع والتوصيل', href: '/dashboard/branches', icon: Building2, roles: ['admin'], section: 'إدارة المطعم' },
-  { title: 'المنيو', href: '/dashboard/menu', icon: BookOpen, roles: ['admin'], section: 'إدارة المطعم' },
-  { title: 'العروض', href: '/dashboard/offers', icon: Sparkles, roles: ['admin'], section: 'إدارة المطعم' },
-  { title: 'القنوات والربط', href: '/dashboard/channels', icon: Radio, roles: ['admin'], section: 'إعدادات النظام' },
-  { title: 'فريق العمل', href: '/dashboard/team', icon: Users, roles: ['admin'], section: 'إعدادات النظام' },
-  { title: 'الإعدادات العامة', href: '/dashboard/settings', icon: Settings, roles: ['admin'], section: 'إعدادات النظام' },
+  {
+    title: 'الفروع والتوصيل',
+    href: '/dashboard/branches',
+    permission: 'branches',
+    icon: Building2,
+    roles: ['admin'],
+    section: 'إدارة المطعم',
+  },
+  {
+    title: 'المنيو',
+    href: '/dashboard/menu',
+    permission: 'menu',
+    icon: BookOpen,
+    roles: ['admin'],
+    section: 'إدارة المطعم',
+  },
+  {
+    title: 'العروض',
+    href: '/dashboard/offers',
+    permission: 'offers',
+    icon: Sparkles,
+    roles: ['admin'],
+    section: 'إدارة المطعم',
+  },
+  {
+    title: 'القنوات والربط',
+    href: '/dashboard/channels',
+    permission: 'channels',
+    icon: Radio,
+    roles: ['admin'],
+    section: 'إعدادات النظام',
+  },
+  {
+    title: 'فريق العمل',
+    href: '/dashboard/team',
+    permission: 'team',
+    icon: Users,
+    roles: ['admin'],
+    section: 'إعدادات النظام',
+  },
+  {
+    title: 'الإعدادات العامة',
+    href: '/dashboard/settings',
+    permission: 'settings',
+    icon: Settings,
+    roles: ['admin'],
+    section: 'إعدادات النظام',
+  },
 ];
 
 const BADGE_STYLES: Record<BadgeKind, string> = {
@@ -94,6 +149,7 @@ const BADGE_STYLES: Record<BadgeKind, string> = {
 
 export function Sidebar({
   role,
+  permissions,
   restaurantName = 'تشيكن مراعي',
   issueOrdersCount = 0,
   openComplaintsCount = 0,
@@ -103,8 +159,11 @@ export function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname();
 
-  // Filter links visible to the current role
-  const visibleItems = NAV_ITEMS.filter((item) => item.roles.includes(role));
+  const activePermissions =
+    permissions && permissions.length > 0 ? permissions : defaultPermissionsForRole(role);
+
+  // Filter links visible to the user's explicit permissions
+  const visibleItems = NAV_ITEMS.filter((item) => activePermissions.includes(item.permission));
 
   return (
     <>

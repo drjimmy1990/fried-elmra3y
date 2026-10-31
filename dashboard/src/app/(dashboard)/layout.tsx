@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { RealtimeAudioProvider } from '@/components/providers/RealtimeAudioProvider';
 import { DashboardShell } from '@/components/layout/DashboardShell';
-import { UserRole } from '@/types/database.types';
+import { extractStaffAuth } from '@/lib/role-guard';
 
 const DEFAULT_RESTAURANT_NAME = 'تشيكن مراعي';
 
@@ -43,8 +43,9 @@ export default async function DashboardLayout({
     redirect('/login?error=account_deactivated');
   }
 
+  const { displayRole, permissions } = extractStaffAuth(user, profile);
+
   // Operational badge counts + restaurant name + bot status, in parallel.
-  // bot_settings is admin-only under RLS, so non-admins get null → default to "enabled".
   const [
     { count: issueOrdersCount },
     { count: openComplaintsCount },
@@ -76,7 +77,8 @@ export default async function DashboardLayout({
       user.user_metadata?.full_name ||
       user.email?.split('@')[0] ||
       'مستخدم النظام',
-    role: (profile?.role as UserRole) || 'admin',
+    role: displayRole,
+    permissions,
     avatar_url: profile?.avatar_url || user.user_metadata?.avatar_url || null,
   };
 

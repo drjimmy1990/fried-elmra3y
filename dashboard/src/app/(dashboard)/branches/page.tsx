@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { BranchesManager } from '@/components/branches/BranchesManager';
 import { BranchWithZones } from '@/components/branches/types';
+import { extractStaffAuth, homeRouteForRole } from '@/lib/role-guard';
 
 export const metadata: Metadata = {
   title: 'إدارة الفروع ومناطق التوصيل | لوحة التحكم',
@@ -30,8 +31,9 @@ export default async function BranchesPage() {
     .eq('id', user.id)
     .single();
 
-  if (!profile || profile.role !== 'admin' || !profile.is_active) {
-    redirect('/dashboard/orders');
+  const { displayRole, permissions, isActive } = extractStaffAuth(user, profile);
+  if (!profile || !isActive || !permissions.includes('branches')) {
+    redirect(homeRouteForRole(displayRole, permissions));
   }
 
   // 2. Fetch all branches ordered by created_at desc

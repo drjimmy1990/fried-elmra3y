@@ -1,11 +1,13 @@
 import { UserRole } from '@/types/database.types';
+import { StaffPermission } from '@/lib/role-guard';
 
-export type { UserRole };
+export type { UserRole, StaffPermission };
 
 export interface StaffMember {
   id: string;
   full_name: string;
   role: UserRole;
+  permissions?: StaffPermission[];
   avatar_url: string | null;
   phone: string | null;
   email?: string | null;
@@ -22,6 +24,7 @@ export interface InviteStaffInput {
   phone?: string;
   password: string;
   role: UserRole;
+  permissions: StaffPermission[];
 }
 
 export interface RoleConfig {
@@ -51,7 +54,7 @@ export const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
     iconName: 'Pizza',
     badgeClass: 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/30',
     bgLight: 'from-blue-500/20 to-blue-500/5',
-    description: 'استقبال وتجهيز طلبات العملاء وتحديث حالات التوصيل',
+    description: 'استقبال وتجهيز طلبات العملاء وتحديث حالات التوصيل (مع إمكانية تخصيص صلاحيات إضافية)',
   },
   support_agent: {
     role: 'support_agent',
@@ -60,6 +63,6 @@ export const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
     iconName: 'Headphones',
     badgeClass: 'bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/30',
     bgLight: 'from-purple-500/20 to-purple-500/5',
-    description: 'معالجة الشكاوى والبلاغات، المحادثات المباشرة ومساعدة العملاء',
+    description: 'معالجة الشكاوى والبلاغات والتعليقات (مع إمكانية تخصيص صلاحيات إضافية)',
   },
 };

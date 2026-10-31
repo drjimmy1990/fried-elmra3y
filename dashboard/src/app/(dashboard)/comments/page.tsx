@@ -5,6 +5,7 @@ import { MessagesSquare } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { CommentsCenter } from '@/components/comments/CommentsCenter';
 import type { CommentSettings } from '@/components/comments/types';
+import { extractStaffAuth, homeRouteForRole } from '@/lib/role-guard';
 
 export const metadata: Metadata = {
   title: 'التعليقات',
@@ -43,8 +44,9 @@ export default async function CommentsPage() {
   if (!user) redirect('/login');
 
   const { data: profile } = await supabase.from('profiles').select('role, is_active').eq('id', user.id).single();
-  if (!profile || !profile.is_active || (profile.role !== 'admin' && profile.role !== 'support_agent')) {
-    redirect('/dashboard');
+  const { displayRole, permissions, isActive } = extractStaffAuth(user, profile);
+  if (!profile || !isActive || !permissions.includes('comments')) {
+    redirect(homeRouteForRole(displayRole, permissions));
   }
 
   const since = new Date();

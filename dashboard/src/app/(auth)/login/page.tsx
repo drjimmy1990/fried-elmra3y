@@ -3,6 +3,7 @@
 import React, { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { extractStaffAuth, homeRouteForRole } from '@/lib/role-guard';
 import {
   Drumstick,
   Lock,
@@ -56,14 +57,8 @@ function LoginForm() {
           return;
         }
 
-        const role = profile?.role || 'order_agent';
-        if (role === 'order_agent') {
-          router.push('/dashboard/orders');
-        } else if (role === 'support_agent') {
-          router.push('/dashboard/complaints');
-        } else {
-          router.push('/dashboard');
-        }
+        const { displayRole, permissions } = extractStaffAuth(data.user, profile);
+        router.push(homeRouteForRole(displayRole, permissions));
         router.refresh();
       }
     } catch (err: unknown) {

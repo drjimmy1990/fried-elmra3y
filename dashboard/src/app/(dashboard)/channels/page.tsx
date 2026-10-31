@@ -9,6 +9,7 @@ import { toPublicMetaApp } from '@/lib/meta/channels';
 import { oauthRedirectUri } from '@/lib/site-url';
 import { ChannelsManager } from '@/components/channels/ChannelsManager';
 import type { MetaAppView, ChannelView } from '@/components/channels/types';
+import { extractStaffAuth, homeRouteForRole } from '@/lib/role-guard';
 
 export const metadata: Metadata = {
   title: 'القنوات وربط الصفحات',
@@ -28,7 +29,10 @@ export default async function ChannelsPage({
   if (!user) redirect('/login');
 
   const { data: profile } = await supabase.from('profiles').select('role, is_active').eq('id', user.id).single();
-  if (!profile || profile.role !== 'admin' || !profile.is_active) redirect('/dashboard');
+  const { displayRole, permissions, isActive } = extractStaffAuth(user, profile);
+  if (!profile || !isActive || !permissions.includes('channels')) {
+    redirect(homeRouteForRole(displayRole, permissions));
+  }
 
   let initialApps: MetaAppView[] = [];
   let initialChannels: ChannelView[] = [];

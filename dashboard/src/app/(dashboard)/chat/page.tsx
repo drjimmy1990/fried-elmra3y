@@ -3,6 +3,7 @@ import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { ChatContainer } from '@/components/chat/ChatContainer';
+import { extractStaffAuth, homeRouteForRole } from '@/lib/role-guard';
 import {
   ContactWithLatestMessage,
   ContactRow,
@@ -44,8 +45,9 @@ export default async function ChatPage({ searchParams }: ChatPageProps) {
     .eq('id', user.id)
     .single();
 
-  if (!profile || profile.role !== 'admin' || !profile.is_active) {
-    redirect('/dashboard/orders');
+  const { displayRole, permissions, isActive } = extractStaffAuth(user, profile);
+  if (!profile || !isActive || !permissions.includes('chat')) {
+    redirect(homeRouteForRole(displayRole, permissions));
   }
 
   // 1. Fetch contacts ordered by last_interaction_at desc limit 100
