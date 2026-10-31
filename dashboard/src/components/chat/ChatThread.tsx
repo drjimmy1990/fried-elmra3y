@@ -41,6 +41,7 @@ export function ChatThread({
   const [inputText, setInputText] = useState('');
   const [cannedReplies, setCannedReplies] = useState<QuickReply[]>(DEFAULT_CANNED_REPLIES);
   const [isCannedModalOpen, setIsCannedModalOpen] = useState(false);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -63,14 +64,24 @@ export function ChatThread({
     } catch (e) {}
   };
 
-  // Auto-scroll to bottom whenever messages change or loading completes
+  // Auto-scroll messages container only (never the outer browser window)
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
-    messagesEndRef.current?.scrollIntoView({ behavior });
+    const container = messagesContainerRef.current;
+    if (container) {
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior,
+      });
+    }
   };
 
   useEffect(() => {
+    scrollToBottom('auto');
+  }, [contact?.id, isLoadingMessages]);
+
+  useEffect(() => {
     scrollToBottom('smooth');
-  }, [messages.length, isLoadingMessages]);
+  }, [messages.length]);
 
   // Focus textarea when contact changes
   useEffect(() => {
@@ -126,7 +137,7 @@ export function ChatThread({
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-white dark:bg-[#0E1523] min-w-0 overflow-hidden transition-colors">
+    <div className="flex-1 flex flex-col h-full max-h-full min-h-0 bg-white dark:bg-[#0E1523] min-w-0 overflow-hidden transition-colors">
       {/* 1. Thread Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-3.5 border-b border-slate-200/80 dark:border-slate-800/80 bg-slate-50/80 dark:bg-slate-950/70 backdrop-blur-xs shrink-0">
         <div className="flex items-center gap-3 min-w-0">
@@ -321,7 +332,10 @@ export function ChatThread({
       )}
 
       {/* 3. Messages Stream Area */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-800 bg-slate-50/40 dark:bg-slate-950/40">
+      <div
+        ref={messagesContainerRef}
+        className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-4 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-800 bg-slate-50/40 dark:bg-slate-950/40"
+      >
         {isLoadingMessages ? (
           <div className="flex flex-col items-center justify-center h-48 space-y-2 text-slate-400">
             <Loader2 className="w-6 h-6 animate-spin text-amber-500" />

@@ -150,7 +150,7 @@ export default async function ChatPage({ searchParams }: ChatPageProps) {
   const channels = channelsData || [];
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col p-2.5 sm:p-4 lg:p-6 w-full max-w-[1700px] mx-auto h-[calc(100vh-5rem)]">
+    <div className="h-[calc(100dvh-4.25rem)] max-h-[calc(100dvh-4.25rem)] overflow-hidden flex flex-col p-2.5 sm:p-4 w-full max-w-[1700px] mx-auto">
       <ChatContainer
         initialContacts={initialContacts}
         initialActiveContact={initialActiveContact}

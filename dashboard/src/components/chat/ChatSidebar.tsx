@@ -130,14 +130,14 @@ export function ChatSidebar({
 
   return (
     <aside
-      className={`flex flex-col h-full bg-white dark:bg-[#0B0F17] border-l border-slate-200/80 dark:border-slate-800/80 transition-all duration-200 select-none ${
+      className={`flex flex-col h-full max-h-full min-h-0 overflow-hidden bg-white dark:bg-[#0B0F17] border-l border-slate-200/80 dark:border-slate-800/80 transition-all duration-200 select-none ${
         isMobileOpen
           ? 'fixed inset-0 z-40 w-full sm:w-96'
           : 'w-full md:w-80 lg:w-96 shrink-0'
       }`}
     >
       {/* Sidebar Header & Search */}
-      <div className="p-4 border-b border-slate-200/80 dark:border-slate-800/80 bg-slate-50/80 dark:bg-slate-950/70 backdrop-blur-xs space-y-3">
+      <div className="p-4 shrink-0 border-b border-slate-200/80 dark:border-slate-800/80 bg-slate-50/80 dark:bg-slate-950/70 backdrop-blur-xs space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
@@ -225,7 +225,7 @@ export function ChatSidebar({
       </div>
 
       {/* Conversations List */}
-      <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-800">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain divide-y divide-slate-100 dark:divide-slate-800/60 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-800">
         {filteredContacts.length === 0 ? (
           <div className="p-8 text-center text-slate-400 dark:text-slate-500 space-y-2">
             <MessageCircle className="w-8 h-8 mx-auto opacity-30 text-slate-400" />
