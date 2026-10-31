@@ -1235,7 +1235,7 @@
     },
     {
       "parameters": {
-        "url": "={{ $json.attachment_url_for_dashboard }}",
+        "url": "={{ $('Parse Messenger Event').item.json.attachment_url }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -1269,11 +1269,11 @@
           "fieldValues": [
             {
               "fieldId": "sender_id",
-              "fieldValue": "={{ $('Switch1').item.json.platform_user_id }}"
+              "fieldValue": "={{ $('Parse Messenger Event').first().json.psid }}"
             },
             {
               "fieldId": "message",
-              "fieldValue": "={{ $json.text_content }}"
+              "fieldValue": "={{ $('Basic LLM Chain1').first().json.text }}"
             }
           ]
         }
@@ -1290,8 +1290,8 @@
       "maxTries": 5,
       "credentials": {
         "supabaseApi": {
-          "id": "ohPooHYcVYK399RU",
-          "name": "Supabase account"
+          "id": "lHat8Ea0pmCtW6WD",
+          "name": "dr.gimy11 messnenger"
         }
       }
     },
@@ -1351,31 +1351,27 @@
           "fieldValues": [
             {
               "fieldId": "contact_id",
-              "fieldValue": "={{ $('Edit Fields7').item.json.contact_uuid }}"
-            },
-            {
-              "fieldId": "message_platform_id",
-              "fieldValue": "={{ $('Edit Fields7').item.json.message_platform_id }}"
+              "fieldValue": "={{ $('Edit Fields4').first().json.contact_uuid }}"
             },
             {
               "fieldId": "sender_type",
               "fieldValue": "user"
             },
             {
-              "fieldId": "content_type",
-              "fieldValue": "={{ $('Edit Fields7').item.json.content_type }}"
-            },
-            {
-              "fieldId": "attachment_url",
-              "fieldValue": "={{ $('Edit Fields7').item.json.attachment_url_for_dashboard }}"
-            },
-            {
-              "fieldId": "platform_timestamp",
-              "fieldValue": "={{ $('Edit Fields5').item.json.message_platform_timestamp }}"
-            },
-            {
-              "fieldId": "text_content",
+              "fieldId": "content",
               "fieldValue": "={{ $json.text }}"
+            },
+            {
+              "fieldId": "platform_message_id",
+              "fieldValue": "={{ $('Parse Messenger Event').first().json.mid }}"
+            },
+            {
+              "fieldId": "media_type",
+              "fieldValue": "={{ $('Parse Messenger Event').first().json.attachment_type || 'image' }}"
+            },
+            {
+              "fieldId": "media_url",
+              "fieldValue": "={{ $('Parse Messenger Event').first().json.attachment_url }}"
             }
           ]
         }
@@ -1393,8 +1389,8 @@
       "maxTries": 5,
       "credentials": {
         "supabaseApi": {
-          "id": "ohPooHYcVYK399RU",
-          "name": "Supabase account"
+          "id": "lHat8Ea0pmCtW6WD",
+          "name": "dr.gimy11 messnenger"
         }
       }
     },
