@@ -255,51 +255,77 @@ export function OrderDetailsModal({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
-                  {order.order_items.map((item) => (
-                    <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-colors">
-                      <td className="py-3 px-4">
-                        <div className="font-semibold text-slate-900 dark:text-white">{item.item_name}</div>
-                        {item.notes && (
-                          <div className="inline-block mt-1 px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 text-[11px]">
-                            ملاحظة: {item.notes}
-                          </div>
-                        )}
-                      </td>
-                      <td className="py-3 px-4 text-center font-bold text-amber-600 dark:text-amber-400 text-sm">
-                        x{item.quantity}
-                      </td>
-                      <td className="py-3 px-4 font-mono text-slate-600 dark:text-slate-300">
-                        {formatCurrency(Number(item.unit_price) || 0)}
-                      </td>
-                      <td className="py-3 px-4 text-left font-mono font-bold text-slate-900 dark:text-white">
-                        {formatCurrency(Number(item.total_price) || 0)}
-                      </td>
-                    </tr>
-                  ))}
+                  {order.order_items.map((item) => {
+                    const qty = Number(item.quantity) || 1;
+                    const unitPrice = Number(item.unit_price) || 0;
+                    const lineTotal = Number(item.total_price) || unitPrice * qty;
+                    return (
+                      <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-colors">
+                        <td className="py-3 px-4">
+                          <div className="font-semibold text-slate-900 dark:text-white">{item.item_name}</div>
+                          {item.notes && (
+                            <div className="inline-block mt-1 px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 text-[11px]">
+                              ملاحظة: {item.notes}
+                            </div>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-center font-bold text-amber-600 dark:text-amber-400 text-sm">
+                          x{qty}
+                        </td>
+                        <td className="py-3 px-4 font-mono text-slate-600 dark:text-slate-300">
+                          {formatCurrency(unitPrice)}
+                        </td>
+                        <td className="py-3 px-4 text-left font-mono font-bold text-slate-900 dark:text-white">
+                          {formatCurrency(lineTotal)}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
 
             {/* Financial Summary */}
             <div className="p-4 bg-slate-50/90 dark:bg-slate-950/90 border-t border-slate-100 dark:border-slate-800/80 space-y-2 text-xs">
-              <div className="flex justify-between text-slate-500 dark:text-slate-400">
-                <span>المجموع الفرعي للأصناف:</span>
-                <span className="font-mono text-slate-700 dark:text-slate-200">
-                  {formatCurrency(Number(order.subtotal) || 0)}
-                </span>
-              </div>
-              <div className="flex justify-between text-slate-500 dark:text-slate-400">
-                <span>تكلفة خدمة التوصيل:</span>
-                <span className="font-mono text-slate-700 dark:text-slate-200">
-                  {formatCurrency(Number(order.delivery_fee) || 0)}
-                </span>
-              </div>
-              <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-800 text-sm font-bold text-slate-900 dark:text-white">
-                <span className="text-amber-600 dark:text-amber-400">الإجمالي النهائي المطلوب:</span>
-                <span className="font-mono text-lg text-amber-600 dark:text-amber-400">
-                  {formatCurrency(Number(order.total_amount) || 0)}
-                </span>
-              </div>
+              {(() => {
+                const itemsSum = order.order_items.reduce((sum, item) => {
+                  const qty = Number(item.quantity) || 1;
+                  const unitPrice = Number(item.unit_price) || 0;
+                  const lineTotal = Number(item.total_price) || unitPrice * qty;
+                  return sum + lineTotal;
+                }, 0);
+                const deliveryFee = Number(order.delivery_fee) || 0;
+                const totalAmount = Number(order.total_amount) || 0;
+                const displaySubtotal =
+                  Number(order.subtotal) > 0
+                    ? Number(order.subtotal)
+                    : itemsSum > 0
+                    ? itemsSum
+                    : Math.max(0, totalAmount - deliveryFee);
+
+                return (
+                  <>
+                    <div className="flex justify-between text-slate-500 dark:text-slate-400">
+                      <span>المجموع الفرعي للأصناف:</span>
+                      <span className="font-mono text-slate-700 dark:text-slate-200">
+                        {formatCurrency(displaySubtotal)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-slate-500 dark:text-slate-400">
+                      <span>تكلفة خدمة التوصيل:</span>
+                      <span className="font-mono text-slate-700 dark:text-slate-200">
+                        {formatCurrency(deliveryFee)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-800 text-sm font-bold text-slate-900 dark:text-white">
+                      <span className="text-amber-600 dark:text-amber-400">الإجمالي النهائي المطلوب:</span>
+                      <span className="font-mono text-lg text-amber-600 dark:text-amber-400">
+                        {formatCurrency(totalAmount)}
+                      </span>
+                    </div>
+                  </>
+                );
+              })()}
               {order.branch?.name && (
                 <div className="flex justify-between text-[11px] text-slate-500 dark:text-slate-400 pt-1">
                   <span>الفرع المسؤول:</span>

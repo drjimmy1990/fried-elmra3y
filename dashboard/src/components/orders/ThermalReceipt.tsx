@@ -109,21 +109,26 @@ export function ThermalReceipt({
           </thead>
           <tbody className="divide-y divide-dotted divide-gray-300">
             {order.order_items && order.order_items.length > 0 ? (
-              order.order_items.map((item, idx) => (
-                <tr key={idx} className="align-top">
-                  <td className="py-1 pr-0.5">
-                    <span className="font-semibold block">{item.item_name}</span>
-                    {item.notes && (
-                      <span className="text-[9px] text-gray-600 block italic leading-tight">
-                        *{item.notes}
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-1 text-center font-bold">x{item.quantity}</td>
-                  <td className="py-1 text-center text-gray-700">{Number(item.unit_price).toFixed(0)}</td>
-                  <td className="py-1 text-left font-bold">{Number(item.total_price).toFixed(0)}</td>
-                </tr>
-              ))
+              order.order_items.map((item, idx) => {
+                const qty = Number(item.quantity) || 1;
+                const unitPrice = Number(item.unit_price) || 0;
+                const lineTotal = Number(item.total_price) || unitPrice * qty;
+                return (
+                  <tr key={idx} className="align-top">
+                    <td className="py-1 pr-0.5">
+                      <span className="font-semibold block">{item.item_name}</span>
+                      {item.notes && (
+                        <span className="text-[9px] text-gray-600 block italic leading-tight">
+                          *{item.notes}
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-1 text-center font-bold">x{qty}</td>
+                    <td className="py-1 text-center text-gray-700">{unitPrice.toFixed(0)}</td>
+                    <td className="py-1 text-left font-bold">{lineTotal.toFixed(0)}</td>
+                  </tr>
+                );
+              })
             ) : (
               <tr>
                 <td colSpan={4} className="py-2 text-center text-gray-500">
@@ -137,18 +142,39 @@ export function ThermalReceipt({
 
       {/* Financial Totals */}
       <div className="py-2 border-b border-dashed border-black text-[11px] space-y-1">
-        <div className="flex justify-between">
-          <span>المجموع الفرعي:</span>
-          <span>{formatCurrency(Number(order.subtotal || 0))}</span>
-        </div>
-        <div className="flex justify-between text-gray-700">
-          <span>خدمة التوصيل:</span>
-          <span>{formatCurrency(Number(order.delivery_fee || 0))}</span>
-        </div>
-        <div className="flex justify-between font-bold text-xs pt-1 border-t border-black">
-          <span>المجموع النهائي:</span>
-          <span>{formatCurrency(Number(order.total_amount || 0))}</span>
-        </div>
+        {(() => {
+          const itemsSum = (order.order_items || []).reduce((sum, item) => {
+            const qty = Number(item.quantity) || 1;
+            const unitPrice = Number(item.unit_price) || 0;
+            const lineTotal = Number(item.total_price) || unitPrice * qty;
+            return sum + lineTotal;
+          }, 0);
+          const deliveryFee = Number(order.delivery_fee) || 0;
+          const totalAmount = Number(order.total_amount) || 0;
+          const displaySubtotal =
+            Number(order.subtotal) > 0
+              ? Number(order.subtotal)
+              : itemsSum > 0
+              ? itemsSum
+              : Math.max(0, totalAmount - deliveryFee);
+
+          return (
+            <>
+              <div className="flex justify-between">
+                <span>المجموع الفرعي:</span>
+                <span>{formatCurrency(displaySubtotal)}</span>
+              </div>
+              <div className="flex justify-between text-gray-700">
+                <span>خدمة التوصيل:</span>
+                <span>{formatCurrency(deliveryFee)}</span>
+              </div>
+              <div className="flex justify-between font-bold text-xs pt-1 border-t border-black">
+                <span>المجموع النهائي:</span>
+                <span>{formatCurrency(totalAmount)}</span>
+              </div>
+            </>
+          );
+        })()}
       </div>
 
       {/* Kitchen & Delivery Special Instructions */}

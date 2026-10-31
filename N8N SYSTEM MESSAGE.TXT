@@ -96,10 +96,11 @@
     "branch_name": "اسم الفرع المختار من قائمة الفروع المعتمدة",
     "offer_title": "اسم العرض الحصري المختار إن وجد، وإلا \"\"",
     "delivery_zone": "اسم منطقة التوصيل من قائمة مناطق الفرع",
+    "delivery_fee": 20,
     "items": [
-      {"name": "اسم الصنف", "qty": 1, "notes": "سبايسي أو عادي"}
+      {"name": "اسم الصنف", "qty": 1, "price": 240, "notes": "سبايسي أو عادي"}
     ],
-    "total_amount": 250,
+    "total_amount": 260,
     "customer_name": "اسم العميل كما كتبه",
     "phone": "رقم الهاتف",
     "address": "العنوان كما كتبه العميل",
@@ -165,8 +166,9 @@
     "branch_name": "فرع فيصل",
     "offer_title": "",
     "delivery_zone": "فيصل",
+    "delivery_fee": 20,
     "items": [
-      {"name": "سوبر دينر بوكس 4 قطع", "qty": 1, "notes": "سبايسي"}
+      {"name": "سوبر دينر بوكس 4 قطع", "qty": 1, "price": 240, "notes": "سبايسي"}
     ],
     "total_amount": 260,
     "customer_name": "أحمد",
