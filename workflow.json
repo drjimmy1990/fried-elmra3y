@@ -2,37 +2,6 @@
   "nodes": [
     {
       "parameters": {
-        "path": "meta-router",
-        "responseMode": "responseNode",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 2.1,
-      "position": [
-        -112,
-        112
-      ],
-      "id": "0a561782-cd6d-4091-9dec-86a09da48d92",
-      "name": "Webhook",
-      "webhookId": "2e29874b-0ba9-479e-ac43-8958ab37d8b5"
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ $json.query.hub_challenge }}",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.5,
-      "position": [
-        592,
-        80
-      ],
-      "id": "ef769e4e-4b51-4dfb-bcdf-14bb5a49b185",
-      "name": "Respond to Webhook"
-    },
-    {
-      "parameters": {
         "httpMethod": "POST",
         "path": "meta-router",
         "options": {}
@@ -40,8 +9,8 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -160,
-        1360
+        -800,
+        -464
       ],
       "id": "c2867ce3-4532-40c4-bd06-3edc28150a75",
       "name": "Webhook1",
@@ -49,13 +18,13 @@
     },
     {
       "parameters": {
-        "jsCode": "const router = $('Build Event Context').first().json;\nconst settings = $input.first()?.json || {};\n\nconst event = router.event || {};\nconst channel = router.channel || {};\n\nconst commentText = (event.message || '').trim();\nconst commenterName = event.from?.name || 'العميل';\nconst commenterId = event.from?.id || '';\nconst systemPrompt = settings.ai_system_prompt || '';\n\n// 1. Dynamic action assets from dashboard\nconst actionAssets = Array.isArray(settings.action_assets) ? settings.action_assets : [];\nconst actionsDescriptions = actionAssets\n  .map(a => `- \"${a.name}\": ${a.description || a.label}`)\n  .join('\\n');\nconst allowedActionKeys = ['\"normal\"', ...actionAssets.map(a => `\"${a.name}\"`)].join(' | ');\n\n// 2. Fallback DM message from dashboard\nconst fallbackDmMessage = settings.fallback_dm_message || 'أهلاً بحضرتك يا فندم نورتنا! 🍗 تقدر تطلب أو تستفسر عن أي حاجة من هنا مباشرة 🛵';\n\n// 3. Anti-spam delay\nconst minDelay = settings.reply_delay_min_sec || 5;\nconst maxDelay = settings.reply_delay_max_sec || 40;\nconst delaySeconds = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;\n\nreturn [{\n  json: {\n    token: channel.token,\n    page_id: channel.page_id,\n    post_id: event.post_id,\n    comment_id: event.comment_id,\n    commenter_id: commenterId,\n    commenter_name: commenterName,\n    comment_text: commentText,\n    \n    system_prompt: systemPrompt,\n    action_assets: actionAssets,\n    fallback_dm_message: fallbackDmMessage,\n    available_actions_text: actionsDescriptions,\n    allowed_actions_keys: allowedActionKeys,\n    reply_delay_sec: delaySeconds,\n    ai_enabled: Boolean(settings.ai_enabled),\n  }\n}];"
+        "jsCode": "const router = $('Build Event Context').first().json;\nconst settings = $input.first()?.json || {};\n\nconst event = router.event || {};\nconst channel = router.channel || {};\n\nconst commentText = (event.message || '').trim();\nconst commenterName = event.from?.name || 'العميل';\nconst commenterId = event.from?.id || '';\nconst systemPrompt = settings.ai_system_prompt || '';\n\n// 1. Separate action image assets from the Fixed Replies config stored in action_assets\nconst rawAssets = Array.isArray(settings.action_assets) ? settings.action_assets : [];\nconst actionAssets = rawAssets.filter(\n  a => a && !a.is_config && a.id !== '__fixed_replies_config__' && a.name\n);\nconst fixedConfig = rawAssets.find(\n  a => a && (a.is_config === true || a.id === '__fixed_replies_config__')\n) || {};\n\nconst fixedRepliesEnabled = Boolean(fixedConfig.enabled);\nconst normalFixedReplies = Array.isArray(fixedConfig.normal_replies) && fixedConfig.normal_replies.filter(Boolean).length > 0\n  ? fixedConfig.normal_replies.map(r => String(r).trim()).filter(Boolean)\n  : [\n      'أهلاً بحضرتك يا فندم في تشيكن مراعي! 🍗 تم إرسال كل التفاصيل في رسائل الصفحة 📩',\n      'منورنا يا فندم! 🌟 بعتنالك رسالة على الخاص حالاً بكل التفاصيل 🛵',\n      'تحت أمرك يا فندم! راجع رسائل الماسنجر، فريقنا معاك هناك فوراً ❤️'\n    ];\n\nconst actionsDescriptions = actionAssets\n  .map(a => `- \"${a.name}\": ${a.description || a.label}`)\n  .join('\\n');\nconst allowedActionKeys = ['\"normal\"', ...actionAssets.map(a => `\"${a.name}\"`)].join(' | ');\n\n// 2. Fixed DM & Complaint messages from dashboard\nconst fallbackDmMessage = (settings.fallback_dm_message || '').trim() || 'أهلاً بحضرتك يا فندم نورتنا! 🍗 تقدر تطلب أو تستفسر عن أي حاجة من هنا مباشرة 🛵';\nconst complaintPublicReply = (settings.complaint_public_reply || '').trim() || 'بنعتذر جداً لحضرتك يا فندم، يهمنا رضاك وتم التواصل معاك على الخاص لحل المشكلة فوراً 🙏';\nconst complaintDmMessage = (settings.complaint_dm_message || '').trim() || 'أهلاً بحضرتك يا فندم، بنعتذر جداً عن أي إزعاج. ممكن تبعتلنا رقم تليفونك وتفاصيل المشكلة وفريق خدمة العملاء هيتواصل معاك فوراً؟ 🙏';\n\n// 3. Anti-spam delay\nconst minDelay = settings.reply_delay_min_sec || 5;\nconst maxDelay = settings.reply_delay_max_sec || 40;\nconst delaySeconds = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;\n\nreturn [{\n  json: {\n    token: channel.token,\n    page_id: channel.page_id,\n    post_id: event.post_id,\n    comment_id: event.comment_id,\n    commenter_id: commenterId,\n    commenter_name: commenterName,\n    comment_text: commentText,\n\n    system_prompt: systemPrompt,\n    action_assets: actionAssets,\n    fallback_dm_message: fallbackDmMessage,\n    complaint_public_reply: complaintPublicReply,\n    complaint_dm_message: complaintDmMessage,\n    fixed_replies_enabled: fixedRepliesEnabled,\n    normal_fixed_replies: normalFixedReplies,\n    available_actions_text: actionsDescriptions,\n    allowed_actions_keys: allowedActionKeys,\n    reply_delay_sec: delaySeconds,\n    ai_enabled: Boolean(settings.ai_enabled),\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4048,
-        -256
+        4144,
+        -272
       ],
       "id": "83f9fc97-923d-40f6-9499-bb32b6c1c0ad",
       "name": "Code in JavaScript2"
@@ -67,8 +36,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        224,
-        1360
+        -208,
+        -416
       ],
       "id": "2dcf74df-50d6-4731-a116-bf984c220c20",
       "name": "Split Events"
@@ -90,8 +59,8 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        800,
-        1344
+        352,
+        -592
       ],
       "id": "ee9458a5-52d7-4a06-b3a0-fdfbe932cfbb",
       "name": "Get Channel",
@@ -118,8 +87,8 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        1104,
-        1344
+        976,
+        -416
       ],
       "id": "84e6f29d-0310-4ac0-a374-e014ebabafda",
       "name": "Get Channel Secret",
@@ -138,7 +107,7 @@
       "typeVersion": 2,
       "position": [
         1456,
-        1328
+        -528
       ],
       "id": "ec867266-6492-4484-8d66-29b9fad6c9a0",
       "name": "Build Event Context"
@@ -205,7 +174,7 @@
       "typeVersion": 3.4,
       "position": [
         1696,
-        1296
+        -176
       ],
       "id": "5b752b86-971c-481e-a44f-f4604f0c3ac9",
       "name": "Route by Kind"
@@ -246,8 +215,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        1840,
-        448
+        2112,
+        -224
       ],
       "id": "2bbe89f2-5c76-43fa-806a-86595e13155d",
       "name": "Check Valid Comment"
@@ -261,8 +230,8 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        3456,
-        -256
+        3632,
+        -288
       ],
       "id": "4f08057d-6e89-4c0e-abcf-8f93e2a4cb3e",
       "name": "Get Comment Settings",
@@ -291,8 +260,8 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        2400,
-        -368
+        2768,
+        -400
       ],
       "id": "e8dc2b24-7816-4dd6-b32a-263d6ff28772",
       "name": "Get Post Rules",
@@ -306,13 +275,13 @@
     },
     {
       "parameters": {
-        "jsCode": "const context = $('Build Event Context').first().json;\nconst rules = $input.all().map(i => i.json).filter(r => r && r.id);\n\nconst commentText = (context.event?.message || '').toLowerCase().trim();\nlet matchedRule = null;\nlet isToxic = false;\n\n// 1. Find active rule for this post\nfor (const rule of rules) {\n  if (rule.is_active === false) continue;\n\n  // Check toxic / forbidden words first\n  if (Array.isArray(rule.delete_keywords) && rule.delete_keywords.length > 0) {\n    const hasToxic = rule.delete_keywords.some(kw => kw && commentText.includes(kw.trim().toLowerCase()));\n    if (hasToxic) {\n      matchedRule = rule;\n      isToxic = true;\n      break;\n    }\n  }\n\n  // Check trigger condition\n  if (rule.trigger_type === 'any') {\n    matchedRule = rule;\n    break;\n  } else if (rule.trigger_type === 'keywords' && Array.isArray(rule.keywords)) {\n    const hasKeyword = rule.keywords.some(kw => kw && commentText.includes(kw.trim().toLowerCase()));\n    if (hasKeyword) {\n      matchedRule = rule;\n      break;\n    }\n  }\n}\n\n// 2. If a rule matched\nif (matchedRule) {\n  if (isToxic) {\n    return [{\n      json: {\n        rule_matched: true,\n        action: 'delete',\n        token: context.channel.token,\n        page_id: context.channel.page_id,\n        comment_id: context.event.comment_id,\n        commenter_name: context.event?.from?.name || 'العميل',\n        comment_text: context.event?.message || '',\n        auto_delete: Boolean(matchedRule.auto_delete),\n        should_hide: !Boolean(matchedRule.auto_delete),\n        send_dm: Boolean(matchedRule.dm_enabled && matchedRule.dm_message),\n        dm_message: matchedRule.dm_message || null,\n        dm_buttons: Array.isArray(matchedRule.dm_buttons) ? matchedRule.dm_buttons : [],\n      }\n    }];\n  }\n\n  // Normal rule execution (single or randomized variations)\n  const replies = Array.isArray(matchedRule.reply_variations) && matchedRule.reply_variations.length > 0\n    ? matchedRule.reply_variations\n    : [];\n  const selectedReply = replies.length > 0\n    ? replies[Math.floor(Math.random() * replies.length)]\n    : null;\n\n  return [{\n    json: {\n      rule_matched: true,\n      action: 'normal',\n      token: context.channel.token,\n      page_id: context.channel.page_id,\n      comment_id: context.event.comment_id,\n      commenter_name: context.event?.from?.name || 'العميل',\n      comment_text: context.event?.message || '',\n      send_public_reply: Boolean(matchedRule.reply_enabled !== false && selectedReply),\n      public_reply: selectedReply,\n      comment_image_url: matchedRule.comment_image_url || null,\n      auto_like: Boolean(matchedRule.like_comment !== false),\n      send_dm: Boolean(matchedRule.dm_enabled && matchedRule.dm_message),\n      dm_message: matchedRule.dm_message || null,\n      dm_buttons: Array.isArray(matchedRule.dm_buttons) ? matchedRule.dm_buttons : [],\n    }\n  }];\n}\n\n// 3. No rule matched -> Proceed to AI branch!\nreturn [{\n  json: {\n    rule_matched: false,\n  }\n}];"
+        "jsCode": "const context = $('Build Event Context').first().json;\nconst rules = $input.all().map(i => i.json).filter(r => r && r.id);\nconst postSetting = $('Get Post Settings').first()?.json;\nif (postSetting && postSetting.bot_enabled === false) {\n  return [];\n}\nconst commentText = (context.event?.message || '').toLowerCase().trim();\nlet matchedRule = null;\nlet isToxic = false;\n\n// 1. Find active rule for this post\nfor (const rule of rules) {\n  if (rule.is_active === false) continue;\n\n  // Check toxic / forbidden words first\n  if (Array.isArray(rule.delete_keywords) && rule.delete_keywords.length > 0) {\n    const hasToxic = rule.delete_keywords.some(kw => kw && commentText.includes(kw.trim().toLowerCase()));\n    if (hasToxic) {\n      matchedRule = rule;\n      isToxic = true;\n      break;\n    }\n  }\n\n  // Check trigger condition\n  if (rule.trigger_type === 'any') {\n    matchedRule = rule;\n    break;\n  } else if (rule.trigger_type === 'keywords' && Array.isArray(rule.keywords)) {\n    const hasKeyword = rule.keywords.some(kw => kw && commentText.includes(kw.trim().toLowerCase()));\n    if (hasKeyword) {\n      matchedRule = rule;\n      break;\n    }\n  }\n}\n\n// 2. If a rule matched\nif (matchedRule) {\n  if (isToxic) {\n    return [{\n      json: {\n        rule_matched: true,\n        action: 'delete',\n        token: context.channel.token,\n        page_id: context.channel.page_id,\n        comment_id: context.event.comment_id,\n        commenter_name: context.event?.from?.name || 'العميل',\n        comment_text: context.event?.message || '',\n        auto_delete: Boolean(matchedRule.auto_delete),\n        should_hide: !Boolean(matchedRule.auto_delete),\n        send_dm: Boolean(matchedRule.dm_enabled && matchedRule.dm_message),\n        dm_message: matchedRule.dm_message || null,\n        dm_buttons: Array.isArray(matchedRule.dm_buttons) ? matchedRule.dm_buttons : [],\n      }\n    }];\n  }\n\n  // Normal rule execution (single or randomized variations)\n  const replies = Array.isArray(matchedRule.reply_variations) && matchedRule.reply_variations.length > 0\n    ? matchedRule.reply_variations\n    : [];\n  const selectedReply = replies.length > 0\n    ? replies[Math.floor(Math.random() * replies.length)]\n    : null;\n\n  return [{\n    json: {\n      rule_matched: true,\n      action: 'normal',\n      token: context.channel.token,\n      page_id: context.channel.page_id,\n      comment_id: context.event.comment_id,\n      commenter_name: context.event?.from?.name || 'العميل',\n      comment_text: context.event?.message || '',\n      send_public_reply: Boolean(matchedRule.reply_enabled !== false && selectedReply),\n      public_reply: selectedReply,\n      comment_image_url: matchedRule.comment_image_url || null,\n      auto_like: Boolean(matchedRule.like_comment !== false),\n      send_dm: Boolean(matchedRule.dm_enabled && matchedRule.dm_message),\n      dm_message: matchedRule.dm_message || null,\n      dm_buttons: Array.isArray(matchedRule.dm_buttons) ? matchedRule.dm_buttons : [],\n    }\n  }];\n}\n\n// 3. No rule matched -> Proceed to AI branch!\nreturn [{\n  json: {\n    rule_matched: false,\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2672,
-        -368
+        3024,
+        -464
       ],
       "id": "d329edb9-8046-4942-b590-7684f2999aae",
       "name": "Check Post Rule Match"
@@ -345,8 +314,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        3136,
-        -704
+        3264,
+        -624
       ],
       "id": "876b21ba-22ee-4a1e-9376-402e9a08c45d",
       "name": "If"
@@ -354,7 +323,7 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "=ممكن المنيو",
+        "text": "={{ $json.comment_text }}",
         "messages": {
           "messageValues": [
             {
@@ -375,7 +344,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const prev = $('Code in JavaScript2').first().json;\n\nlet inputItem = $input.first()?.json || {};\nlet raw = \"\";\n\nif (typeof inputItem === 'string') {\n  raw = inputItem;\n} else if (inputItem.text) {\n  raw = typeof inputItem.text === 'string' ? inputItem.text : JSON.stringify(inputItem.text);\n} else if (inputItem.output) {\n  raw = typeof inputItem.output === 'string' ? inputItem.output : JSON.stringify(inputItem.output);\n} else if (inputItem.message?.content) {\n  raw = typeof inputItem.message.content === 'string' ? inputItem.message.content : JSON.stringify(inputItem.message.content);\n} else if (inputItem.decision || inputItem.action || inputItem.public_reply) {\n  raw = JSON.stringify(inputItem);\n} else {\n  raw = JSON.stringify(inputItem);\n}\n\n// 1. Clean markdown blocks\nraw = raw.replace(/```json/gi, \"\").replace(/```/g, \"\").trim();\n\n// 2. Fallback DM message loaded directly from your Dashboard settings\nconst dashboardFallbackDm = (prev.fallback_dm_message || \"\").trim() || \"أهلاً بحضرتك يا فندم نورتنا! 🍗 تقدر تطلب أو تستفسر عن أي حاجة من هنا مباشرة 🛵\";\n\n// 3. Extract JSON object\nconst match = raw.match(/\\{[\\s\\S]*\\}/);\nif (!match) {\n  const isDelete = raw.toUpperCase().includes(\"DELETE\");\n  return [{\n    json: {\n      token: prev.token,\n      page_id: prev.page_id,\n      post_id: prev.post_id,\n      comment_id: prev.comment_id,\n      commenter_id: prev.commenter_id,\n      commenter_name: prev.commenter_name,\n      comment_text: prev.comment_text,\n      reply_delay_sec: prev.reply_delay_sec,\n\n      decision: isDelete ? \"DELETE\" : \"KEEP\",\n      action: \"normal\",\n      is_complaint: false,\n      public_reply: raw,\n      send_dm: !isDelete,\n      dm_message: dashboardFallbackDm\n    }\n  }];\n}\n\nlet jsonString = match[0];\n\n// 4. Fix unescaped newlines inside strings\nlet fixed = \"\";\nlet inString = false;\nlet escaped = false;\n\nfor (let i = 0; i < jsonString.length; i++) {\n  const ch = jsonString[i];\n  if (!inString) {\n    fixed += ch;\n    if (ch === '\"') inString = true;\n  } else {\n    if (escaped) {\n      fixed += ch;\n      escaped = false;\n    } else if (ch === \"\\\\\") {\n      fixed += ch;\n      escaped = true;\n    } else if (ch === '\"') {\n      fixed += ch;\n      inString = false;\n    } else if (ch === \"\\n\") {\n      fixed += \"\\\\n\";\n    } else if (ch === \"\\r\") {\n      // ignore CR\n    } else {\n      fixed += ch;\n    }\n  }\n}\n\nlet parsed = {};\ntry {\n  parsed = JSON.parse(fixed);\n} catch (err) {\n  try {\n    parsed = JSON.parse(jsonString);\n  } catch (err2) {\n    parsed = {\n      decision: \"KEEP\",\n      action: \"normal\",\n      is_complaint: false,\n      public_reply: raw,\n      dm_message: \"\"\n    };\n  }\n}\n\nconst isKeep = parsed.decision !== \"DELETE\";\nconst action = String(parsed.action || \"normal\").toLowerCase().trim();\n\n// Use AI dm_message if provided, otherwise use the dashboard fallback message\nconst finalDmMessage = (parsed.dm_message && parsed.dm_message.trim().length > 0)\n  ? parsed.dm_message.trim()\n  : dashboardFallbackDm;\n\nreturn [{\n  json: {\n    token: prev.token,\n    page_id: prev.page_id,\n    post_id: prev.post_id,\n    comment_id: prev.comment_id,\n    commenter_id: prev.commenter_id,\n    commenter_name: prev.commenter_name,\n    comment_text: prev.comment_text,\n    reply_delay_sec: prev.reply_delay_sec,\n\n    // Decision & Action Fields\n    decision: isKeep ? \"KEEP\" : \"DELETE\",\n    action: action,\n    is_complaint: Boolean(parsed.is_complaint),\n    public_reply: parsed.public_reply || \"\",\n    \n    // Always send DM for any KEEP comment using dashboard fallback if needed\n    send_dm: isKeep,\n    dm_message: isKeep ? finalDmMessage : \"\"\n  }\n}];"
+        "jsCode": "const prev = $('Code in JavaScript2').first().json;\n\nlet inputItem = $input.first()?.json || {};\nlet raw = \"\";\n\nif (typeof inputItem === 'string') {\n  raw = inputItem;\n} else if (inputItem.text) {\n  raw = typeof inputItem.text === 'string' ? inputItem.text : JSON.stringify(inputItem.text);\n} else if (inputItem.output) {\n  raw = typeof inputItem.output === 'string' ? inputItem.output : JSON.stringify(inputItem.output);\n} else if (inputItem.message?.content) {\n  raw = typeof inputItem.message.content === 'string' ? inputItem.message.content : JSON.stringify(inputItem.message.content);\n} else if (inputItem.decision || inputItem.action || inputItem.public_reply) {\n  raw = JSON.stringify(inputItem);\n} else {\n  raw = JSON.stringify(inputItem);\n}\n\n// 1. Clean markdown blocks\nraw = raw.replace(/```json/gi, \"\").replace(/```/g, \"\").trim();\n\n// 2. Fixed messages from Dashboard settings\nconst dashboardFallbackDm = (prev.fallback_dm_message || \"\").trim() || \"أهلاً بحضرتك يا فندم نورتنا! 🍗 تقدر تطلب أو تستفسر عن أي حاجة من هنا مباشرة 🛵\";\nconst complaintPublicReply = (prev.complaint_public_reply || \"\").trim() || \"بنعتذر جداً لحضرتك يا فندم، يهمنا رضاك وتم التواصل معاك على الخاص لحل المشكلة فوراً 🙏\";\nconst complaintDmMessage = (prev.complaint_dm_message || \"\").trim() || \"أهلاً بحضرتك يا فندم، بنعتذر جداً عن أي إزعاج. ممكن تبعتلنا رقم تليفونك وتفاصيل المشكلة وفريق خدمة العملاء هيتواصل معاك فوراً؟ 🙏\";\nconst fixedRepliesEnabled = Boolean(prev.fixed_replies_enabled);\nconst normalFixedReplies = Array.isArray(prev.normal_fixed_replies) && prev.normal_fixed_replies.length > 0\n  ? prev.normal_fixed_replies\n  : [\"أهلاً بحضرتك يا فندم في تشيكن مراعي! 🍗 تم إرسال كل التفاصيل في رسائل الصفحة 📩\"];\n\nconst pickRandomNormalReply = () =>\n  normalFixedReplies[Math.floor(Math.random() * normalFixedReplies.length)];\n\n// 3. Extract JSON object\nconst match = raw.match(/\\{[\\s\\S]*\\}/);\nlet parsed = {};\n\nif (!match) {\n  const isDelete = raw.toUpperCase().includes(\"DELETE\");\n  parsed = {\n    decision: isDelete ? \"DELETE\" : \"KEEP\",\n    action: \"normal\",\n    is_complaint: false,\n    public_reply: raw,\n    dm_message: dashboardFallbackDm\n  };\n} else {\n  let jsonString = match[0];\n  let fixed = \"\";\n  let inString = false;\n  let escaped = false;\n\n  for (let i = 0; i < jsonString.length; i++) {\n    const ch = jsonString[i];\n    if (!inString) {\n      fixed += ch;\n      if (ch === '\"') inString = true;\n    } else {\n      if (escaped) {\n        fixed += ch;\n        escaped = false;\n      } else if (ch === \"\\\\\") {\n        fixed += ch;\n        escaped = true;\n      } else if (ch === '\"') {\n        fixed += ch;\n        inString = false;\n      } else if (ch === \"\\n\") {\n        fixed += \"\\\\n\";\n      } else if (ch === \"\\r\") {\n        // ignore CR\n      } else {\n        fixed += ch;\n      }\n    }\n  }\n\n  try {\n    parsed = JSON.parse(fixed);\n  } catch (err) {\n    try {\n      parsed = JSON.parse(jsonString);\n    } catch (err2) {\n      parsed = {\n        decision: \"KEEP\",\n        action: \"normal\",\n        is_complaint: false,\n        public_reply: raw,\n        dm_message: \"\"\n      };\n    }\n  }\n}\n\nconst isKeep = parsed.decision !== \"DELETE\";\nconst isComplaint = Boolean(parsed.is_complaint);\nconst action = String(parsed.action || \"normal\").toLowerCase().trim();\n\nlet finalPublicReply = \"\";\nlet finalDmMessage = \"\";\n\nif (isKeep) {\n  if (fixedRepliesEnabled) {\n    // AI Classifies Only -> Use Fixed Replies from Dashboard\n    if (isComplaint) {\n      finalPublicReply = complaintPublicReply;\n      finalDmMessage = complaintDmMessage;\n    } else {\n      finalPublicReply = pickRandomNormalReply();\n      finalDmMessage = dashboardFallbackDm;\n    }\n  } else {\n    // AI Generates Replies (with Dashboard fallbacks)\n    finalPublicReply = (parsed.public_reply || \"\").trim() || (isComplaint ? complaintPublicReply : pickRandomNormalReply());\n    finalDmMessage = (parsed.dm_message && parsed.dm_message.trim().length > 0)\n      ? parsed.dm_message.trim()\n      : (isComplaint ? complaintDmMessage : dashboardFallbackDm);\n  }\n}\n\nreturn [{\n  json: {\n    token: prev.token,\n    page_id: prev.page_id,\n    post_id: prev.post_id,\n    comment_id: prev.comment_id,\n    commenter_id: prev.commenter_id,\n    commenter_name: prev.commenter_name,\n    comment_text: prev.comment_text,\n    reply_delay_sec: prev.reply_delay_sec,\n\n    // Decision & Action Fields\n    decision: isKeep ? \"KEEP\" : \"DELETE\",\n    action: action,\n    is_complaint: isComplaint,\n    public_reply: finalPublicReply,\n\n    // Send DM for any KEEP comment\n    send_dm: isKeep,\n    dm_message: finalDmMessage\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -564,7 +533,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{\n  JSON.stringify({\n    recipient: {\n      comment_id: $json.comment_id\n    },\n    messaging_type: \"RESPONSE\",\n    message: {\n      text: $json.dm_message || \"أهلاً بحضرتك يا فندم!\",\n      ...(Array.isArray($json.dm_buttons) && $json.dm_buttons.length > 0 ? {\n        quick_replies: $json.dm_buttons.slice(0, 3).map(b => ({\n          content_type: \"text\",\n          title: String(b.title || b.label || \"\").trim().slice(0, 20),\n          payload: String(b.payload || \"START_ORDER\").trim()\n        }))\n      } : {})\n    }\n  })\n}}",
+        "jsonBody": "={\n  \"recipient\": {\n    \"comment_id\": \"{{ $json.comment_id }}\"\n  },\n  \"message\": {\n    \"text\": \"{{ $json.dm_message }}\"\n  },\n  \"messaging_type\": \"RESPONSE\"\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -625,7 +594,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://graph.facebook.com/v24.0/{{ $json.comment_id }}/comments",
+        "url": "=https://graph.facebook.com/v24.0/{{ $('Code in JavaScript5').item.json.comment_id }}/comments",
         "sendBody": true,
         "contentType": "form-urlencoded",
         "bodyParameters": {
@@ -701,14 +670,14 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{\n  JSON.stringify({\n    recipient: {\n      comment_id: $json.comment_id\n    },\n    message: {\n      text: $json.dm_message || 'معك إدارة المطعم.. نعتذر لحضرتك جداً وممكن توضحلنا تفاصيل المشكلة لحلها فوراً؟'\n    },\n    messaging_type: \"RESPONSE\"\n  })\n}}",
+        "jsonBody": "={\n  \"recipient\": {\n    \"comment_id\": \"{{ $json.comment_id }}\"\n  },\n  \"message\": {\n    \"text\": \"{{ $json.dm_message || 'معك إدارة المطعم.. نعتذر لحضرتك جداً وممكن توضحلنا تفاصيل المشكلة لحلها فوراً؟' }}\"\n  },\n  \"messaging_type\": \"RESPONSE\"\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        5600,
-        -128
+        5712,
+        -112
       ],
       "id": "48fcb4d9-5dc8-411e-a814-688bbd7d03c7",
       "name": "private reply (delete path)",
@@ -737,8 +706,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        6112,
-        -112
+        6240,
+        -80
       ],
       "id": "99aadff2-8fbc-4018-b2f4-1706b0d5a840",
       "name": "hide comment",
@@ -759,7 +728,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{\n  JSON.stringify({\n    recipient: {\n      comment_id: $json.comment_id\n    },\n    messaging_type: \"RESPONSE\",\n    message: {\n      text: $json.dm_message || \"أهلاً بحضرتك يا فندم!\",\n      ...(Array.isArray($json.dm_buttons) && $json.dm_buttons.length > 0 ? {\n        quick_replies: $json.dm_buttons.slice(0, 3).map(b => ({\n          content_type: \"text\",\n          title: String(b.title || b.label || \"\").trim().slice(0, 20),\n          payload: String(b.payload || \"START_ORDER\").trim()\n        }))\n      } : {})\n    }\n  })\n}}",
+        "jsonBody": "={\n  \"recipient\": {\n    \"comment_id\": \"{{ $json.comment_id }}\"\n  },\n  \"message\": {\n    \"text\": \"{{ $json.dm_message }}\"\n  },\n  \"messaging_type\": \"RESPONSE\"\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -772,19 +741,6 @@
       "name": "private reply",
       "retryOnFail": true,
       "waitBetweenTries": 3000
-    },
-    {
-      "parameters": {
-        "jsCode": "const context = $('Build Event Context').first().json;\nconst rules = $input.all().map(i => i.json).filter(r => r && r.id);\n\nconst commentText = (context.event?.message || '').toLowerCase().trim();\nlet matchedRule = null;\n\n// Check if any rule for this post matches\nfor (const rule of rules) {\n  if (rule.is_active === false) continue;\n\n  if (rule.trigger_type === 'any') {\n    matchedRule = rule;\n    break;\n  } else if (rule.trigger_type === 'keywords' && Array.isArray(rule.keywords)) {\n    const hasKeyword = rule.keywords.some(kw => kw && commentText.includes(kw.trim().toLowerCase()));\n    if (hasKeyword) {\n      matchedRule = rule;\n      break;\n    }\n  }\n}\n\n// 1. If a rule matched on this post (NO AI!):\nif (matchedRule) {\n  const replies = Array.isArray(matchedRule.reply_variations) && matchedRule.reply_variations.length > 0\n    ? matchedRule.reply_variations\n    : ['تم الرد في الخاص يا فندم ❤️'];\n  const selectedReply = replies[Math.floor(Math.random() * replies.length)];\n\n  return [{\n    json: {\n      rule_matched: true,\n      rule_name: matchedRule.name,\n      token: context.channel.token,\n      page_id: context.channel.page_id,\n      comment_id: context.event.comment_id,\n      commenter_name: context.event?.from?.name || 'العميل',\n      comment_text: context.event?.message || '',\n      public_reply: matchedRule.reply_enabled !== false ? selectedReply : null,\n      auto_like: matchedRule.like_comment !== false,\n      should_hide: Boolean(matchedRule.hide_comment),\n      send_dm: Boolean(matchedRule.dm_enabled),\n      dm_message: matchedRule.dm_message || null,\n    }\n  }];\n}\n\n// 2. No rule matched for this post -> proceed to AI!\nreturn [{\n  json: {\n    rule_matched: false,\n  }\n}];"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        2720,
-        -512
-      ],
-      "id": "5309c531-d9e7-414d-81f3-2b37012480f1",
-      "name": "Check Post Rule Match1"
     },
     {
       "parameters": {
@@ -1145,8 +1101,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        2544,
-        1552
+        2608,
+        1488
       ],
       "id": "e33ed637-eba5-4735-b831-c088474f608b",
       "name": "If6"
@@ -1205,7 +1161,7 @@
               "fieldValue": "={{ $json.data[0].participants.data[0].name }}"
             },
             {
-              "fieldId": "last_interaction_at",
+              "fieldId": "created_at",
               "fieldValue": "={{ $now.toISO() }}"
             }
           ]
@@ -1214,15 +1170,15 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        3168,
-        1696
+        3264,
+        1552
       ],
       "id": "6c6a2382-31b2-46e3-832e-d934ffb476d0",
       "name": "Create a row2",
       "credentials": {
         "supabaseApi": {
-          "id": "ohPooHYcVYK399RU",
-          "name": "Supabase account"
+          "id": "lHat8Ea0pmCtW6WD",
+          "name": "dr.gimy11 messnenger"
         }
       },
       "onError": "continueErrorOutput"
@@ -1256,8 +1212,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2960,
-        1584
+        2976,
+        1424
       ],
       "id": "5fd0fd66-755f-4ff2-9860-e9e56bf3d4c2",
       "name": "Get FB Profile Name1",
@@ -1265,7 +1221,7 @@
     },
     {
       "parameters": {
-        "url": "={{ $('If2').item.json.body.entry[0].messaging[0].message.attachments[0].payload.url }}",
+        "url": "={{ $('Split Events').item.json.payload.message.attachments[0].payload.url }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -1346,31 +1302,27 @@
           "fieldValues": [
             {
               "fieldId": "contact_id",
-              "fieldValue": "={{ $('Edit Fields8').item.json.id }}"
-            },
-            {
-              "fieldId": "message_platform_id",
-              "fieldValue": "={{ $('Edit Fields5').item.json.message_platform_id }}"
+              "fieldValue": "={{ $('Code in JavaScript1').item.json.id }}"
             },
             {
               "fieldId": "sender_type",
-              "fieldValue": "user"
+              "fieldValue": "=user"
             },
             {
-              "fieldId": "content_type",
-              "fieldValue": "={{ $('download audio').item.json.content_type }}"
-            },
-            {
-              "fieldId": "attachment_url",
-              "fieldValue": "={{ $('Edit Fields8').item.json.attachment_url_for_dashboard }}"
-            },
-            {
-              "fieldId": "platform_timestamp",
-              "fieldValue": "={{ $('download audio').item.json.message_platform_timestamp }}"
-            },
-            {
-              "fieldId": "text_content",
+              "fieldId": "content",
               "fieldValue": "={{ $json.candidates[0].content.parts[0].text }}"
+            },
+            {
+              "fieldId": "platform_message_id",
+              "fieldValue": "={{ $('Build Event Context').item.json.event.message.mid }}"
+            },
+            {
+              "fieldId": "media_type",
+              "fieldValue": "audio"
+            },
+            {
+              "fieldId": "media_url",
+              "fieldValue": "={{ $('Build Event Context').item.json.event.message.attachments[0].payload.url }}"
             }
           ]
         }
@@ -1387,8 +1339,8 @@
       "maxTries": 5,
       "credentials": {
         "supabaseApi": {
-          "id": "ohPooHYcVYK399RU",
-          "name": "Supabase account"
+          "id": "lHat8Ea0pmCtW6WD",
+          "name": "dr.gimy11 messnenger"
         }
       }
     },
@@ -1483,8 +1435,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        7376,
-        1920
+        7584,
+        1856
       ],
       "id": "a4200a16-5029-4a22-8810-1c1c59bc592e",
       "name": "If4"
@@ -1517,8 +1469,8 @@
       "maxTries": 5,
       "credentials": {
         "supabaseApi": {
-          "id": "ohPooHYcVYK399RU",
-          "name": "Supabase account"
+          "id": "lHat8Ea0pmCtW6WD",
+          "name": "dr.gimy11 messnenger"
         }
       }
     },
@@ -2008,14 +1960,14 @@
         "promptType": "define",
         "text": "=  الوقت الحالي (مصر): {{ DateTime.now().setZone(\"Africa/Cairo\").format('M/dd/yyyy H:mm') }}\n\n   رسالة العميل: {{ $json.body }}\n",
         "options": {
-          "systemMessage": "={{ $('bot settings').first().json.ai_system_prompt }}\n\n### 📍 الفروع ومناطق التوصيل وأسعارها المعتمدة:\n{{ $json.branches }}\n\n### 📋 قائمة الأسعار والمنيو المعتمدة:\n{{ $('bot settings').first().json.price_list }}\n\n### 🔥 العروض والخصومات المتاحة حالياً:\n{{ $json.offers }}\n\n---\n### 🎯 نظام تصنيف النوايا (Intent Classification Rules):\nيجب تصنيف رسالة العميل بدقة إلى إحدى النوايا الـ 5 التالية:\n\n1. intent = \"menu\"\n   - يُحدد **فقط وحصرياً** عندما يطلب العميل صراحة رؤية **المنيو** أو صور المنيو كاملة (مثال: \"ابعتلي المنيو\"، \"عايز أشوف المنيو\"، \"صور المنيو\").\n   - ⚠️ **تحذير صارم جداً:** إذا سأل العميل عن **العروض** (\"إيه العروض؟\"، \"عايز أعرف عروضكم\"، \"ممكن أسعار العروض؟\"، \"العروض لسه متاحة؟\") **ممنوع منعاً باتاً** وضع `intent = \"menu\"`! أسئلة العروض تكون دائماً `intent = \"normal\"` وترد عليها بذكر العروض وأسعارها من قسم العروض أعلاه.\n   - في حالة طلب المنيو (`intent = \"menu\"`): لا تسرد أصناف المنيو في خانة reply لأن النظام سيرسل صور المنيو تلقائياً للعميل! في خانة reply رحب به باختصار واذكر له أن صور المنيو معروضة أمامه واسأله تحب تطلب إيه.\n   - order_details = null\n   - complaint_details = null\n\n2. intent = \"branches\"\n   - يُحدد عندما يسأل العميل عن الفروع، العناوين، اللوكيشن، أماكن التواجد، مناطق التوصيل، أو الكيدز أريا (مثال: \"فروعكم فين؟\"، \"لوكيشن فرع إمبابة\"، \"عندكم كيدز أريا؟\"، \"فرع السيدة زينب شغال؟\").\n   - في خانة reply: أجب عن استفساره المحدد باختصار ولطافة (أقل من 3 سطور)، لأن النظام سيرسل بطاقات الفروع تلقائياً.\n   - order_details = null\n   - complaint_details = null\n\n3. intent = \"complaint\" (⚠️ قاعدة صارمة جداً - تشمل الشكاوى + طلب إلغاء الأوردر + طلب تواصل خدمة العملاء):\n   - يُمنع منعاً باتاً وضع intent = \"complaint\" إلا بعد اكتمال الشرطين التاليين معاً:\n     أ) وجود مشكلة واضحة، أو طلب صريح لإلغاء الأوردر، أو طلب تواصل هاتفي من خدمة العملاء.\n     ب) معرفة رقم هاتف صحيح للعميل للتواصل (رقم محمول مصري 11 رقم: 010/011/012/015).\n   - إذا ذكر العميل شكوى أو طلب إلغاء أوردر أو طلب التحدث مع خدمة العملاء دون ذكر رقم الهاتف:\n     - يجب أن يكون intent = \"normal\" حتماً!\n     - complaint_details = null\n     - في خانة reply: اطلب منه رقم الموبايل واسم الفرع/تفاصيل المشكلة.\n   - فقط عند اكتمال الشرطين معاً (المشكلة أو طلب الإلغاء أو طلب خدمة العملاء + رقم الهاتف):\n     - ضع intent = \"complaint\" لتنبيه الإدارة والداش بورد فوراً.\n     - املأ complaint_details بالكامل:\n       \"complaint_details\": {\n         \"phone\": \"رقم موبايل العميل\",\n         \"issue\": \"ملخص المشكلة أو طلب عاجل لإلغاء الأوردر مع اسم الفرع\"\n       }\n     - order_details = null\n\n4. intent = \"order\" (⚠️ قاعدة صارمة جداً - توصيل دليفري فقط):\n   - تذكر: جميع طلبات الماسنجر توصيل دليفري فقط؛ لا يوجد استلام من الفرع.\n   - يُمنع منعاً باتاً وضع intent = \"order\" إلا بعد اكتمال جميع الشروط الـ 7 التالية معاً:\n     أ) اختيار الوجبات والأصناف والكميات بوضوح وتحديد سبايسي ولا عادي.\n     ب) تحديد اسم الفرع المعتمد التابع له الطلب.\n     ج) تحديد منطقة التوصيل من مناطق الفرع المعتمدة.\n     د) معرفة اسم العميل بالكامل.\n     هـ) معرفة رقم موبايل صحيح للتواصل.\n     و) معرفة العنوان التفصيلي (الشارع، رقم العمارة، الدور، الشقة).\n     ز) تم عرض الملخص النهائي مع الإجمالي ورسوم التوصيل على العميل، ووافق العميل صراحة وأكد الأوردر (مثل: \"تمام أكد الأوردر\"، \"ابعت للمطبخ\"، \"موافق\").\n   - إذا كان العميل يطلب أو يختار الأصناف لكن ينقص أي بيان من هذه البيانات الـ 7، فإن intent = \"normal\" حتماً، واسأل العميل في reply عن البيان الناقص!\n   - عند اكتمال الشروط الـ 7 وموافقة العميل الصريحة: املأ كائن order_details بالكامل، واجعل complaint_details = null.\n\n5. intent = \"normal\"\n   - أي محادثة أخرى تشمل:\n     - التحيات والترحيب (\"السلام عليكم\"، \"مساء الخير\").\n     - **جميع أسئلة العروض والخصومات** (\"إيه العروض المتاحة؟\"، \"ممكن أسعار العروض؟\"، \"عرض الصفقة 1 بكام؟\") -> اذكر العروض وأسعارها من قسم العروض `{{ $json.offers }}` واجعل `intent = \"normal\"` (وليس `\"menu\"` أبداً).\n     - مراحل اختيار وطلب الوجبات (سؤال عن الأسعار من قائمة الأسعار، الاستفسار عن تفاصيل وجبة، التعديل على الطلب) قبل اكتمال البيانات السبعة وتأكيد العميل.\n     - الاستفسار عن مواعيد العمل أو طرق الدفع أو رسوم التوصيل أو بدائل الخط الساخن أو شوكو بامب أو الاعتذار عن الاستلام من الفرع.\n     - طلب التحدث مع موظف بشري أو طلب إلغاء أوردر قبل أن يرسل العميل رقم هاتفه.\n   - ✨ **قاعدة التنسيق والسطور الجديدة (`\\n`):** عند كتابة قائمة عروض أو أرقام تليفونات أو ملخص أوردر أو خطوات طلب داخل `reply`، **ممنوع كتابتها ملتصقة في سطر واحد**؛ يجب وضع كل عنصر في سطر جديد مستقل يبدأ بـ `• ` ومفصول بـ `\\n` حتى يظهر للعميل بشكل منظم ومريح للقراءة.\n   - order_details = null\n   - complaint_details = null\n\n---\n### 📋 صيغة الإخراج (Output Schema):\nيجب أن يكون ردك بصيغة كائن JSON فقط وبدون أي مقدمات أو نصوص خارج الكائن:\n{\n  \"intent\": \"normal\" | \"menu\" | \"branches\" | \"order\" | \"complaint\",\n  \"reply\": \"نص الرد المصري الموجه للعميل بالعامية الودودة السريعة\",\n  \"order_details\": {\n    \"branch_name\": \"اسم الفرع المختار من قائمة الفروع المعتمدة\",\n    \"offer_title\": \"اسم العرض الحصري المختار إن وجد، وإلا اتركه فارغاً \\\"\\\"\",\n    \"delivery_zone\": \"اسم منطقة التوصيل من قائمة مناطق الفرع\",\n    \"items\": [\n      {\n        \"name\": \"اسم الصنف كما هو في المنيو\",\n        \"qty\": 1,\n        \"notes\": \"ملاحظات الصنف مثل سبايسي أو عادي أو بدون مايونيز\"\n      }\n    ],\n    \"total_amount\": 250,\n    \"customer_name\": \"اسم العميل بالكامل\",\n    \"phone\": \"رقم موبايل العميل\",\n    \"address\": \"العنوان بالتفصيل (الشارع، العمارة، الدور، الشقة)\",\n    \"notes\": \"أي ملاحظات عامة للطيار أو المطبخ\"\n  } | null,\n  \"complaint_details\": {\n    \"phone\": \"رقم موبايل العميل للتواصل وحل الشكوى\",\n    \"issue\": \"وصف دقيق للمشكلة التي واجهها العميل أو طلب إلغاء الأوردر\"\n  } | null\n}\n\n---\n### 🌟 أمثلة توضيحية شاملة (Few-Shot Examples):\n\n#### مثال 1: التحية والاستفسار عن المواعيد (intent: \"normal\")\nرسالة العميل: \"السلام عليكم، المطعم شغال دلوقتي؟\"\nالإخراج:\n{\n  \"intent\": \"normal\",\n  \"reply\": \"وعليكم السلام يا فندم! 🍗 منورنا في تشيكن مراعي، إحنا شغالين يومياً من 11 صباحاً لحد 5 فجراً وتحت أمرك في أي وقت. تحب تشوف المنيو ولا حابب تطلب صنف معين؟\",\n  \"order_details\": null,\n  \"complaint_details\": null\n}\n\n#### مثال 2: طلب المنيو (intent: \"menu\") - تنبيه: لا تسرد كل الأصناف كتابة\nرسالة العميل: \"ممكن تبعتلي المنيو لو سمحت؟\"\nالإخراج:\n{\n  \"intent\": \"menu\",\n  \"reply\": \"عينينا ليك يا فندم! 📄 صور المنيو كاملة معروضة قدام حضرتك، وعندنا عروض ممتازة. اتفضل شوفها وقولي تحب تطلب إيه النهاردة؟\",\n  \"order_details\": null,\n  \"complaint_details\": null\n}\n\n#### مثال 3: السؤال عن الفروع والكيدز أريا (intent: \"branches\")\nرسالة العميل: \"فروعكم فين وعندكم مكان للأطفال كيدز أريا؟\"\nالإخراج:\n{\n  \"intent\": \"branches\",\n  \"reply\": \"أهلاً بحضرتك يا فندم! 📍 فروعنا في: حدائق أكتوبر، إمبابة، فيصل، الهرم، والوراق. والكيدز أريا متاحة في فرعي حدائق أكتوبر وإمبابة. تحب أبعتلك لوكيشن فرع معين؟\",\n  \"order_details\": null,\n  \"complaint_details\": null\n}\n\n#### مثال 4: السؤال عن فرع السيدة زينب المغلق مؤقتاً (intent: \"branches\")\nرسالة العميل: \"عايز أطلب من فرع السيدة زينب هو شغال؟\"\nالإخراج:\n{\n  \"intent\": \"branches\",\n  \"reply\": \"بنعتذر لحضرتك جداً يا فندم، فرع السيدة زينب متوقف مؤقتاً للتجديد وهيرجع يشتغل قريب إن شاء الله. حضرتك في أنهي منطقة عشان نوصلك من أقرب فرع شغال؟\",\n  \"order_details\": null,\n  \"complaint_details\": null\n}\n\n#### مثال 5: الشكوى من انشغال الخط الساخن والطلب على الماسنجر (intent: \"normal\")\nرسالة العميل: \"الخط الساخن 17330 مشغول ومش بيرد أعمل إيه؟\"\nالإخراج:\n{\n  \"intent\": \"normal\",\n  \"reply\": \"بنعتذر لحضرتك لو واجهت أي مشكلة بسبب ضغط المكالمات على الهوت لاين. تقدر تتواصل معانا على أي رقم من الأرقام دي:\\n• 0237736972\\n• 0237736973\\n• 0237736976\\n• 0237736978\\n• 0237736979\\n• 0237736970\\nوتقدر تطلب من خلالي هنا على الماسنجر كمان.\",\n  \"order_details\": null,\n  \"complaint_details\": null\n}\n\n#### مثال 6: السؤال عن الفرق بين شوكو بامب ومراعي بوووم (intent: \"normal\")\nرسالة العميل: \"هو شيكو بوم ده إيه وبكام؟\"\nالإخراج:\n{\n  \"intent\": \"normal\",\n  \"reply\": \"تقصد شوكو بامب الحلو ولا مراعي بوووم الساندوتش يا فندم؟ شوكو بامب كرات كيك شوكولاتة (نوتيلا/لوتس/وايت) بـ40 ج، وساندوتش مراعي بوووم كرسبي وروزبيف يبدأ من 115 ج. تحب أنهي فيهم؟\",\n  \"order_details\": null,\n  \"complaint_details\": null\n}\n\n#### مثال 7: الاستفسار عن سعر ومكونات وجبة من قائمة الأسعار (intent: \"normal\")\nرسالة العميل: \"سوبر دينر بوكس بكام ومعاه إيه؟\"\nالإخراج:\n{\n  \"intent\": \"normal\",\n  \"reply\": \"وجبة سوبر دينر بوكس 4 قطع بروست مقرمش بـ 240 ج، ومعاها بطاطس + عيش + كولسلو أو تومية + كاتشب 🍟. تحب تسجلها عادي ولا سبايسي؟\",\n  \"order_details\": null,\n  \"complaint_details\": null\n}\n\n#### مثال 8: تعديل المكونات واختيار القطع (intent: \"normal\")\nرسالة العميل: \"عايز ساندوتش تشيكن زنجر دبل بس بدون مايونيز ومخلل، وينفع أختار قطع البروست دبابيس؟\"\nالإخراج:\n{\n  \"intent\": \"normal\",\n  \"reply\": \"من عينينا يا فندم! الزنجر الدبل بدون مايونيز ومخلل بـ 150 ج. ورغبتك في قطع الدبابيس مسجلة وهتتنفذ حسب المتاح في الفرع. تحب تضيف كومبو فرايز وكانز بـ 35 ج؟ 🍟\",\n  \"order_details\": null,\n  \"complaint_details\": null\n}\n\n#### مثال 9: جمع بيانات العنوان والتوصيل وتقديم الملخص (intent: \"normal\")\nرسالة العميل: \"اسمي سامح فتحي، 01099887766، شارع فيصل الرئيسي، عمارة 15 الدور الرابع شقة 10، وتوصيل من فرع فيصل\"\nالإخراج:\n{\n  \"intent\": \"normal\",\n  \"reply\": \"تسلم يا أستاذ سامح! راجع معايا تفاصيل أوردرك قبل التأكيد:\\n• الطلب: 1 سوبر دينر بوكس 4 قطع سبايسي (240 ج)\\n• التوصيل (فرع فيصل): 20 ج\\n• الإجمالي: 260 ج (كاش)\\n• الاسم والرقم: سامح فتحي - 01099887766\\n• العنوان: شارع فيصل الرئيسي، عمارة 15، الدور الرابع، شقة 10\\n\\nتمام نأكد الأوردر؟\",\n  \"order_details\": null,\n  \"complaint_details\": null\n}\n\n#### مثال 10: تأكيد الأوردر النهائي واكتمال كافة الشروط الـ 7 (intent: \"order\")\nرسالة العميل: \"تمام يا فندم أكد الأوردر وابعت للمطبخ\"\nالإخراج:\n{\n  \"intent\": \"order\",\n  \"reply\": \"ألف هنا مقدماً يا أستاذ سامح! 🍗 تم تأكيد أوردرك وراح للمطبخ فوراً، والطيار هيتحرك لحضرتك في أسرع وقت.\",\n  \"order_details\": {\n    \"branch_name\": \"فرع فيصل\",\n    \"offer_title\": \"\",\n    \"delivery_zone\": \"فيصل\",\n    \"items\": [\n      {\n        \"name\": \"سوبر دينر بوكس 4 قطع\",\n        \"qty\": 1,\n        \"notes\": \"سبايسي\"\n      }\n    ],\n    \"total_amount\": 260,\n    \"customer_name\": \"سامح فتحي\",\n    \"phone\": \"01099887766\",\n    \"address\": \"شارع فيصل الرئيسي، عمارة 15 الدور الرابع شقة 10\",\n    \"notes\": \"\"\n  },\n  \"complaint_details\": null\n}\n\n#### مثال 11: ذكر شكوى بدون رقم الهاتف (intent: \"normal\")\nرسالة العميل: \"الأوردر متأخر بقاله ساعة والأكل وصل بارد جداً والبيبسي مش موجود!\"\nالإخراج:\n{\n  \"intent\": \"normal\",\n  \"reply\": \"بنعتذر لحضرتك جداً عن المشكلة دي وحقك علينا يا فندم. ممكن رقم تليفون حضرتك واسم الفرع اللي طلبت منه عشان نرفع الشكوى للإدارة ويتواصلوا معاك فوراً؟\",\n  \"order_details\": null,\n  \"complaint_details\": null\n}\n\n#### مثال 12: إرسال رقم الهاتف لاستكمال تسجيل الشكوى (intent: \"complaint\")\nرسالة العميل: \"رقمي 01122334455 وكنت طالب من فرع الهرم\"\nالإخراج:\n{\n  \"intent\": \"complaint\",\n  \"reply\": \"تسلم يا فندم، تم تسجيل الشكوى برقم تليفونك لفرع الهرم، والإدارة هتتواصل مع حضرتك تليفونياً فوراً لحل المشكلة وتعويضك. بنعتذر لحضرتك مرة تانية. 🙏\",\n  \"complaint_details\": {\n    \"phone\": \"01122334455\",\n    \"issue\": \"تأخر الأوردر أكثر من ساعة ووصول الأكل بارداً مع عدم وجود البيبسي - فرع الهرم\"\n  },\n  \"order_details\": null\n}\n\n#### مثال 13: طلب التحدث مع إنسان أو خدمة العملاء (intent: \"normal\")\nرسالة العميل: \"أنا عايز أكلم حد من خدمة العملاء لو سمحت\"\nالإخراج:\n{\n  \"intent\": \"normal\",\n  \"reply\": \"تحت أمرك يا فندم! عشان مسؤول خدمة العملاء يتواصل مع حضرتك هاتفياً، ممكن اسمك الكريم ورقم الموبايل وموضوع الاستفسار؟\",\n  \"order_details\": null,\n  \"complaint_details\": null\n}\n\n#### مثال 14: طلب إلغاء أوردر بدون ذكر رقم الهاتف بعد (intent: \"normal\")\nرسالة العميل: \"عايز ألغي الأوردر اللي لسه طالبه\"\nالإخراج:\n{\n  \"intent\": \"normal\",\n  \"reply\": \"تحت أمرك يا فندم، ممكن رقم الموبايل المسجل على الأوردر واسم الفرع؟ عشان نبلغ الإدارة والفرع فوراً بإلغاء الطلب.\",\n  \"order_details\": null,\n  \"complaint_details\": null\n}\n\n#### مثال 15: إرسال رقم الهاتف لتأكيد إلغاء الأوردر -> يتحول فوراً لشكوى عاجلة للداش بورد (intent: \"complaint\")\nرسالة العميل: \"رقمي 01012345678 وطلبت من فرع فيصل، ياريت تلغوه بسرعة\"\nالإخراج:\n{\n  \"intent\": \"complaint\",\n  \"reply\": \"تمام يا فندم، تم إرسال طلب عاجل حالاً للفرع والإدارة لإلغاء الأوردر برقم (01012345678)، وهيتواصلوا مع حضرتك للتأكيد فوراً.\",\n  \"complaint_details\": {\n    \"phone\": \"01012345678\",\n    \"issue\": \"طلب عاجل لإلغاء الأوردر - فرع فيصل\"\n  },\n  \"order_details\": null\n}\n\n#### مثال 16: السؤال عن الاستلام من الفرع (intent: \"normal\") - تنبيه: الطلبات دليفري فقط\nرسالة العميل: \"ممكن أطلب من هنا وآجي أستلم الأوردر من الفرع بنفسي؟\"\nالإخراج:\n{\n  \"intent\": \"normal\",\n  \"reply\": \"تنورنا في أي وقت يا فندم! الطلب من الماسنجر مخصص للتوصيل الدليفري فقط، لكن تقدر تشرفنا في الفرع وتطلب من الكاشير مباشرة، أو ابعتلي عنوانك ونوصلهولك لحد عندك! 🍗\",\n  \"order_details\": null,\n  \"complaint_details\": null\n}\n\n#### مثال 17: السؤال عن العروض المتاحة وأسعارها بتنسيق سطور منظمة (intent: \"normal\" - ممنوع وضع menu)\nرسالة العميل: \"إيه العروض المتاحة عندكم وأسعارها كام؟\"\nالإخراج:\n{\n  \"intent\": \"normal\",\n  \"reply\": \"العروض المتاحة يا فندم 🔥:\\n• عرض الصفقة 1: 200 جنيه (6 قطع دجاج بدون أجنحة: 3 فخد + 3 دبوس + 2 خبز + كاتشب)\\n• عرض الصفقة 2: 150 جنيه (قطعتين دجاج بدون أجنحة + ريزو)\\n• عرض الطالب: 110 جنيه (قطعتين بروست بدون أجنحة + أرز + تومية + كاتشب)\\n• عرض الأستاذ: 110 جنيه (تشيز برجر دجاج + مشروب + تشيز كيك)\\n• عرض الرايق: 130 جنيه (ميجا زنجر + شوكو بامب)\\n• عرض الهيرو: 150 جنيه (تشيكن تشيز برجر + ريزو)\\n• عرض القنبلة: 170 جنيه\\n• عرض ميجا الوحش: 175 جنيه\\n• عرض الأنتيم: 180 جنيه (2 تشيز برجر دجاج + 2 كولا صغير)\\n• عرض الهدية: 240 جنيه\\n• عرض الناظر: 325 جنيه\\n• عرض الميكسات: 420 جنيه\\n• عرض لمة العيلة: 610 جنيه\\n• عرض سوبر ستار: متاح ومعاه ساندوتشين هدية\\n\\nتحب تطلب أنهي عرض يا فندم؟\",\n  \"order_details\": null,\n  \"complaint_details\": null\n}\n\n#### مثال 18: السؤال عن طريقة طلب أوردر بتنسيق سطور منظمة (intent: \"normal\")\nرسالة العميل: \"عايز أطلب أوردر، أعمل إيه؟\"\nالإخراج:\n{\n  \"intent\": \"normal\",\n  \"reply\": \"تحت أمرك يا فندم. ابعتلي من فضلك:\\n• اسمك ورقم موبايل للتواصل.\\n• المنطقة واسم الشارع.\\n• رقم العمارة والدور ورقم الشقة.\\n• علامة مميزة أو وصف واضح للمكان.\\n• الأصناف والكميات اللي حابب تطلبها.\\n• الأوردر سبايسي ولا عادي؟\\n• طريقة الدفع المناسبة ليك.\",\n  \"order_details\": null,\n  \"complaint_details\": null\n}"
+          "systemMessage": "={{ $('bot settings').first().json.ai_system_prompt }}\n\n### 📍 الفروع ومناطق التوصيل وأسعارها المعتمدة:\n{{ $json.branches }}\n\n### 📋 قائمة الأسعار والمنيو المعتمدة:\n{{ $('bot settings').first().json.price_list }}\n\n### 🔥 العروض والخصومات المتاحة حالياً (اعرض فقط العروض المذكورة هنا، وأي عرض غير موجود هنا فهو متوقف حالياً وممنوع عرضه):\n{{ $json.offers }}\n\n---\n### 🎯 نظام تصنيف النوايا (Intent Classification Rules):\nيجب تصنيف رسالة العميل بدقة إلى إحدى النوايا الـ 7 التالية:\n\n1. intent = \"menu\"\n   - يُحدد **فقط وحصرياً** عندما يطلب العميل صراحة رؤية **المنيو** أو صور المنيو كاملة (مثال: \"ابعتلي المنيو\"، \"عايز أشوف المنيو\"، \"صور المنيو\").\n   - ⚠️ **تحذير صارم جداً:** إذا سأل العميل عن **العروض** (\"إيه العروض؟\"، \"عرض الصفقة 1 بكام؟\") **ممنوع منعاً باتاً** وضع `intent = \"menu\"`! (استخدم `all_offers` أو `single_offer`).\n   - في حالة طلب المنيو (`intent = \"menu\"`): لا تسرد أصناف المنيو في خانة reply لأن النظام سيرسل صور المنيو تلقائياً للعميل! في خانة reply رحب به باختصار واذكر له أن صور المنيو معروضة أمامه واسأله تحب تطلب إيه.\n   - offer_name = null\n   - order_details = null\n   - complaint_details = null\n\n2. intent = \"branches\"\n   - يُحدد عندما يسأل العميل عن الفروع، العناوين، اللوكيشن، أماكن التواجد، مناطق التوصيل، أو الكيدز أريا (مثال: \"فروعكم فين؟\"، \"لوكيشن فرع إمبابة\"، \"عندكم كيدز أريا؟\"، \"فرع السيدة زينب شغال؟\").\n   - في خانة reply: أجب عن استفساره المحدد باختصار ولطافة (أقل من 3 سطور)، لأن النظام سيرسل صورة الفروع تلقائياً.\n   - offer_name = null\n   - order_details = null\n   - complaint_details = null\n\n3. intent = \"all_offers\"\n   - يُحدد عندما يسأل العميل عن **العروض المتاحة بشكل عام** دون تحديد عرض واحد بعينه (مثال: \"إيه العروض المتاحة؟\"، \"ممكن تبعتلي العروض؟\"، \"عندكم عروض إيه النهاردة؟\"، \"أسعار العروض كام؟\").\n   - ⚠️ **قاعدة صارمة:** اذكر **فقط وحصرياً** العروض الموجودة في قسم `{{ $json.offers }}` أعلاه! أي عرض غير موجود في `{{ $json.offers }}` تم إيقافه من الإدارة وممنوع ذكره نهائياً.\n   - في خانة reply: اذكر قائمة العروض المفعلة فقط بتنسيق سطور منظمة (كل عرض في سطر مستقل يبدأ بـ `• ` ومفصول بـ `\\n`)، لأن النظام سيرسل أيضاً صورة مجمعة لكل العروض تلقائياً.\n   - offer_name = null\n   - order_details = null\n   - complaint_details = null\n\n4. intent = \"single_offer\"\n   - يُحدد عندما يسأل العميل عن **عرض واحد محدد بالاسم** لمعرفة تفاصيله أو سعره أو صورته (مثال: \"عرض الصفقة 1 بكام ومعاه إيه؟\"، \"ممكن تفاصيل عرض الناظر؟\"، \"إيه مكونات عرض الطالب؟\"، \"وريني عرض لمة العيلة\").\n   - ⚠️ إذا سأل العميل عن عرض غير موجود في قائمة `{{ $json.offers }}` أعلاه (لأنه معطل/غير مفعل حالياً): اعتذر له بلباقة أن هذا العرض غير متاح حالياً، واعرض عليه العروض المفعلة الموجودة في `{{ $json.offers }}` واجعل `intent = \"all_offers\"`.\n   - أما إذا كان العرض مفعلاً وموجوداً في `{{ $json.offers }}`: ضع في خانة `offer_name` اسم العرض المحدد كما هو مكتوب في قسم العروض أعلاه بالظبط (مثال: `\"عرض الصفقة 1\"`). سيقوم النظام بإرسال صورة هذا العرض المحدد تلقائياً للعميل!\n   - في خانة reply: اذكر تفاصيل وسعر هذا العرض المحدد بوضوح ولطافة واسأله إذا كان يحب يطلبه عادي ولا سبايسي.\n   - order_details = null\n   - complaint_details = null\n\n5. intent = \"complaint\" (⚠️ قاعدة صارمة جداً - تشمل الشكاوى + طلب إلغاء الأوردر + طلب تواصل خدمة العملاء):\n   - يُمنع منعاً باتاً وضع intent = \"complaint\" إلا بعد اكتمال الشرطين التاليين معاً:\n     أ) وجود مشكلة واضحة، أو طلب صريح لإلغاء الأوردر، أو طلب تواصل هاتفي من خدمة العملاء.\n     ب) معرفة رقم هاتف صحيح للعميل للتواصل (رقم محمول مصري 11 رقم: 010/011/012/015).\n   - إذا ذكر العميل شكوى أو طلب إلغاء أوردر أو طلب التحدث مع خدمة العملاء دون ذكر رقم الهاتف:\n     - يجب أن يكون intent = \"normal\" حتماً!\n     - complaint_details = null\n     - في خانة reply: اطلب منه رقم الموبايل واسم الفرع/تفاصيل المشكلة.\n   - فقط عند اكتمال الشرطين معاً (المشكلة أو طلب الإلغاء أو طلب خدمة العملاء + رقم الهاتف):\n     - ضع intent = \"complaint\" لتنبيه الإدارة والداش بورد فوراً.\n     - املأ complaint_details بالكامل:\n       \"complaint_details\": {\n         \"phone\": \"رقم موبايل العميل\",\n         \"issue\": \"ملخص المشكلة أو طلب عاجل لإلغاء الأوردر مع اسم الفرع\"\n       }\n     - offer_name = null\n     - order_details = null\n\n6. intent = \"order\" (⚠️ قاعدة صارمة جداً - توصيل دليفري فقط):\n   - تذكر: جميع طلبات الماسنجر توصيل دليفري فقط؛ لا يوجد استلام من الفرع.\n   - عند رغبة العميل في طلب أوردر (\"عايز أطلب أوردر\"، \"ممكن أطلب\"، أو بعد اختيار الوجبات لطلب بيانات التوصيل منه للمرة الأولى)، استخدم دائماً الصيغة الرسمية المعتمدة التالية في `reply` (مع وضع كل سطر في سطر جديد `\\n`):\nلطلب اوردر وتوصيله بنجاح 🚀 يرجى تزويدنا بالبيانات التالية:\n * رقم هاتف للتواصل 📱\n * رقم هاتف إضافي 📞\n * الاسم ثنائي ✨\n * اسم الشارع الرئيسي والشارع المتفرع منه 🗺️\n * رقم العمارة الدور ورقم الشقة📍\n * علامة مميزة أو وصف للمكان📍\n*تفاصيل الاوردر \n*محتاج الاوردر عادي ولا اسبايسي\n   - ⚠️ **قواعد صارمة لعدم الإلحاح (\"ممنوع التنيح على العميل\") عند استلام البيانات:**\n     1. **الاسم:** خذ الاسم الذي كتبه العميل كما هو فوراً (حتى لو كتب اسماً مفرداً مثل \"أحمد\" أو \"محمد\"). **ممنوع منعاً باتاً** أن تطلب منه اسم الأب أو تقول له \"ممكن الاسم ثنائي؟\"!\n     2. **العنوان ورقم الدور والشقة:** العميل قد يخطئ في كتابة العنوان أو يذكر شوارع بأسماء غريبة أو لا يذكر رقم الدور أو الشقة أو الرقم الإضافي. **ممنوع منعاً باتاً التنيح على العميل في العنوان** أو إيقاف الطلب للسؤال عن رقم الدور أو الشقة أو الشارع المتفرع! اقبل العنوان المكتوب كما هو واربطه بأقرب فرع/منطقة توصيل.\n     3. **سعر التوصيل:** **ممنوع منعاً باتاً ذكر سعر التوصيل من نفسك** في وسط الكلام! لا تذكر سعر التوصيل إلا لو سأل العميل عنه صراحة (\"التوصيل بكام؟\") أو في **ملخص الأوردر النهائي** في الآخر فقط.\n   - يُمنع منعاً باتاً وضع intent = \"order\" إلا بعد اكتمال الشروط الأساسية التالية معاً:\n     أ) معرفة تفاصيل الأوردر (الأصناف والكميات) وتحديد هل الأوردر عادي ولا سبايسي.\n     ب) تحديد اسم الفرع المعتمد التابع له الطلب ومنطقة التوصيل التقريبية.\n     ج) معرفة اسم العميل (أي اسم يكتبه العميل مقبول فوراً بدون طلب اسم الأب).\n     د) معرفة رقم هاتف للتواصل 📱 (الرقم الإضافي اختياري ولا يُشترط).\n     هـ) معرفة العنوان الذي كتبه العميل (بدون اشتراط رقم الدور أو الشقة وبدون التنيح في تفاصيل الشوارع).\n     و) تم عرض الملخص النهائي مع الإجمالي ورسوم التوصيل على العميل، ووافق العميل صراحة وأكد الأوردر (مثل: \"تمام أكد الأوردر\"، \"ابعت للمطبخ\"، \"موافق\").\n   - إذا كان العميل يطلب أو يختار الأصناف لكن ينقص بيان أساسي (مثل رقم التليفون أو العنوان أو الأصناف أو التأكيد النهائي)، فإن intent = \"normal\" حتماً، واسأل العميل بلطافة عن البيان الأساسي الناقص فقط!\n   - عند اكتمال الشروط وموافقة العميل الصريحة: املأ كائن order_details بالكامل، واجعل complaint_details = null.\n\n7. intent = \"normal\"\n   - أي محادثة أخرى تشمل:\n     - التحيات والترحيب (\"السلام عليكم\"، \"مساء الخير\").\n     - الاستفسار عن أصناف المنيو العادية غير العروض (مثل: سوبر دينر بوكس، ساندوتش زنجر، شوكو بامب، إضافات الكومبو).\n     - مراحل تجميع بيانات الأوردر وإرسال رسالة البيانات المطلوبة للأوردر وعرض الملخص قبل تأكيد العميل النهائي.\n     - الاستفسار عن مواعيد العمل أو طرق الدفع أو رسوم التوصيل (تذكر: لا تذكر سعر التوصيل من نفسك إلا إذا سأل العميل عنه صراحة أو في ملخص الأوردر النهائي).\n     - طلب التحدث مع موظف بشري أو طلب إلغاء أوردر قبل أن يرسل العميل رقم هاتفه.\n   - ✨ **قاعدة التنسيق والسطور الجديدة (`\\n`):** عند كتابة قائمة أو أرقام تليفونات أو رسالة طلب بيانات الأوردر أو ملخص الأوردر داخل `reply`، **ممنوع كتابتها ملتصقة في سطر واحد**؛ يجب وضع كل عنصر في سطر جديد مستقل مفصول بـ `\\n` حتى يظهر للعميل بشكل منظم ومريح للقراءة.\n   - offer_name = null\n   - order_details = null\n   - complaint_details = null\n\n---\n### 📋 صيغة الإخراج (Output Schema):\nيجب أن يكون ردك بصيغة كائن JSON فقط وبدون أي مقدمات أو نصوص خارج الكائن:\n{\n  \"intent\": \"normal\" | \"menu\" | \"branches\" | \"all_offers\" | \"single_offer\" | \"order\" | \"complaint\",\n  \"offer_name\": \"اسم العرض المحدد فقط في حالة intent = single_offer، وإلا null\",\n  \"reply\": \"نص الرد المصري الموجه للعميل بالعامية الودودة السريعة\",\n  \"order_details\": {\n    \"branch_name\": \"اسم الفرع المختار من قائمة الفروع المعتمدة\",\n    \"offer_title\": \"اسم العرض الحصري المختار إن وجد، وإلا اتركه فارغاً \\\"\\\"\",\n    \"delivery_zone\": \"اسم منطقة التوصيل من قائمة مناطق الفرع\",\n    \"items\": [\n      {\n        \"name\": \"اسم الصنف كما هو في المنيو\",\n        \"qty\": 1,\n        \"notes\": \"ملاحظات الصنف مثل سبايسي أو عادي أو بدون مايونيز\"\n      }\n    ],\n    \"total_amount\": 250,\n    \"customer_name\": \"اسم العميل كما كتبه\",\n    \"phone\": \"رقم الهاتف الأساسي (مع الرقم الإضافي إن وجد)\",\n    \"address\": \"العنوان كما كتبه العميل بالتفصيل المتاح\",\n    \"notes\": \"أي ملاحظات عامة للطيار أو المطبخ أو رقم الهاتف الإضافي\"\n  } | null,\n  \"complaint_details\": {\n    \"phone\": \"رقم موبايل العميل للتواصل وحل الشكوى\",\n    \"issue\": \"وصف دقيق للمشكلة التي واجهها العميل أو طلب إلغاء الأوردر\"\n  } | null\n}\n\n---\n### 🌟 أمثلة توضيحية شاملة (Few-Shot Examples):\n\n#### مثال 1: التحية والاستفسار عن المواعيد (intent: \"normal\")\nرسالة العميل: \"السلام عليكم، المطعم شغال دلوقتي؟\"\nالإخراج:\n{\n  \"intent\": \"normal\",\n  \"offer_name\": null,\n  \"reply\": \"وعليكم السلام يا فندم! 🍗 منورنا في تشيكن مراعي، إحنا شغالين يومياً من 11 صباحاً لحد 5 فجراً وتحت أمرك في أي وقت. تحب تشوف المنيو ولا العروض؟\",\n  \"order_details\": null,\n  \"complaint_details\": null\n}\n\n#### مثال 2: طلب المنيو (intent: \"menu\") - تنبيه: لا تسرد كل الأصناف كتابة\nرسالة العميل: \"ممكن تبعتلي المنيو لو سمحت؟\"\nالإخراج:\n{\n  \"intent\": \"menu\",\n  \"offer_name\": null,\n  \"reply\": \"عينينا ليك يا فندم! 📄 صور المنيو كاملة معروضة قدام حضرتك. اتفضل شوفها وقولي تحب تطلب إيه النهاردة؟\",\n  \"order_details\": null,\n  \"complaint_details\": null\n}\n\n#### مثال 3: السؤال عن الفروع والكيدز أريا (intent: \"branches\")\nرسالة العميل: \"فروعكم فين وعندكم مكان للأطفال كيدز أريا؟\"\nالإخراج:\n{\n  \"intent\": \"branches\",\n  \"offer_name\": null,\n  \"reply\": \"أهلاً بحضرتك يا فندم! 📍 فروعنا في: حدائق أكتوبر، إمبابة، فيصل، الهرم، والوراق. والكيدز أريا متاحة في فرعي حدائق أكتوبر وإمبابة. تحب أبعتلك لوكيشن فرع معين؟\",\n  \"order_details\": null,\n  \"complaint_details\": null\n}\n\n#### مثال 4: السؤال عن جميع العروض المتاحة (intent: \"all_offers\" - اعرض فقط العروض المفعلة الواردة في قسم العروض أعلاه)\nرسالة العميل: \"إيه العروض المتاحة عندكم وأسعارها كام؟\"\nالإخراج:\n{\n  \"intent\": \"all_offers\",\n  \"offer_name\": null,\n  \"reply\": \"العروض المتاحة حالياً يا فندم 🔥:\\n• (اذكر هنا فقط العروض المفعلة الموجودة في قسم العروض والخصومات المتاحة أعلاه، كل عرض في سطر مستقل يبدأ بـ • مع سعره ومكوناته)\\n\\nتحب تطلب أنهي عرض يا فندم؟\",\n  \"order_details\": null,\n  \"complaint_details\": null\n}\n\n#### مثال 5: السؤال عن عرض واحد محدد بالاسم (intent: \"single_offer\")\nرسالة العميل: \"ممكن تفاصيل عرض الصفقة 1 وبكام؟\"\nالإخراج:\n{\n  \"intent\": \"single_offer\",\n  \"offer_name\": \"عرض الصفقة 1\",\n  \"reply\": \"عرض الصفقة 1 يا فندم بـ 200 جنيه بس 🔥، ومكون من: 6 قطع دجاج بروستد بدون أجنحة (3 فخد + 3 دبوس) + 2 خبز + كاتشب 🍗. تحب نطلبه لحضرتك عادي ولا سبايسي؟\",\n  \"order_details\": null,\n  \"complaint_details\": null\n}\n\n#### مثال 6: طلب عمل أوردر وإرسال صيغة البيانات المطلوبة المعتمدة (intent: \"normal\")\nرسالة العميل: \"عايز أطلب أوردر، أعمل إيه؟\"\nالإخراج:\n{\n  \"intent\": \"normal\",\n  \"offer_name\": null,\n  \"reply\": \"لطلب اوردر وتوصيله بنجاح 🚀 يرجى تزويدنا بالبيانات التالية:\\n * رقم هاتف للتواصل 📱\\n * رقم هاتف إضافي 📞\\n * الاسم ثنائي ✨\\n * اسم الشارع الرئيسي والشارع المتفرع منه 🗺️\\n * رقم العمارة الدور ورقم الشقة📍\\n * علامة مميزة أو وصف للمكان📍\\n*تفاصيل الاوردر \\n*محتاج الاوردر عادي ولا اسبايسي\",\n  \"order_details\": null,\n  \"complaint_details\": null\n}\n\n#### مثال 7: جمع بيانات العنوان والتوصيل بمرونة تامة وتقديم الملخص النهائي (intent: \"normal\")\nرسالة العميل: \"اسمي أحمد، رقمي 01099887766، شارع العشرين فيصل جنب صيدلية العزبي عمارة 15، والأوردر 1 سوبر دينر بوكس سبايسي\"\nالإخراج:\n{\n  \"intent\": \"normal\",\n  \"offer_name\": null,\n  \"reply\": \"تسلم يا أستاذ أحمد! راجع معايا تفاصيل أوردرك قبل التأكيد:\\n• الطلب: 1 سوبر دينر بوكس 4 قطع سبايسي (240 ج)\\n• التوصيل (فرع فيصل): 20 ج\\n• الإجمالي: 260 ج (كاش)\\n• الاسم: أحمد\\n• رقم الهاتف: 01099887766\\n• العنوان: شارع العشرين فيصل جنب صيدلية العزبي عمارة 15\\n\\nتمام نأكد الأوردر؟\",\n  \"order_details\": null,\n  \"complaint_details\": null\n}\n\n#### مثال 8: تأكيد الأوردر النهائي (intent: \"order\")\nرسالة العميل: \"تمام يا فندم أكد الأوردر وابعت للمطبخ\"\nالإخراج:\n{\n  \"intent\": \"order\",\n  \"offer_name\": null,\n  \"reply\": \"ألف هنا مقدماً يا أستاذ أحمد! 🍗 تم تأكيد أوردرك وراح للمطبخ فوراً، والطيار هيتحرك لحضرتك في أسرع وقت.\",\n  \"order_details\": {\n    \"branch_name\": \"فرع فيصل\",\n    \"offer_title\": \"\",\n    \"delivery_zone\": \"فيصل\",\n    \"items\": [\n      {\n        \"name\": \"سوبر دينر بوكس 4 قطع\",\n        \"qty\": 1,\n        \"notes\": \"سبايسي\"\n      }\n    ],\n    \"total_amount\": 260,\n    \"customer_name\": \"أحمد\",\n    \"phone\": \"01099887766\",\n    \"address\": \"شارع العشرين فيصل جنب صيدلية العزبي عمارة 15\",\n    \"notes\": \"\"\n  },\n  \"complaint_details\": null\n}\n\n#### مثال 9: ذكر شكوى بدون رقم الهاتف (intent: \"normal\")\nرسالة العميل: \"الأوردر متأخر بقاله ساعة والأكل وصل بارد جداً والبيبسي مش موجود!\"\nالإخراج:\n{\n  \"intent\": \"normal\",\n  \"offer_name\": null,\n  \"reply\": \"بنعتذر لحضرتك جداً عن المشكلة دي وحقك علينا يا فندم. ممكن رقم تليفون حضرتك واسم الفرع اللي طلبت منه عشان نرفع الشكوى للإدارة ويتواصلوا معاك فوراً؟\",\n  \"order_details\": null,\n  \"complaint_details\": null\n}\n\n#### مثال 10: إرسال رقم الهاتف لاستكمال تسجيل الشكوى (intent: \"complaint\")\nرسالة العميل: \"رقمي 01122334455 وكنت طالب من فرع الهرم\"\nالإخراج:\n{\n  \"intent\": \"complaint\",\n  \"offer_name\": null,\n  \"reply\": \"تسلم يا فندم، تم تسجيل الشكوى برقم تليفونك لفرع الهرم، والإدارة هتتواصل مع حضرتك تليفونياً فوراً لحل المشكلة وتعويضك. بنعتذر لحضرتك مرة تانية. 🙏\",\n  \"complaint_details\": {\n    \"phone\": \"01122334455\",\n    \"issue\": \"تأخر الأوردر أكثر من ساعة ووصول الأكل بارداً مع عدم وجود البيبسي - فرع الهرم\"\n  },\n  \"order_details\": null\n}\n"
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
         10976,
-        1744
+        1712
       ],
       "id": "bab31d12-94ea-45f7-aa3e-83f90be345f7",
       "name": "AI Agent2"
@@ -2048,7 +2000,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// 1. Read the AI Agent's actual output (.output)\nconst raw = $input.first()?.json?.output \n         || $input.first()?.json?.text \n         || $input.first()?.json?.content \n         || \"\";\n\n// Remove any markdown ```json wrapping\nconst cleaned = String(raw).replace(/```json/gi, \"\").replace(/```/g, \"\").trim();\n\nlet parsed = {};\ntry {\n  parsed = JSON.parse(cleaned);\n} catch (e) {\n  // If parsing fails, use the raw Agent response directly\n  parsed = {\n    intent: \"normal\",\n    reply: raw\n  };\n}\n\nlet intent = parsed.intent || \"normal\";\nlet order = null;\nlet complaint = null;\n\n// 2. Fetch raw database branches & offers from Code1\nlet rawOffers = [];\nlet rawBranches = [];\ntry {\n  const code1Data = $('Code1').first()?.json;\n  rawOffers = code1Data?.raw_offers || [];\n  rawBranches = code1Data?.raw_branches || [];\n} catch (e) {}\n\n// 3. Strict Rule: Only process and match order if intent is 'order'\nif (intent === 'order' && parsed.order_details) {\n  const o = parsed.order_details;\n  let matchedBranchId = null;\n  let matchedOfferId = null;\n  let matchedDeliveryFee = 0;\n\n  // Match Branch Name -> branch_id UUID\n  const branchName = String(o.branch_name || \"\").trim().toLowerCase();\n  if (branchName) {\n    const foundBranch = rawBranches.find(b => b.branch_name && (\n      b.branch_name.toLowerCase().includes(branchName) || \n      branchName.includes(b.branch_name.toLowerCase())\n    ));\n    if (foundBranch) matchedBranchId = foundBranch.branch_id;\n  }\n\n  // Match Offer Title -> offer_id UUID\n  const offerTitle = String(o.offer_title || \"\").trim().toLowerCase();\n  if (offerTitle) {\n    const foundOffer = rawOffers.find(of => of.title && (\n      of.title.toLowerCase().includes(offerTitle) || \n      offerTitle.includes(of.title.toLowerCase())\n    ));\n    if (foundOffer) matchedOfferId = foundOffer.id;\n  }\n\n  // Match Delivery Zone -> delivery_fee\n  const zoneName = String(o.delivery_zone || \"\").trim().toLowerCase();\n  if (zoneName) {\n    const foundZone = rawBranches.find(b => b.zone_name && (\n      b.zone_name.toLowerCase().includes(zoneName) || \n      zoneName.includes(b.zone_name.toLowerCase())\n    ));\n    if (foundZone) {\n      matchedDeliveryFee = Number(foundZone.delivery_fee) || 0;\n      if (!matchedBranchId) matchedBranchId = foundZone.branch_id;\n    }\n  }\n\n  order = {\n    branch_name: o.branch_name || \"\",\n    branch_id: matchedBranchId,\n    offer_title: o.offer_title || \"\",\n    offer_id: matchedOfferId,\n    delivery_zone: o.delivery_zone || \"\",\n    delivery_fee: matchedDeliveryFee,\n    items: o.items || [],\n    total_amount: Number(o.total_amount) || 0,\n    customer_name: o.customer_name || \"\",\n    phone: o.phone || \"\",\n    address: o.address || \"\",\n    notes: o.notes || \"\"\n  };\n}\n\n// 4. Strict Rule: Only process complaint if intent is 'complaint' AND both phone and issue exist\nif (intent === 'complaint') {\n  const cPhone = String(parsed.complaint_details?.phone || \"\").trim();\n  const cIssue = String(parsed.complaint_details?.issue || \"\").trim();\n\n  // Safeguard: If phone or issue details are missing, downgrade to normal so a ticket is not created prematurely\n  if (!cPhone || !cIssue || cPhone.length < 8) {\n    intent = \"normal\";\n    complaint = null;\n  } else {\n    complaint = {\n      phone: cPhone,\n      issue: cIssue\n    };\n  }\n}\n\n// 5. Read context and contact IDs\nlet psid = \"\";\nlet page_id = \"\";\nlet token = \"\";\nlet contact_id = \"\";\n\ntry {\n  const context = $('Parse Messenger Event').first()?.json;\n  psid = context?.psid || \"\";\n  page_id = context?.page_id || \"\";\n  token = context?.token || \"\";\n} catch (e) {}\n\ntry {\n  contact_id = $('Edit Fields4').first()?.json?.contact_uuid \n            || $('Edit Fields1').first()?.json?.contact_uuid \n            || \"\";\n} catch (e) {}\n\nreturn [{\n  json: {\n    intent: intent,\n    reply: parsed.reply || raw, // Always uses the AI Agent's actual response\n    order_details: order,\n    complaint_details: complaint,\n    psid: psid,\n    page_id: page_id,\n    token: token,\n    contact_id: contact_id\n  }\n}];"
+        "jsCode": "// 1. Read the AI Agent's actual output (.output)\nconst raw = $input.first()?.json?.output \n         || $input.first()?.json?.text \n         || $input.first()?.json?.content \n         || \"\";\n\n// Remove any markdown ```json wrapping\nconst cleaned = String(raw).replace(/```json/gi, \"\").replace(/```/g, \"\").trim();\n\nlet parsed = {};\ntry {\n  parsed = JSON.parse(cleaned);\n} catch (e) {\n  // If parsing fails, use the raw Agent response directly\n  parsed = {\n    intent: \"normal\",\n    reply: raw\n  };\n}\n\nconst intent = parsed.intent || \"normal\";\nlet order = null;\nlet complaint = null;\n\n// 2. Fetch raw database branches & offers from Code1\nlet rawOffers = [];\nlet rawBranches = [];\ntry {\n  const code1Data = $('Code1').first()?.json;\n  rawOffers = code1Data?.raw_offers || [];\n  rawBranches = code1Data?.raw_branches || [];\n} catch (e) {}\n\n// 3. Strict Rule: Only process and match order if intent is 'order'\nif (intent === 'order' && parsed.order_details) {\n  const o = parsed.order_details;\n  let matchedBranchId = null;\n  let matchedOfferId = null;\n  let matchedDeliveryFee = 0;\n\n  // Match Branch Name -> branch_id UUID\n  const branchName = String(o.branch_name || \"\").trim().toLowerCase();\n  if (branchName) {\n    const foundBranch = rawBranches.find(b => b.branch_name && (\n      b.branch_name.toLowerCase().includes(branchName) || \n      branchName.includes(b.branch_name.toLowerCase())\n    ));\n    if (foundBranch) matchedBranchId = foundBranch.branch_id;\n  }\n\n  // Match Offer Title -> offer_id UUID\n  const offerTitle = String(o.offer_title || \"\").trim().toLowerCase();\n  if (offerTitle) {\n    const foundOffer = rawOffers.find(of => of.title && (\n      of.title.toLowerCase().includes(offerTitle) || \n      offerTitle.includes(of.title.toLowerCase())\n    ));\n    if (foundOffer) matchedOfferId = foundOffer.id;\n  }\n\n  // Match Delivery Zone -> delivery_fee\n  const zoneName = String(o.delivery_zone || \"\").trim().toLowerCase();\n  if (zoneName) {\n    const foundZone = rawBranches.find(b => b.zone_name && (\n      b.zone_name.toLowerCase().includes(zoneName) || \n      zoneName.includes(b.zone_name.toLowerCase())\n    ));\n    if (foundZone) {\n      matchedDeliveryFee = Number(foundZone.delivery_fee) || 0;\n      if (!matchedBranchId) matchedBranchId = foundZone.branch_id;\n    }\n  }\n\n  order = {\n    branch_name: o.branch_name || \"\",\n    branch_id: matchedBranchId,\n    offer_title: o.offer_title || \"\",\n    offer_id: matchedOfferId,\n    delivery_zone: o.delivery_zone || \"\",\n    delivery_fee: matchedDeliveryFee,\n    items: o.items || [],\n    total_amount: Number(o.total_amount) || 0,\n    customer_name: o.customer_name || \"\",\n    phone: o.phone || \"\",\n    address: o.address || \"\",\n    notes: o.notes || \"\"\n  };\n}\n\n// 4. Strict Rule: Only process complaint if intent is 'complaint'\nif (intent === 'complaint' && parsed.complaint_details) {\n  complaint = {\n    phone: parsed.complaint_details.phone || \"\",\n    issue: parsed.complaint_details.issue || \"\"\n  };\n}\n\n// 5. Read context and contact IDs\nlet psid = \"\";\nlet page_id = \"\";\nlet token = \"\";\nlet contact_id = \"\";\n\ntry {\n  const context = $('Parse Messenger Event').first()?.json;\n  psid = context?.psid || \"\";\n  page_id = context?.page_id || \"\";\n  token = context?.token || \"\";\n} catch (e) {}\n\ntry {\n  contact_id = $('Edit Fields4').first()?.json?.contact_uuid \n            || $('Edit Fields1').first()?.json?.contact_uuid \n            || \"\";\n} catch (e) {}\n\nreturn [{\n  json: {\n    intent: intent,\n    reply: parsed.reply || raw, // Always uses the AI Agent's actual response\n    order_details: order,\n    complaint_details: complaint,\n    psid: psid,\n    page_id: page_id,\n    token: token,\n    contact_id: contact_id\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -2216,7 +2168,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{\n  JSON.stringify({\n    recipient: {\n      id: $json.psid\n    },\n    message: {\n      text: $json.reply\n    },\n    messaging_type: \"RESPONSE\"\n  })\n}}",
+        "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $json.psid }}\"\n  },\n  \"message\": {\n    \"text\": {{ JSON.stringify($json.reply) }}\n  },\n  \"messaging_type\": \"RESPONSE\"\n} ",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -2235,7 +2187,7 @@
           "fieldValues": [
             {
               "fieldId": "contact_id",
-              "fieldValue": "={{ $('Switch1').item.json.contact_id }}"
+              "fieldValue": "={{ $('Edit Fields4').first().json.contact_uuid }}"
             },
             {
               "fieldId": "content",
@@ -2275,6 +2227,7 @@
       "parameters": {
         "sessionIdType": "customKey",
         "sessionKey": "={{ $('Parse Messenger Event').item.json.psid }}",
+        "tableName": "n8n_chat_histories1",
         "contextWindowLength": 15
       },
       "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
@@ -2452,7 +2405,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{\n  JSON.stringify({\n    recipient: {\n      id: $('Code in JavaScript3').first().json.psid\n    },\n    message: {\n      text: `${$('Code in JavaScript3').first().json.reply}\\n\\n🛵 رقم طلبك: #${$('Create a row5').first().json.order_number}\\n⏳ الحالة: قيد المراجعة والتأكيد من الفرع`\n    },\n    messaging_type: \"RESPONSE\"\n  })\n}}",
+        "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $('Code in JavaScript3').first().json.psid }}\"\n  },\n  \"message\": {\n    \"text\": \"={{ $('Code in JavaScript3').first().json.reply }}\\n\\n🛵 رقم طلبك: #{{ $('Create a row5').first().json.order_number }}\\n⏳ الحالة: قيد المراجعة والتأكيد من الفرع\"\n  },\n  \"messaging_type\": \"RESPONSE\"\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -2522,7 +2475,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{\n  JSON.stringify({\n    recipient: {\n      id: $('Code in JavaScript3').first().json.psid\n    },\n    message: {\n      text: `${$('Code in JavaScript3').first().json.reply}\\n\\n📋 رقم تذكرة الشكوى: #${$('Create Complaint').first().json.ticket_number}\\nوسيقوم مشرف الفرع بالتواصل معك فوراً.`\n    },\n    messaging_type: \"RESPONSE\"\n  })\n}}",
+        "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $('Code in JavaScript3').first().json.psid }}\"\n  },\n  \"message\": {\n    \"text\": \"{{ $('Code in JavaScript3').first().json.reply }}\\n\\n📋 رقم تذكرة الشكوى: #{{ $('Create Complaint').first().json.ticket_number }}\\nوسيقوم مشرف الفرع بالتواصل معك فوراً.\"\n  },\n  \"messaging_type\": \"RESPONSE\"\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -2604,7 +2557,7 @@
             },
             {
               "fieldId": "customer_name",
-              "fieldValue": "={{ $('Parse Messenger Event').first()?.json?.sender_name || 'عميل ماسنجر' }}"
+              "fieldValue": "={{  $('Edit Fields4').item.json.name  || 'عميل ماسنجر' }}"
             }
           ]
         }
@@ -2639,7 +2592,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{\n  JSON.stringify({\n    recipient: {\n      id: $json.psid\n    },\n    message: {\n      text: $json.reply\n    },\n    messaging_type: \"RESPONSE\"\n  })\n}}",
+        "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $json.psid }}\"\n  },\n  \"message\": {\n    \"text\": {{ JSON.stringify($json.reply) }}\n  },\n  \"messaging_type\": \"RESPONSE\"\n} ",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -2709,14 +2662,14 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $('Code in JavaScript3').first().json.psid }}\"\n  },\n  \"messaging_type\": \"RESPONSE\",\n  \"message\": {\n    \"attachment\": {\n      \"type\": \"image\",\n      \"payload\": {\n        \"url\": \"={{ $('bot settings').first().json.menu_images?.[0] || 'https://i.postimg.cc/mr9Mwqjn/branches.jpg' }}\",\n        \"is_reusable\": true\n      }\n    }\n  }\n}",
+        "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $('Code in JavaScript3').first().json.psid }}\"\n  },\n  \"messaging_type\": \"RESPONSE\",\n  \"message\": {\n    \"attachment\": {\n      \"type\": \"image\",\n      \"payload\": {\n        \"url\": \"{{ $json.menu }}\",\n        \"is_reusable\": true\n      }\n    }\n  }\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        12864,
-        1600
+        13952,
+        1440
       ],
       "id": "0fddd189-50c7-4f78-85e7-d7c8f28de136",
       "name": "HTTP Request5"
@@ -2745,6 +2698,10 @@
             {
               "fieldId": "is_read",
               "fieldValue": "true"
+            },
+            {
+              "fieldId": "media_url",
+              "fieldValue": "={{ $('Loop Over Items').item.json.menu }}"
             }
           ]
         }
@@ -2752,8 +2709,8 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        13104,
-        1568
+        14608,
+        1488
       ],
       "id": "40f2114a-6c16-413f-a9dd-cacea0b12025",
       "name": "Create a row10",
@@ -2779,7 +2736,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $json.psid }}\"\n  },\n  \"message\": {\n    \"text\": \"{{ $json.reply }}\"\n  },\n  \"messaging_type\": \"RESPONSE\"\n} ",
+        "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $json.psid }}\"\n  },\n  \"message\": {\n    \"text\": {{ JSON.stringify($json.reply) }}\n  },\n  \"messaging_type\": \"RESPONSE\"\n} ",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -2849,7 +2806,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $('Code in JavaScript3').first().json.psid }}\"\n  },\n  \"messaging_type\": \"RESPONSE\",\n  \"message\": {\n    \"attachment\": {\n      \"type\": \"image\",\n      \"payload\": {\n        \"url\": \"https://i.postimg.cc/mr9Mwqjn/branches.jpg\",\n        \"is_reusable\": true\n      }\n    }\n  }\n}",
+        "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $('Code in JavaScript3').first().json.psid }}\"\n  },\n  \"messaging_type\": \"RESPONSE\",\n  \"message\": {\n    \"attachment\": {\n      \"type\": \"image\",\n      \"payload\": {\n        \"url\": \"https://i.postimg.cc/PNGsxG9K/Whats-App-Image-2026-10-16-at-4-42-36-PM.jpg\",\n        \"is_reusable\": true\n      }\n    }\n  }\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -2893,7 +2850,7 @@
       "typeVersion": 1,
       "position": [
         13232,
-        1824
+        1856
       ],
       "id": "c4532402-79ed-4d22-a706-da151af234b2",
       "name": "Create a row12",
@@ -2903,20 +2860,158 @@
           "name": "dr.gimy11 messnenger"
         }
       }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "menu",
+        "include": "allOtherFields",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        13168,
+        1600
+      ],
+      "id": "5eadcf47-809c-45aa-bc69-a07f34c33583",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6ab152bc-389d-4402-a429-238fd12fc9a9",
+              "name": "menu",
+              "value": "={{ $('bot settings').item.json.menu_images }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        12848,
+        1600
+      ],
+      "id": "8c9046b2-619d-49a1-b5ce-fbbac45a5210",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        13632,
+        1392
+      ],
+      "id": "f521f9ec-7bf6-44ae-b5f2-cf699bb6c8cd",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "name": "Replace Me",
+      "typeVersion": 1,
+      "position": [
+        14464,
+        1872
+      ],
+      "id": "c95f762a-f57a-44a7-9f6d-9b07461750a9",
+      "placeholder": true
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        13840,
+        1344
+      ],
+      "id": "7d5f4c15-d7dd-4469-a161-dae3dfcd8e40",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "post_settings",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "facebook_post_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Build Event Context').first().json.event.post_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2368,
+        -256
+      ],
+      "id": "b2c6b7aa-6c5a-4eb8-b592-ff094eb8dd47",
+      "name": "Get Post Settings",
+      "credentials": {
+        "supabaseApi": {
+          "id": "lHat8Ea0pmCtW6WD",
+          "name": "dr.gimy11 messnenger"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "e628675a-1e1c-44c9-b54b-1c9a56c23cf9",
+              "leftValue": "={{ $json.bot_enabled }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2528,
+        -272
+      ],
+      "id": "af1e6fbb-f402-481d-afa0-397a74416a49",
+      "name": "If7"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2960,
+        16
+      ],
+      "id": "c8d99399-83dc-4939-aa0f-00d77e8fbd19",
+      "name": "No Operation, do nothing1"
     }
   ],
   "connections": {
-    "Webhook": {
-      "main": [
-        [
-          {
-            "node": "Respond to Webhook",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Webhook1": {
       "main": [
         [
@@ -3005,7 +3100,7 @@
       "main": [
         [
           {
-            "node": "Get Post Rules",
+            "node": "Get Post Settings",
             "type": "main",
             "index": 0
           }
@@ -3840,7 +3935,29 @@
       "main": [
         [
           {
-            "node": "HTTP Request5",
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request5": {
+      "main": [
+        [
+          {
+            "node": "Create a row10",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a row10": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
             "type": "main",
             "index": 0
           }
@@ -3868,6 +3985,91 @@
           }
         ]
       ]
+    },
+    "HTTP Request7": {
+      "main": [
+        [
+          {
+            "node": "Create a row12",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP Request5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replace Me": {
+      "main": [
+        []
+      ]
+    },
+    "Get Post Settings": {
+      "main": [
+        [
+          {
+            "node": "If7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If7": {
+      "main": [
+        [
+          {
+            "node": "Get Post Rules",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "pinData": {
@@ -3875,18 +4077,18 @@
       {
         "headers": {
           "host": "n8n.pr-media.forum",
-          "x-real-ip": "173.252.95.113",
-          "x-real-port": "58504",
-          "x-forwarded-for": "173.252.95.113",
-          "remote-host": "173.252.95.113",
+          "x-real-ip": "173.252.107.6",
+          "x-real-port": "59798",
+          "x-forwarded-for": "173.252.107.6",
+          "remote-host": "173.252.107.6",
           "connection": "upgrade",
-          "content-length": "308",
+          "content-length": "420",
           "accept": "*/*",
           "accept-encoding": "deflate, gzip",
           "user-agent": "facebookexternalua",
           "content-type": "application/json",
-          "x-hub-signature": "sha1=d8aaad1d16c004e9b07f05cda6a3b065db362f31",
-          "x-hub-signature-256": "sha256=7286434298ce7fd3f48d32da4b4476440a38883e8e910ba23ad1074052a9ec86",
+          "x-hub-signature": "sha1=1136aa26b6106f077186a0c01e6bc8d5dac19638",
+          "x-hub-signature-256": "sha256=2ad3a5c22834bdad053016dd1faec46ed2275a8ae39bddc37cbad41f20bedd9c",
           "facebook-api-version": "v22.0"
         },
         "params": {},
@@ -3895,20 +4097,20 @@
           "object": "page",
           "entry": [
             {
-              "time": 1791514490516,
+              "time": 1793351104450,
               "id": "372566165936964",
               "messaging": [
                 {
                   "sender": {
-                    "id": "7682220021898480"
+                    "id": "25329999463255541"
                   },
                   "recipient": {
                     "id": "372566165936964"
                   },
-                  "timestamp": 1791514489914,
+                  "timestamp": 1793351103969,
                   "message": {
-                    "mid": "m_owc-rZMmrf83sJPqdjALC_f8-ZcUo2VOzFnrz0kfmhQJHjb9ig4iHb1vmM6VWgE2P37wuvcUqL-iCKF-Boobiw",
-                    "text": "Hi"
+                    "mid": "m_y_9SpOlB-2eLkz2YOYgdrlX5jhrqSTPdABQsrL4af_kUHBWPAIjWm9Emy9Z7e017kDnC5zS9hf_AgrVrwDrVEA",
+                    "text": "عمرو سمير \n0199293311\nفرع الهرم"
                   }
                 }
               ]
@@ -3917,346 +4119,6 @@
         },
         "webhookUrl": "https://n8n.pr-media.forum/webhook/meta-router",
         "executionMode": "production"
-      }
-    ],
-    "Wait1": [
-      {
-        "message_id": "24",
-        "uuid": "c5c1185e-f866-4742-9354-f6564d67c8c0"
-      }
-    ],
-    "Sort": [
-      {
-        "id": 24,
-        "sender_id": "7682220021898480",
-        "message": "Hi",
-        "created_at": "2026-10-09T21:45:18.847634+00:00"
-      }
-    ],
-    "Aggregate": [
-      {
-        "message": [
-          "Hi"
-        ]
-      }
-    ],
-    "Code1": [
-      {
-        "body": "[\"Hi\"]",
-        "offers": "1. [توفير — 4 قطع بروستد + بطاطس + كولا] بسعر 50 ج.م (بدلاً من 70 ج.م) — TESTSTSTSTSTSTSTSTSTSTSTSTSTS\n2. [عرض التوفير — 4 قطع بروستد] بسعر 110 ج.م (بدلاً من 140 ج.م) — 4 قطع دجاج بروستد مقرمش + بطاطس حجم وسط + كول سلو + خبز طازج + كولا\n3. [وجبة الملوك — 8 قطع بروستد] بسعر 220 ج.م (بدلاً من 270 ج.م) — 8 قطع دجاج مقرمش (عادي أو حار) + بطاطس عائلي + 2 كول سلو + 4 خبز + لتر كولا\n4. [عرض دابل كرانشي استربس] بسعر 95 ج.م (بدلاً من 120 ج.م) — 6 قطع استربس دجاج مقرمش + صوص جبنة شيدر + بطاطس + كانز",
-        "branches": "📍 فرع: فرع وسط البلد (25 شارع طلعت حرب، وسط البلد، القاهرة)\n   مناطق التوصيل: وسط البلد وعابدين (توصيل: 15 ج.م)، الزمالك (توصيل: 25 ج.م)، الدقي والمهندسين (توصيل: 25 ج.م)، المنيل وجاردن سيتي (توصيل: 20 ج.م)\n📍 فرع: فرع مدينة نصر (45 شارع عباس العقاد، بجوار الجامعة العمالية، مدينة نصر)\n   مناطق التوصيل: مدينة نصر (أول وثان) (توصيل: 20 ج.م)، مصر الجديدة (توصيل: 25 ج.م)، التجمع الأول والخامس (توصيل: 35 ج.م)، شيراتون والنزهة (توصيل: 25 ج.م)\n📍 فرع: فرع المعادي (12 شارع النصر، دجلة المعادي، القاهرة)\n   مناطق التوصيل: المعادي ودجلة (توصيل: 15 ج.م)، زهراء المعادي (توصيل: 20 ج.م)، المقطم والهضبة (توصيل: 30 ج.م)",
-        "raw_offers": [
-          {
-            "id": "214a5d49-8a5c-4dc2-9546-1b7e7372313e",
-            "title": "توفير — 4 قطع بروستد + بطاطس + كولا",
-            "description": "TESTSTSTSTSTSTSTSTSTSTSTSTSTS",
-            "price_after": 50,
-            "price_before": 70
-          },
-          {
-            "id": "dc2076f4-01a3-439e-8285-04c4e1ce6d95",
-            "title": "عرض التوفير — 4 قطع بروستد",
-            "description": "4 قطع دجاج بروستد مقرمش + بطاطس حجم وسط + كول سلو + خبز طازج + كولا",
-            "price_after": 110,
-            "price_before": 140
-          },
-          {
-            "id": "e3ec3bcc-5621-4b05-9857-71792d27d572",
-            "title": "وجبة الملوك — 8 قطع بروستد",
-            "description": "8 قطع دجاج مقرمش (عادي أو حار) + بطاطس عائلي + 2 كول سلو + 4 خبز + لتر كولا",
-            "price_after": 220,
-            "price_before": 270
-          },
-          {
-            "id": "c0936529-7f2e-42dd-9c29-2a8bba1c9594",
-            "title": "عرض دابل كرانشي استربس",
-            "description": "6 قطع استربس دجاج مقرمش + صوص جبنة شيدر + بطاطس + كانز",
-            "price_after": 95,
-            "price_before": 120
-          }
-        ],
-        "raw_branches": [
-          {
-            "branch_id": "001a071c-7632-42e1-9c4e-2ec6551e2dee",
-            "branch_name": "فرع وسط البلد",
-            "branch_address": "25 شارع طلعت حرب، وسط البلد، القاهرة",
-            "zone_id": "069ad777-4a4d-4375-9ea1-f0c26bd32b68",
-            "zone_name": "وسط البلد وعابدين",
-            "delivery_fee": 15,
-            "estimated_delivery_time": "30 - 40 دقيقة"
-          },
-          {
-            "branch_id": "001a071c-7632-42e1-9c4e-2ec6551e2dee",
-            "branch_name": "فرع وسط البلد",
-            "branch_address": "25 شارع طلعت حرب، وسط البلد، القاهرة",
-            "zone_id": "d6517e28-b824-4447-8b20-56f5338caae1",
-            "zone_name": "الزمالك",
-            "delivery_fee": 25,
-            "estimated_delivery_time": "35 - 45 دقيقة"
-          },
-          {
-            "branch_id": "001a071c-7632-42e1-9c4e-2ec6551e2dee",
-            "branch_name": "فرع وسط البلد",
-            "branch_address": "25 شارع طلعت حرب، وسط البلد، القاهرة",
-            "zone_id": "92626539-4c7f-45ca-88a2-58b93c4eaa09",
-            "zone_name": "الدقي والمهندسين",
-            "delivery_fee": 25,
-            "estimated_delivery_time": "40 - 50 دقيقة"
-          },
-          {
-            "branch_id": "001a071c-7632-42e1-9c4e-2ec6551e2dee",
-            "branch_name": "فرع وسط البلد",
-            "branch_address": "25 شارع طلعت حرب، وسط البلد، القاهرة",
-            "zone_id": "7fe90fe3-7348-47e8-a70b-acf520d3a3ac",
-            "zone_name": "المنيل وجاردن سيتي",
-            "delivery_fee": 20,
-            "estimated_delivery_time": "30 - 45 دقيقة"
-          },
-          {
-            "branch_id": "b80303e3-f7e7-43d6-87f9-57f307a674f2",
-            "branch_name": "فرع مدينة نصر",
-            "branch_address": "45 شارع عباس العقاد، بجوار الجامعة العمالية، مدينة نصر",
-            "zone_id": "9540c78c-2767-4043-9787-57b4b8de8217",
-            "zone_name": "مدينة نصر (أول وثان)",
-            "delivery_fee": 20,
-            "estimated_delivery_time": "30 - 45 دقيقة"
-          },
-          {
-            "branch_id": "b80303e3-f7e7-43d6-87f9-57f307a674f2",
-            "branch_name": "فرع مدينة نصر",
-            "branch_address": "45 شارع عباس العقاد، بجوار الجامعة العمالية، مدينة نصر",
-            "zone_id": "9a471b39-cc53-41d6-a0f1-dd6508e03aa5",
-            "zone_name": "مصر الجديدة",
-            "delivery_fee": 25,
-            "estimated_delivery_time": "35 - 50 دقيقة"
-          },
-          {
-            "branch_id": "b80303e3-f7e7-43d6-87f9-57f307a674f2",
-            "branch_name": "فرع مدينة نصر",
-            "branch_address": "45 شارع عباس العقاد، بجوار الجامعة العمالية، مدينة نصر",
-            "zone_id": "d5092306-2b65-4229-b907-3982ef15f870",
-            "zone_name": "التجمع الأول والخامس",
-            "delivery_fee": 35,
-            "estimated_delivery_time": "45 - 60 دقيقة"
-          },
-          {
-            "branch_id": "b80303e3-f7e7-43d6-87f9-57f307a674f2",
-            "branch_name": "فرع مدينة نصر",
-            "branch_address": "45 شارع عباس العقاد، بجوار الجامعة العمالية، مدينة نصر",
-            "zone_id": "03821a87-abc6-4542-aa63-d12e5eceb745",
-            "zone_name": "شيراتون والنزهة",
-            "delivery_fee": 25,
-            "estimated_delivery_time": "40 - 50 دقيقة"
-          },
-          {
-            "branch_id": "eb56fb48-a6cb-49d9-be06-ec0c7b2f4aec",
-            "branch_name": "فرع المعادي",
-            "branch_address": "12 شارع النصر، دجلة المعادي، القاهرة",
-            "zone_id": "332f568e-12be-4ccc-8015-d1fac8bf9d87",
-            "zone_name": "المعادي ودجلة",
-            "delivery_fee": 15,
-            "estimated_delivery_time": "25 - 40 دقيقة"
-          },
-          {
-            "branch_id": "eb56fb48-a6cb-49d9-be06-ec0c7b2f4aec",
-            "branch_name": "فرع المعادي",
-            "branch_address": "12 شارع النصر، دجلة المعادي، القاهرة",
-            "zone_id": "114c1db9-ad61-4873-927c-846278eb9746",
-            "zone_name": "زهراء المعادي",
-            "delivery_fee": 20,
-            "estimated_delivery_time": "30 - 45 دقيقة"
-          },
-          {
-            "branch_id": "eb56fb48-a6cb-49d9-be06-ec0c7b2f4aec",
-            "branch_name": "فرع المعادي",
-            "branch_address": "12 شارع النصر، دجلة المعادي، القاهرة",
-            "zone_id": "6b545220-421c-4fcb-bb10-ae135241a826",
-            "zone_name": "المقطم والهضبة",
-            "delivery_fee": 30,
-            "estimated_delivery_time": "40 - 55 دقيقة"
-          }
-        ]
-      }
-    ],
-    "Supabase2": [
-      {
-        "id": 24,
-        "sender_id": "7682220021898480",
-        "message": "Hi",
-        "created_at": "2026-10-09T21:45:18.847634+00:00"
-      }
-    ],
-    "Edit Fields1": [
-      {
-        "usermessage": "[\"Hi\"]",
-        "id": "7682220021898480",
-        "contact_uuid": "c5c1185e-f866-4742-9354-f6564d67c8c0"
-      }
-    ],
-    "Edit Fields2": [
-      {
-        "message_id": "24",
-        "uuid": "c5c1185e-f866-4742-9354-f6564d67c8c0"
-      }
-    ],
-    "Supabase1": [
-      {
-        "id": 24,
-        "sender_id": "7682220021898480",
-        "message": "Hi",
-        "created_at": "2026-10-09T21:45:18.847634+00:00"
-      }
-    ],
-    "AI Agent2": [
-      {
-        "output": "{\n  \"intent\": \"normal\",\n  \"reply\": \"أهلاً بيك يا فندم 🍗 تحت أمرك في مطعم فراخنا. إحنا مفتوحين دلوقتي والتوصيل شغال لحد 2 بالليل. أقدر أساعدك في إيه؟ تحب أعرضلك المنيو والعروض، ولا تختار وجبة ونجهّز لك التوصيل؟ 😊\",\n  \"order_details\": {\n    \"branch_name\": \"\",\n    \"offer_title\": \"\",\n    \"delivery_zone\": \"\",\n    \"items\": [],\n    \"total_amount\": 0,\n    \"customer_name\": \"\",\n    \"phone\": \"\",\n    \"address\": \"\",\n    \"notes\": \"\"\n  },\n  \"complaint_details\": {\n    \"phone\": \"\",\n    \"issue\": \"\"\n  }\n}"
-      }
-    ],
-    "Code in JavaScript3": [
-      {
-        "intent": "normal",
-        "reply": "أهلاً بيك يا فندم 🍗 تحت أمرك في مطعم فراخنا. إحنا مفتوحين دلوقتي والتوصيل شغال لحد 2 بالليل. أقدر أساعدك في إيه؟ تحب أعرضلك المنيو والعروض، ولا تختار وجبة ونجهّز لك التوصيل؟ 😊",
-        "order_details": null,
-        "complaint_details": null,
-        "psid": "7682220021898480",
-        "page_id": "372566165936964",
-        "token": "EAAdYwJZB6Qm8BSv78vncuyvzhf6IvzXGSV7ZCEjK6uhJm0qndX0nmsZAbFH5xIdXD9WcTnE7ZBCFZCd6tTP4FIkyyZBuIjzEsZCnLe3k4x32ZCkufskU8hijF41eh1lewtRx4WylxppNPnd7Wslg6KSyWuiGtkuFj0dCqlbSKX6q4c1bcfDZBKmutJt0uEuRjFDGeJbAZD",
-        "contact_id": "c5c1185e-f866-4742-9354-f6564d67c8c0"
-      }
-    ],
-    "Execute a SQL query": [
-      {
-        "offers": [
-          {
-            "id": "214a5d49-8a5c-4dc2-9546-1b7e7372313e",
-            "title": "توفير — 4 قطع بروستد + بطاطس + كولا",
-            "description": "TESTSTSTSTSTSTSTSTSTSTSTSTSTS",
-            "price_after": 50,
-            "price_before": 70
-          },
-          {
-            "id": "dc2076f4-01a3-439e-8285-04c4e1ce6d95",
-            "title": "عرض التوفير — 4 قطع بروستد",
-            "description": "4 قطع دجاج بروستد مقرمش + بطاطس حجم وسط + كول سلو + خبز طازج + كولا",
-            "price_after": 110,
-            "price_before": 140
-          },
-          {
-            "id": "e3ec3bcc-5621-4b05-9857-71792d27d572",
-            "title": "وجبة الملوك — 8 قطع بروستد",
-            "description": "8 قطع دجاج مقرمش (عادي أو حار) + بطاطس عائلي + 2 كول سلو + 4 خبز + لتر كولا",
-            "price_after": 220,
-            "price_before": 270
-          },
-          {
-            "id": "c0936529-7f2e-42dd-9c29-2a8bba1c9594",
-            "title": "عرض دابل كرانشي استربس",
-            "description": "6 قطع استربس دجاج مقرمش + صوص جبنة شيدر + بطاطس + كانز",
-            "price_after": 95,
-            "price_before": 120
-          }
-        ],
-        "branches": [
-          {
-            "branch_id": "001a071c-7632-42e1-9c4e-2ec6551e2dee",
-            "branch_name": "فرع وسط البلد",
-            "branch_address": "25 شارع طلعت حرب، وسط البلد، القاهرة",
-            "zone_id": "069ad777-4a4d-4375-9ea1-f0c26bd32b68",
-            "zone_name": "وسط البلد وعابدين",
-            "delivery_fee": 15,
-            "estimated_delivery_time": "30 - 40 دقيقة"
-          },
-          {
-            "branch_id": "001a071c-7632-42e1-9c4e-2ec6551e2dee",
-            "branch_name": "فرع وسط البلد",
-            "branch_address": "25 شارع طلعت حرب، وسط البلد، القاهرة",
-            "zone_id": "d6517e28-b824-4447-8b20-56f5338caae1",
-            "zone_name": "الزمالك",
-            "delivery_fee": 25,
-            "estimated_delivery_time": "35 - 45 دقيقة"
-          },
-          {
-            "branch_id": "001a071c-7632-42e1-9c4e-2ec6551e2dee",
-            "branch_name": "فرع وسط البلد",
-            "branch_address": "25 شارع طلعت حرب، وسط البلد، القاهرة",
-            "zone_id": "92626539-4c7f-45ca-88a2-58b93c4eaa09",
-            "zone_name": "الدقي والمهندسين",
-            "delivery_fee": 25,
-            "estimated_delivery_time": "40 - 50 دقيقة"
-          },
-          {
-            "branch_id": "001a071c-7632-42e1-9c4e-2ec6551e2dee",
-            "branch_name": "فرع وسط البلد",
-            "branch_address": "25 شارع طلعت حرب، وسط البلد، القاهرة",
-            "zone_id": "7fe90fe3-7348-47e8-a70b-acf520d3a3ac",
-            "zone_name": "المنيل وجاردن سيتي",
-            "delivery_fee": 20,
-            "estimated_delivery_time": "30 - 45 دقيقة"
-          },
-          {
-            "branch_id": "b80303e3-f7e7-43d6-87f9-57f307a674f2",
-            "branch_name": "فرع مدينة نصر",
-            "branch_address": "45 شارع عباس العقاد، بجوار الجامعة العمالية، مدينة نصر",
-            "zone_id": "9540c78c-2767-4043-9787-57b4b8de8217",
-            "zone_name": "مدينة نصر (أول وثان)",
-            "delivery_fee": 20,
-            "estimated_delivery_time": "30 - 45 دقيقة"
-          },
-          {
-            "branch_id": "b80303e3-f7e7-43d6-87f9-57f307a674f2",
-            "branch_name": "فرع مدينة نصر",
-            "branch_address": "45 شارع عباس العقاد، بجوار الجامعة العمالية، مدينة نصر",
-            "zone_id": "9a471b39-cc53-41d6-a0f1-dd6508e03aa5",
-            "zone_name": "مصر الجديدة",
-            "delivery_fee": 25,
-            "estimated_delivery_time": "35 - 50 دقيقة"
-          },
-          {
-            "branch_id": "b80303e3-f7e7-43d6-87f9-57f307a674f2",
-            "branch_name": "فرع مدينة نصر",
-            "branch_address": "45 شارع عباس العقاد، بجوار الجامعة العمالية، مدينة نصر",
-            "zone_id": "d5092306-2b65-4229-b907-3982ef15f870",
-            "zone_name": "التجمع الأول والخامس",
-            "delivery_fee": 35,
-            "estimated_delivery_time": "45 - 60 دقيقة"
-          },
-          {
-            "branch_id": "b80303e3-f7e7-43d6-87f9-57f307a674f2",
-            "branch_name": "فرع مدينة نصر",
-            "branch_address": "45 شارع عباس العقاد، بجوار الجامعة العمالية، مدينة نصر",
-            "zone_id": "03821a87-abc6-4542-aa63-d12e5eceb745",
-            "zone_name": "شيراتون والنزهة",
-            "delivery_fee": 25,
-            "estimated_delivery_time": "40 - 50 دقيقة"
-          },
-          {
-            "branch_id": "eb56fb48-a6cb-49d9-be06-ec0c7b2f4aec",
-            "branch_name": "فرع المعادي",
-            "branch_address": "12 شارع النصر، دجلة المعادي، القاهرة",
-            "zone_id": "332f568e-12be-4ccc-8015-d1fac8bf9d87",
-            "zone_name": "المعادي ودجلة",
-            "delivery_fee": 15,
-            "estimated_delivery_time": "25 - 40 دقيقة"
-          },
-          {
-            "branch_id": "eb56fb48-a6cb-49d9-be06-ec0c7b2f4aec",
-            "branch_name": "فرع المعادي",
-            "branch_address": "12 شارع النصر، دجلة المعادي، القاهرة",
-            "zone_id": "114c1db9-ad61-4873-927c-846278eb9746",
-            "zone_name": "زهراء المعادي",
-            "delivery_fee": 20,
-            "estimated_delivery_time": "30 - 45 دقيقة"
-          },
-          {
-            "branch_id": "eb56fb48-a6cb-49d9-be06-ec0c7b2f4aec",
-            "branch_name": "فرع المعادي",
-            "branch_address": "12 شارع النصر، دجلة المعادي، القاهرة",
-            "zone_id": "6b545220-421c-4fcb-bb10-ae135241a826",
-            "zone_name": "المقطم والهضبة",
-            "delivery_fee": 30,
-            "estimated_delivery_time": "40 - 55 دقيقة"
-          }
-        ]
       }
     ]
   },
