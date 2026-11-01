@@ -773,8 +773,25 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
           </p>
         </div>
 
-        {/* View Mode Toggle */}
-        <div className="flex items-center gap-2 self-start sm:self-auto">
+        {/* View Mode Toggle & Show Cancelled Orders Button */}
+        <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+          <button
+            type="button"
+            onClick={() => setShowCancelled((prev) => !prev)}
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+              showCancelled
+                ? 'bg-rose-600 text-white border-rose-600 shadow-sm shadow-rose-500/20'
+                : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/25 hover:bg-rose-500/20'
+            }`}
+          >
+            <Ban className="w-3.5 h-3.5" />
+            <span>
+              {showCancelled
+                ? `إخفاء الأوردرات الملغية (${cancelledCount})`
+                : `إظهار الأوردرات الملغية (${cancelledCount})`}
+            </span>
+          </button>
+
           <div className="flex items-center rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-1">
             <button
               type="button"
@@ -967,78 +984,139 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
 
       {/* Main Board View: Kanban or Table */}
       {viewMode === 'kanban' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
-          {KANBAN_COLUMNS.map((column) => {
-            const columnOrders = filteredOrders.filter((order) => {
-              if (column.allowedStatuses.includes(order.status)) return true;
-              if (column.id === 'pending' && order.status !== 'confirmed') return true;
-              return false;
-            });
-            const columnTotal = columnOrders.reduce(
-              (sum, o) => sum + (Number(o.total_amount) || 0),
-              0
-            );
-
-            return (
-              <div
-                key={column.id}
-                className="flex flex-col rounded-3xl bg-white dark:bg-[#101726] border border-slate-200/90 dark:border-slate-700/80 shadow-md dark:shadow-xl overflow-hidden min-h-[500px]"
-              >
-                {/* Column Header */}
-                <div
-                  className={`p-4 border-b border-slate-100 dark:border-slate-800/80 ${column.bgLight} transition-colors`}
+        <div className="space-y-5">
+          {showCancelled && (
+            <div className="rounded-3xl bg-white dark:bg-[#101726] border-2 border-rose-500/40 shadow-md overflow-hidden">
+              <div className="p-4 border-b border-rose-500/20 bg-rose-500/10 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Ban className="w-4 h-4 text-rose-500" />
+                  <h3 className="font-extrabold text-base text-slate-900 dark:text-white">
+                    الأوردرات الملغية ({cancelledOrders.length})
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowCancelled(false)}
+                  className="px-3 py-1 rounded-lg bg-white dark:bg-slate-900 text-xs text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-700 font-bold cursor-pointer"
                 >
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex items-center gap-2">
-                      <span className={`h-2.5 w-2.5 rounded-full ${column.dotColor}`} />
-                      <h3 className="font-extrabold text-base text-slate-900 dark:text-white">{column.title}</h3>
-                    </div>
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border ${column.badgeColor}`}
-                    >
-                      {columnOrders.length} طلب
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                    <span>{column.subtitle}</span>
-                    <span className="font-mono font-medium text-slate-700 dark:text-slate-300">
-                      {formatCurrency(columnTotal)}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Orders List */}
-                <div className="flex-1 p-3.5 space-y-3 overflow-y-auto max-h-[calc(100vh-280px)] scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-800">
-                  {columnOrders.length === 0 ? (
-                    <div className="py-16 px-4 text-center">
-                      <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-900 text-slate-400 dark:text-slate-600 mb-2 border border-slate-200 dark:border-slate-800">
-                        <ShoppingBag className="w-5 h-5" />
-                      </div>
-                      <p className="text-xs text-slate-500">لا توجد طلبات هنا حالياً</p>
-                    </div>
-                  ) : (
-                    columnOrders.map((order) => (
-                      <OrderCard
-                        key={order.id}
-                        order={order}
-                        complaints={complaintsMap[order.id] || []}
-                        onSelectOrder={(ord) => setSelectedOrder(ord)}
-                        onAdvanceStatus={handleAdvanceStatus}
-                        onPrintReceipt={handlePrintReceipt}
-                        onScheduleOrder={(ord) => setSchedulingOrder(ord)}
-                        isUpdating={isUpdatingOrder[order.id]}
-                      />
-                    ))
-                  )}
-                </div>
+                  إخفاء الأوردرات الملغية
+                </button>
               </div>
-            );
-          })}
+              {cancelledOrders.length === 0 ? (
+                <div className="py-10 px-4 text-center text-xs text-slate-500 dark:text-slate-400">
+                  لا توجد أوردرات ملغية حالياً
+                </div>
+              ) : (
+                <div className="p-3.5 grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {cancelledOrders.map((order) => (
+                    <OrderCard
+                      key={order.id}
+                      order={order}
+                      complaints={complaintsMap[order.id] || []}
+                      onSelectOrder={(ord) => setSelectedOrder(ord)}
+                      onAdvanceStatus={handleAdvanceStatus}
+                      onPrintReceipt={handlePrintReceipt}
+                      onScheduleOrder={(ord) => setSchedulingOrder(ord)}
+                      onCancelOrder={handleCancelOrder}
+                      onRestoreOrder={handleRestoreOrder}
+                      isUpdating={isUpdatingOrder[order.id]}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
+            {KANBAN_COLUMNS.map((column) => {
+              const columnOrders = activeOrders.filter((order) => {
+                if (column.allowedStatuses.includes(order.status)) return true;
+                if (column.id === 'pending' && order.status !== 'confirmed') return true;
+                return false;
+              });
+              const columnTotal = columnOrders.reduce(
+                (sum, o) => sum + (Number(o.total_amount) || 0),
+                0
+              );
+
+              return (
+                <div
+                  key={column.id}
+                  className="flex flex-col rounded-3xl bg-white dark:bg-[#101726] border border-slate-200/90 dark:border-slate-700/80 shadow-md dark:shadow-xl overflow-hidden min-h-[500px]"
+                >
+                  {/* Column Header */}
+                  <div
+                    className={`p-4 border-b border-slate-100 dark:border-slate-800/80 ${column.bgLight} transition-colors`}
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className={`h-2.5 w-2.5 rounded-full ${column.dotColor}`} />
+                        <h3 className="font-extrabold text-base text-slate-900 dark:text-white">{column.title}</h3>
+                      </div>
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border ${column.badgeColor}`}
+                      >
+                        {columnOrders.length} طلب
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                      <span>{column.subtitle}</span>
+                      <span className="font-mono font-medium text-slate-700 dark:text-slate-300">
+                        {formatCurrency(columnTotal)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Orders List */}
+                  <div className="flex-1 p-3.5 space-y-3 overflow-y-auto max-h-[calc(100vh-280px)] scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-800">
+                    {columnOrders.length === 0 ? (
+                      <div className="py-16 px-4 text-center">
+                        <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-900 text-slate-400 dark:text-slate-600 mb-2 border border-slate-200 dark:border-slate-800">
+                          <ShoppingBag className="w-5 h-5" />
+                        </div>
+                        <p className="text-xs text-slate-500">لا توجد طلبات هنا حالياً</p>
+                      </div>
+                    ) : (
+                      columnOrders.map((order) => (
+                        <OrderCard
+                          key={order.id}
+                          order={order}
+                          complaints={complaintsMap[order.id] || []}
+                          onSelectOrder={(ord) => setSelectedOrder(ord)}
+                          onAdvanceStatus={handleAdvanceStatus}
+                          onPrintReceipt={handlePrintReceipt}
+                          onScheduleOrder={(ord) => setSchedulingOrder(ord)}
+                          onCancelOrder={handleCancelOrder}
+                          onRestoreOrder={handleRestoreOrder}
+                          isUpdating={isUpdatingOrder[order.id]}
+                        />
+                      ))
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       ) : (
         /* Detailed Table View */
         <div className="rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-md dark:shadow-xl overflow-hidden">
+          {showCancelled && (
+            <div className="px-4 py-3 border-b border-rose-500/20 bg-rose-500/10 flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2 font-extrabold text-rose-600 dark:text-rose-400">
+                <Ban className="w-4 h-4" />
+                <span>يتم الآن عرض الأوردرات الملغية ({cancelledOrders.length})</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCancelled(false)}
+                className="px-3 py-1 rounded-lg bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 font-bold cursor-pointer"
+              >
+                العودة للطلبات النشطة
+              </button>
+            </div>
+          )}
           <div className="w-full">
             <table className="w-full text-right text-xs">
               <thead>
@@ -1054,14 +1132,14 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                {filteredOrders.length === 0 ? (
+                {(showCancelled ? cancelledOrders : activeOrders).length === 0 ? (
                   <tr>
                     <td colSpan={8} className="py-12 text-center text-slate-400 dark:text-slate-500">
-                      لا توجد طلبات مطابقة لمعايير البحث
+                      {showCancelled ? 'لا توجد أوردرات ملغية حالياً' : 'لا توجد طلبات مطابقة لمعايير البحث'}
                     </td>
                   </tr>
                 ) : (
-                  filteredOrders.map((order) => {
+                  (showCancelled ? cancelledOrders : activeOrders).map((order) => {
                     const isCancelled = isOrderCancelled(order);
                     const badge = getOrderStatusBadge(order.status, order.payment_method);
                     const totalItems = (order.order_items || []).reduce(

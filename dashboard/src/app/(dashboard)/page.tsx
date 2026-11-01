@@ -98,7 +98,7 @@ export default async function OverviewDashboardPage() {
   const needsHumanCount = needsHumanRes.data ? needsHumanRes.data.length : 0;
   const commentsTodayCount = commentsTodayRes.data ? commentsTodayRes.data.length : 0;
 
-  const recentOrders = recentOrdersRes.data || [];
+  const recentOrders = (recentOrdersRes.data || []).filter((o) => !isOrderCancelled(o));
   const recentComplaints = recentComplaintsRes.data || [];
 
   // Arabic Date Formatter
