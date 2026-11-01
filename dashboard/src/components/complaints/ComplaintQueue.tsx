@@ -500,26 +500,23 @@ export function ComplaintQueue({ initialComplaints, staffList }: ComplaintQueueP
       {/* Main View: Table (Default) or Cards */}
       {viewMode === 'table' ? (
         <div className="rounded-3xl bg-white dark:bg-[#101726] border border-slate-200/90 dark:border-slate-700/80 shadow-xl overflow-hidden">
-          <div className="overflow-x-auto">
+          <div className="w-full">
             <table className="w-full text-right text-xs">
               <thead>
                 <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-950/70">
-                  <th className="py-3 px-4 font-semibold">رقم التذكرة</th>
-                  <th className="py-3 px-4 font-semibold">التاريخ ووقت الشكوى</th>
-                  <th className="py-3 px-4 font-semibold">صاحب الشكوى</th>
-                  <th className="py-3 px-4 font-semibold">رقم الهاتف</th>
-                  <th className="py-3 px-4 font-semibold">القناة</th>
-                  <th className="py-3 px-4 font-semibold">الطلب المرتبط</th>
-                  <th className="py-3 px-4 font-semibold">تفاصيل المشكلة</th>
-                  <th className="py-3 px-4 font-semibold">الموظف المسؤول</th>
-                  <th className="py-3 px-4 font-semibold">الحالة</th>
-                  <th className="py-3 px-4 font-semibold text-center">الإجراءات</th>
+                  <th className="py-3 px-3 font-semibold whitespace-nowrap">رقم التذكرة</th>
+                  <th className="py-3 px-3 font-semibold whitespace-nowrap">التاريخ ووقت الشكوى</th>
+                  <th className="py-3 px-3 font-semibold whitespace-nowrap">صاحب الشكوى</th>
+                  <th className="py-3 px-3 font-semibold whitespace-nowrap">رقم الهاتف</th>
+                  <th className="py-3 px-3 font-semibold">تفاصيل المشكلة</th>
+                  <th className="py-3 px-3 font-semibold whitespace-nowrap">الحالة</th>
+                  <th className="py-3 px-3 font-semibold text-center whitespace-nowrap">الإجراءات</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                 {filteredComplaints.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="py-12 text-center text-slate-400 dark:text-slate-500">
+                    <td colSpan={7} className="py-12 text-center text-slate-400 dark:text-slate-500">
                       لا توجد شكاوى مطابقة لمعايير البحث
                     </td>
                   </tr>
@@ -530,32 +527,14 @@ export function ComplaintQueue({ initialComplaints, staffList }: ComplaintQueueP
                     return (
                       <tr
                         key={complaint.id}
-                        className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors cursor-pointer"
+                        className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors cursor-pointer align-top"
                         onClick={() => setSelectedComplaint(complaint)}
                       >
-                        <td className="py-3.5 px-4 font-bold font-mono text-slate-900 dark:text-white whitespace-nowrap">
-                          #{complaint.ticket_number}
-                        </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <div className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1">
-                            <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                            <span>{formatDateTime(complaint.created_at)}</span>
+                        <td className="py-3.5 px-3 whitespace-nowrap">
+                          <div className="font-bold font-mono text-slate-900 dark:text-white">
+                            #{complaint.ticket_number}
                           </div>
-                          <div className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
-                            {formatTimeElapsed(complaint.created_at)}
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white whitespace-nowrap">
-                          {complaint.customer_name || 'عميل'}
-                        </td>
-                        <td
-                          className="py-3.5 px-4 font-mono text-slate-700 dark:text-slate-300 whitespace-nowrap"
-                          dir="ltr"
-                        >
-                          {complaint.customer_phone || '-'}
-                        </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <span className="rounded-md bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-[10px] text-slate-700 dark:text-slate-300 font-medium border border-slate-200 dark:border-slate-700">
+                          <span className="mt-1 inline-block rounded-md bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-600 dark:text-slate-300 font-medium border border-slate-200 dark:border-slate-700">
                             {complaint.source === 'messenger'
                               ? 'ماسنجر'
                               : complaint.source === 'comment'
@@ -565,39 +544,52 @@ export function ComplaintQueue({ initialComplaints, staffList }: ComplaintQueueP
                               : 'تليفون'}
                           </span>
                         </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          {complaint.order ? (
-                            <Link
-                              href={`/dashboard/orders?orderId=${complaint.order_id}`}
-                              onClick={(e) => e.stopPropagation()}
-                              className="font-mono font-bold text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300"
-                            >
-                              #{complaint.order.order_number}
-                            </Link>
-                          ) : (
-                            <span className="text-slate-400 dark:text-slate-500">-</span>
-                          )}
+                        <td className="py-3.5 px-3 whitespace-nowrap">
+                          <div className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1">
+                            <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                            <span>{formatDateTime(complaint.created_at)}</span>
+                          </div>
+                          <div className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+                            {formatTimeElapsed(complaint.created_at)}
+                          </div>
+                        </td>
+                        <td className="py-3.5 px-3 font-bold text-slate-900 dark:text-white whitespace-nowrap">
+                          {complaint.customer_name || 'عميل'}
                         </td>
                         <td
-                          className="py-3.5 px-4 text-slate-600 dark:text-slate-300 max-w-xs truncate"
-                          title={complaint.issue_description}
+                          className="py-3.5 px-3 font-mono text-slate-700 dark:text-slate-300 whitespace-nowrap"
+                          dir="ltr"
                         >
-                          {complaint.issue_description}
+                          {complaint.customer_phone || '-'}
                         </td>
-                        <td className="py-3.5 px-4 text-slate-600 dark:text-slate-300 whitespace-nowrap">
-                          {complaint.assigned_profile?.full_name || (
-                            <span className="text-slate-400 dark:text-slate-500">غير مخصص</span>
+                        <td className="py-3.5 px-3 text-slate-700 dark:text-slate-200 whitespace-normal break-words leading-relaxed min-w-[240px]">
+                          <div>{complaint.issue_description}</div>
+                          {complaint.order && (
+                            <div className="mt-1">
+                              <Link
+                                href={`/dashboard/orders?orderId=${complaint.order_id}`}
+                                onClick={(e) => e.stopPropagation()}
+                                className="inline-flex items-center gap-1 rounded-md bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 text-[10px] font-mono font-bold text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300"
+                              >
+                                <span>طلب مرتبط #{complaint.order.order_number}</span>
+                              </Link>
+                            </div>
                           )}
                         </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap">
+                        <td className="py-3.5 px-3 whitespace-nowrap">
                           <span
                             className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold border ${statusBadge.color}`}
                           >
                             {statusBadge.label}
                           </span>
+                          {complaint.assigned_profile?.full_name && (
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
+                              {complaint.assigned_profile.full_name}
+                            </div>
+                          )}
                         </td>
                         <td
-                          className="py-3.5 px-4 text-center whitespace-nowrap"
+                          className="py-3.5 px-3 text-center whitespace-nowrap"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <div className="flex items-center justify-center gap-1.5">

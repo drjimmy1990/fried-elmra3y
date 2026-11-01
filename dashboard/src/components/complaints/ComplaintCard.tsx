@@ -117,7 +117,7 @@ function ComplaintCardComponent({
 
       {/* Issue Description Box */}
       <div className="rounded-xl bg-slate-50 dark:bg-slate-950/60 p-2.5 border border-slate-200 dark:border-slate-800/60 text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
-        <p className="line-clamp-3">
+        <p className="whitespace-pre-wrap break-words">
           {complaint.issue_description || 'لا يوجد تفاصيل للشكوى.'}
         </p>
       </div>

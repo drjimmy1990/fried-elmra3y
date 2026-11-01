@@ -842,8 +842,7 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
                           {order.branch?.name || '-'}
                         </td>
                         <td
-                          className="py-3.5 px-4 text-slate-700 dark:text-slate-300 max-w-xs truncate"
-                          title={order.delivery_address}
+                          className="py-3.5 px-3 text-slate-700 dark:text-slate-300 whitespace-normal break-words leading-relaxed min-w-[200px]"
                         >
                           {order.delivery_address}
                         </td>
