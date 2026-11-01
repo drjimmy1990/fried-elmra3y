@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import {
   Clock,
   Phone,
@@ -11,7 +12,6 @@ import {
 } from 'lucide-react';
 import {
   getComplaintStatusBadge,
-  getWhatsAppLink,
   formatTimeElapsed,
   formatDateTime,
 } from '@/lib/utils';
@@ -103,15 +103,15 @@ function ComplaintCardComponent({
           >
             <Phone className="w-3.5 h-3.5" />
           </a>
-          <a
-            href={getWhatsAppLink(complaint.customer_phone)}
-            target="_blank"
-            rel="noopener noreferrer"
-            title="محادثة واتساب"
-            className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/80 hover:bg-emerald-100 dark:hover:bg-emerald-900 border border-emerald-200 dark:border-emerald-800/50 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition"
-          >
-            <MessageCircle className="w-3.5 h-3.5" />
-          </a>
+          {complaint.contact_id && (
+            <Link
+              href={{ pathname: '/dashboard/chat', query: { contactId: complaint.contact_id } }}
+              title="فتح محادثة العميل"
+              className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/80 hover:bg-indigo-100 dark:hover:bg-indigo-900 border border-indigo-200 dark:border-indigo-800/50 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition"
+            >
+              <MessageCircle className="w-3.5 h-3.5" />
+            </Link>
+          )}
         </div>
       </div>
 

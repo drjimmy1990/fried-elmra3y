@@ -19,7 +19,6 @@ import {
 } from 'lucide-react';
 import {
   getComplaintStatusBadge,
-  getWhatsAppLink,
   formatDateTime,
 } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
@@ -263,15 +262,6 @@ export function ComplaintDetailsModal({
                   >
                     <Phone className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
                     <span>اتصال</span>
-                  </a>
-                  <a
-                    href={getWhatsAppLink(complaint.customer_phone)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/80 hover:bg-emerald-100 dark:hover:bg-emerald-900 text-emerald-600 dark:text-emerald-400 text-xs font-semibold transition border border-emerald-200 dark:border-emerald-800/50"
-                  >
-                    <MessageCircle className="w-3.5 h-3.5" />
-                    <span>واتساب</span>
                   </a>
                 </div>
               </div>

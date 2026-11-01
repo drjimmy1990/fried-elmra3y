@@ -27,7 +27,7 @@ import {
   Building2,
   Tag,
 } from 'lucide-react';
-import { formatCurrency, formatDateTime, getOrderStatusBadge, getWhatsAppLink } from '@/lib/utils';
+import { formatCurrency, formatDateTime, getOrderStatusBadge } from '@/lib/utils';
 import { OrderWithItems, OrderStatus } from './types';
 
 interface OrderDetailsModalProps {
@@ -209,16 +209,16 @@ export function OrderDetailsModal({
                     <PhoneCall className="w-3 h-3" />
                     <span>اتصال</span>
                   </a>
-                  <a
-                    href={getWhatsAppLink(order.customer_phone)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-medium border border-emerald-500/20 transition-colors"
-                    title="محادثة واتساب"
-                  >
-                    <MessageCircle className="w-3 h-3" />
-                    <span>واتساب</span>
-                  </a>
+                  {order.contact_id && (
+                    <Link
+                      href={{ pathname: '/dashboard/chat', query: { contactId: order.contact_id } }}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-xs font-medium border border-indigo-500/20 transition-colors"
+                      title="فتح محادثة العميل"
+                    >
+                      <MessageCircle className="w-3 h-3" />
+                      <span>فتح المحادثة</span>
+                    </Link>
+                  )}
                 </div>
               </div>
 

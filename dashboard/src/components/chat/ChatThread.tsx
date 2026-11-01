@@ -22,7 +22,7 @@ import {
   ShoppingBag,
   Settings,
 } from 'lucide-react';
-import { formatDateTime, getWhatsAppLink } from '@/lib/utils';
+import { formatDateTime } from '@/lib/utils';
 import { ChatThreadProps, QuickReply, MessageRow } from './types';
 import { CannedResponsesModal, DEFAULT_CANNED_REPLIES } from './CannedResponsesModal';
 
@@ -240,15 +240,6 @@ export function ChatThread({
                     title="اتصال هاتفي"
                   >
                     <Phone className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                  </a>
-                  <a
-                    href={getWhatsAppLink(contact.phone)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/80 hover:bg-emerald-100 dark:hover:bg-emerald-900 text-emerald-700 dark:text-emerald-400 transition border border-emerald-200 dark:border-emerald-800/40 cursor-pointer"
-                    title="محادثة واتساب"
-                  >
-                    <MessageCircle className="w-3.5 h-3.5" />
                   </a>
                 </div>
               )}

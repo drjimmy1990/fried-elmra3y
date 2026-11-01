@@ -15,7 +15,7 @@ import {
   Tag,
   AlertTriangle,
 } from 'lucide-react';
-import { formatCurrency, formatDateTime, getOrderStatusBadge, getWhatsAppLink } from '@/lib/utils';
+import { formatCurrency, formatDateTime, getOrderStatusBadge } from '@/lib/utils';
 import { OrderWithItems, OrderStatus } from './types';
 
 export interface OrderCardProps {
@@ -116,15 +116,6 @@ function OrderCardComponent({
               title="اتصال بالعميل"
             >
               <Phone className="w-3.5 h-3.5" />
-            </a>
-            <a
-              href={getWhatsAppLink(order.customer_phone)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-1 rounded-lg text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-500/10 transition-colors"
-              title="محادثة واتساب"
-            >
-              <MessageCircle className="w-3.5 h-3.5" />
             </a>
             {order.contact_id && (
               <Link
