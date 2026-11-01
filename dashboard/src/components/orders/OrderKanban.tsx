@@ -17,10 +17,12 @@ import {
   Tag,
   Loader2,
   CalendarClock,
+  Ban,
+  RotateCcw,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { formatCurrency, formatDateTime, getOrderStatusBadge } from '@/lib/utils';
+import { formatCurrency, formatDateTime, getOrderStatusBadge, isOrderCancelled } from '@/lib/utils';
 import { encodeScheduleMeta, isScheduledPaymentMethod } from '@/lib/scheduled-orders';
 import { OrderCard } from './OrderCard';
 import { OrderDetailsModal } from './OrderDetailsModal';
@@ -571,6 +573,88 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
 
   // Thermal Receipt Printing
   const [schedulingOrder, setSchedulingOrder] = useState<OrderWithItems | null>(null);
+  const [showCancelled, setShowCancelled] = useState(false);
+
+  const handleCancelOrder = async (orderId: string) => {
+    const targetOrder = orders.find((o) => o.id === orderId);
+    if (!targetOrder) return;
+
+    const confirmed = window.confirm(
+      `هل أنت متأكد من إلغاء الطلب #${targetOrder.order_number} (${targetOrder.customer_name || 'العميل'})؟`
+    );
+    if (!confirmed) return;
+
+    const prevPaymentMethod = targetOrder.payment_method;
+    setIsUpdatingOrder((prev) => ({ ...prev, [orderId]: true }));
+
+    setOrders((prev) =>
+      prev.map((o) => (o.id === orderId ? { ...o, payment_method: 'cancelled' } : o))
+    );
+    if (selectedOrder?.id === orderId) {
+      setSelectedOrder((prev) => (prev ? { ...prev, payment_method: 'cancelled' } : null));
+    }
+
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({
+          payment_method: 'cancelled',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', orderId);
+
+      if (error) throw error;
+    } catch (err) {
+      console.error('Error cancelling order:', err);
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? { ...o, payment_method: prevPaymentMethod } : o))
+      );
+      if (selectedOrder?.id === orderId) {
+        setSelectedOrder((prev) => (prev ? { ...prev, payment_method: prevPaymentMethod } : null));
+      }
+      alert('تعذر إلغاء الطلب. يرجى المحاولة مرة أخرى.');
+    } finally {
+      setIsUpdatingOrder((prev) => ({ ...prev, [orderId]: false }));
+    }
+  };
+
+  const handleRestoreOrder = async (orderId: string) => {
+    const targetOrder = orders.find((o) => o.id === orderId);
+    if (!targetOrder) return;
+
+    const prevPaymentMethod = targetOrder.payment_method;
+    setIsUpdatingOrder((prev) => ({ ...prev, [orderId]: true }));
+
+    setOrders((prev) =>
+      prev.map((o) => (o.id === orderId ? { ...o, payment_method: 'cash' } : o))
+    );
+    if (selectedOrder?.id === orderId) {
+      setSelectedOrder((prev) => (prev ? { ...prev, payment_method: 'cash' } : null));
+    }
+
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({
+          payment_method: 'cash',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', orderId);
+
+      if (error) throw error;
+    } catch (err) {
+      console.error('Error restoring order:', err);
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? { ...o, payment_method: prevPaymentMethod } : o))
+      );
+      if (selectedOrder?.id === orderId) {
+        setSelectedOrder((prev) => (prev ? { ...prev, payment_method: prevPaymentMethod } : null));
+      }
+      alert('تعذر استعادة الطلب. يرجى المحاولة مرة أخرى.');
+    } finally {
+      setIsUpdatingOrder((prev) => ({ ...prev, [orderId]: false }));
+    }
+  };
 
   const handleConfirmSchedule = async (
     orderId: string,
@@ -607,10 +691,19 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
   };
 
   // Summary Metrics calculations
-  const totalOrdersCount = filteredOrders.length;
-  const pendingCount = filteredOrders.filter((o) => o.status !== 'confirmed').length;
-  const confirmedCount = filteredOrders.filter((o) => o.status === 'confirmed').length;
-  const totalRevenue = filteredOrders
+  const activeOrders = useMemo(
+    () => filteredOrders.filter((o) => !isOrderCancelled(o)),
+    [filteredOrders]
+  );
+  const cancelledOrders = useMemo(
+    () => filteredOrders.filter((o) => isOrderCancelled(o)),
+    [filteredOrders]
+  );
+  const totalOrdersCount = activeOrders.length;
+  const pendingCount = activeOrders.filter((o) => o.status !== 'confirmed').length;
+  const confirmedCount = activeOrders.filter((o) => o.status === 'confirmed').length;
+  const cancelledCount = cancelledOrders.length;
+  const totalRevenue = activeOrders
     .filter((o) => o.status === 'confirmed')
     .reduce((sum, o) => sum + (Number(o.total_amount) || 0), 0);
 
@@ -969,7 +1062,8 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
                   </tr>
                 ) : (
                   filteredOrders.map((order) => {
-                    const badge = getOrderStatusBadge(order.status);
+                    const isCancelled = isOrderCancelled(order);
+                    const badge = getOrderStatusBadge(order.status, order.payment_method);
                     const totalItems = (order.order_items || []).reduce(
                       (acc, it) => acc + (it.quantity || 1),
                       0
@@ -1035,30 +1129,32 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
                           onClick={(e) => e.stopPropagation()}
                         >
                           <div className="flex items-center justify-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => setSchedulingOrder(order)}
-                              className="p-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 border border-indigo-500/25 transition-colors"
-                              title="جدولة الطلب 📅"
-                            >
-                              <CalendarClock className="w-3.5 h-3.5" />
-                            </button>
+                            {!isCancelled && (
+                              <button
+                                type="button"
+                                onClick={() => setSchedulingOrder(order)}
+                                className="p-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 border border-indigo-500/25 transition-colors cursor-pointer"
+                                title="جدولة الطلب 📅"
+                              >
+                                <CalendarClock className="w-3.5 h-3.5" />
+                              </button>
+                            )}
 
                             <button
                               type="button"
                               onClick={() => handlePrintReceipt(order)}
-                              className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors"
+                              className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
                               title="طباعة إيصال الفاتورة"
                             >
                               <Printer className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                             </button>
 
-                            {order.status === 'pending' && (
+                            {!isCancelled && order.status === 'pending' && (
                               <button
                                 type="button"
                                 onClick={() => handleConfirmOrder(order.id)}
                                 disabled={isUpdatingOrder[order.id]}
-                                className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition-colors flex items-center gap-1 shadow-xs"
+                                className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition-colors flex items-center gap-1 shadow-xs cursor-pointer"
                               >
                                 {isUpdatingOrder[order.id] ? (
                                   <Loader2 className="w-3 h-3 animate-spin" />
@@ -1069,10 +1165,33 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
                               </button>
                             )}
 
+                            {!isCancelled ? (
+                              <button
+                                type="button"
+                                onClick={() => handleCancelOrder(order.id)}
+                                disabled={isUpdatingOrder[order.id]}
+                                className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/25 transition-colors cursor-pointer"
+                                title="إلغاء الطلب"
+                              >
+                                <Ban className="w-3.5 h-3.5" />
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleRestoreOrder(order.id)}
+                                disabled={isUpdatingOrder[order.id]}
+                                className="px-2 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
+                                title="استعادة الطلب"
+                              >
+                                <RotateCcw className="w-3 h-3" />
+                                <span>استعادة</span>
+                              </button>
+                            )}
+
                             <button
                               type="button"
                               onClick={() => setSelectedOrder(order)}
-                              className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+                              className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
                               title="عرض التفاصيل"
                             >
                               <Eye className="w-3.5 h-3.5" />
@@ -1100,6 +1219,8 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
         onUpdateNotes={handleUpdateNotes}
         onPrintReceipt={handlePrintReceipt}
         onScheduleOrder={(ord) => setSchedulingOrder(ord)}
+        onCancelOrder={handleCancelOrder}
+        onRestoreOrder={handleRestoreOrder}
       />
 
       {/* Schedule Order Modal */}

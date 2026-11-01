@@ -15,8 +15,10 @@ import {
   Tag,
   AlertTriangle,
   CalendarClock,
+  Ban,
+  RotateCcw,
 } from 'lucide-react';
-import { formatCurrency, formatDateTime, getOrderStatusBadge } from '@/lib/utils';
+import { formatCurrency, formatDateTime, getOrderStatusBadge, isOrderCancelled } from '@/lib/utils';
 import { OrderWithItems, OrderStatus } from './types';
 
 export interface OrderCardProps {
@@ -26,6 +28,8 @@ export interface OrderCardProps {
   onAdvanceStatus: (orderId: string, currentStatus?: OrderStatus) => Promise<void>;
   onPrintReceipt: (order: OrderWithItems) => void;
   onScheduleOrder?: (order: OrderWithItems) => void;
+  onCancelOrder?: (orderId: string) => void;
+  onRestoreOrder?: (orderId: string) => void;
   isUpdating?: boolean;
 }
 
@@ -63,9 +67,12 @@ function OrderCardComponent({
   onAdvanceStatus,
   onPrintReceipt,
   onScheduleOrder,
+  onCancelOrder,
+  onRestoreOrder,
   isUpdating = false,
 }: OrderCardProps) {
-  const currentBadge = getOrderStatusBadge(order.status);
+  const isCancelled = isOrderCancelled(order);
+  const currentBadge = getOrderStatusBadge(order.status, order.payment_method);
 
   // Summarize items for preview
   const totalItemCount = (order.order_items || []).reduce((sum, item) => sum + (item.quantity || 1), 0);
@@ -224,15 +231,29 @@ function OrderCardComponent({
           </button>
 
           {/* Schedule Order Button */}
-          {onScheduleOrder && (
+          {!isCancelled && onScheduleOrder && (
             <button
               type="button"
               onClick={() => onScheduleOrder(order)}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 text-xs font-bold transition-colors border border-indigo-500/25"
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 text-xs font-bold transition-colors border border-indigo-500/25 cursor-pointer"
               title="حفظ في الطلبات المجدولة مع تنبيه قبل الموعد"
             >
               <CalendarClock className="w-3.5 h-3.5" />
               <span>جدولة</span>
+            </button>
+          )}
+
+          {/* Cancel Order Button */}
+          {!isCancelled && onCancelOrder && (
+            <button
+              type="button"
+              onClick={() => onCancelOrder(order.id)}
+              disabled={isUpdating}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-bold transition-colors border border-rose-500/25 cursor-pointer disabled:opacity-50"
+              title="إلغاء الطلب"
+            >
+              <Ban className="w-3.5 h-3.5" />
+              <span>إلغاء</span>
             </button>
           )}
         </div>
@@ -242,8 +263,27 @@ function OrderCardComponent({
           {isUpdating ? (
             <div className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs text-slate-500 dark:text-slate-400">
               <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-500" />
-              <span>جاري التأكيد...</span>
+              <span>جاري التحديث...</span>
             </div>
+          ) : isCancelled ? (
+            onRestoreOrder ? (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRestoreOrder(order.id);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 border border-amber-500/30 font-bold text-xs transition-all cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>استعادة الطلب</span>
+              </button>
+            ) : (
+              <span className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 text-xs font-semibold border border-rose-500/20">
+                <Ban className="w-3.5 h-3.5" />
+                <span>الطلب ملغي</span>
+              </span>
+            )
           ) : (
             <>
               {order.status === 'pending' && (

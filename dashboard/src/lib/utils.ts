@@ -22,7 +22,28 @@ export function formatDateTime(dateString: string | null | undefined): string {
   });
 }
 
-export function getOrderStatusBadge(status: string) {
+export function isOrderCancelled(
+  orderOrPaymentMethod?:
+    | { status?: string | null; payment_method?: string | null }
+    | string
+    | null
+): boolean {
+  if (!orderOrPaymentMethod) return false;
+  if (typeof orderOrPaymentMethod === 'string') {
+    return (
+      orderOrPaymentMethod === 'cancelled' ||
+      orderOrPaymentMethod.startsWith('cancelled|')
+    );
+  }
+  if (orderOrPaymentMethod.status === 'cancelled') return true;
+  const pm = orderOrPaymentMethod.payment_method;
+  return typeof pm === 'string' && (pm === 'cancelled' || pm.startsWith('cancelled|'));
+}
+
+export function getOrderStatusBadge(status: string, paymentMethod?: string | null) {
+  if (status === 'cancelled' || isOrderCancelled(paymentMethod)) {
+    return { label: 'ملغي 🚫', color: 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30' };
+  }
   switch (status) {
     case 'pending':
       return { label: 'قيد الانتظار', color: 'bg-amber-500/10 text-amber-400 border-amber-500/20' };

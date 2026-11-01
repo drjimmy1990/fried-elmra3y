@@ -27,8 +27,9 @@ import {
   Building2,
   Tag,
   CalendarClock,
+  RotateCcw,
 } from 'lucide-react';
-import { formatCurrency, formatDateTime, getOrderStatusBadge } from '@/lib/utils';
+import { formatCurrency, formatDateTime, getOrderStatusBadge, isOrderCancelled } from '@/lib/utils';
 import { OrderWithItems, OrderStatus } from './types';
 
 interface OrderDetailsModalProps {
@@ -40,6 +41,8 @@ interface OrderDetailsModalProps {
   onUpdateNotes: (orderId: string, notes: string) => Promise<boolean>;
   onPrintReceipt: (order: OrderWithItems) => void;
   onScheduleOrder?: (order: OrderWithItems) => void;
+  onCancelOrder?: (orderId: string) => void;
+  onRestoreOrder?: (orderId: string) => void;
   complaints?: any[];
 }
 
@@ -52,6 +55,8 @@ export function OrderDetailsModal({
   onUpdateNotes,
   onPrintReceipt,
   onScheduleOrder,
+  onCancelOrder,
+  onRestoreOrder,
   complaints = [] }: OrderDetailsModalProps) {
   const [internalNotes, setInternalNotes] = useState('');
   const [isSavingNotes, setIsSavingNotes] = useState(false);
@@ -102,7 +107,8 @@ export function OrderDetailsModal({
     }
   };
 
-  const currentBadge = getOrderStatusBadge(order.status);
+  const isCancelled = isOrderCancelled(order);
+  const currentBadge = getOrderStatusBadge(order.status, order.payment_method);
 
   const getSourceDisplay = (source: string) => {
     switch (source) {
@@ -462,13 +468,20 @@ export function OrderDetailsModal({
               <span>تحديث حالة الطلب</span>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
-                onClick={() => handleStatusChange('pending')}
-                disabled={isChangingStatus || order.status === 'pending'}
-                className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all ${
-                  order.status === 'pending'
+                onClick={async () => {
+                  if (isCancelled && onRestoreOrder) {
+                    onRestoreOrder(order.id);
+                  }
+                  if (order.status !== 'pending') {
+                    await handleStatusChange('pending');
+                  }
+                }}
+                disabled={isChangingStatus || (!isCancelled && order.status === 'pending')}
+                className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  !isCancelled && order.status === 'pending'
                     ? 'bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/40 ring-2 ring-amber-500/20'
                     : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800'
                 }`}
@@ -479,16 +492,41 @@ export function OrderDetailsModal({
 
               <button
                 type="button"
-                onClick={() => handleStatusChange('confirmed')}
-                disabled={isChangingStatus || order.status === 'confirmed'}
-                className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all ${
-                  order.status === 'confirmed'
+                onClick={async () => {
+                  if (isCancelled && onRestoreOrder) {
+                    onRestoreOrder(order.id);
+                  }
+                  if (order.status !== 'confirmed') {
+                    await handleStatusChange('confirmed');
+                  }
+                }}
+                disabled={isChangingStatus || (!isCancelled && order.status === 'confirmed')}
+                className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  !isCancelled && order.status === 'confirmed'
                     ? 'bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-500/40 ring-2 ring-emerald-500/20'
                     : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800'
                 }`}
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 <span>مؤكد</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (!isCancelled && onCancelOrder) {
+                    onCancelOrder(order.id);
+                  }
+                }}
+                disabled={isChangingStatus || isCancelled}
+                className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  isCancelled
+                    ? 'bg-rose-500/20 text-rose-800 dark:text-rose-300 border border-rose-500/40 ring-2 ring-rose-500/20'
+                    : 'bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50'
+                }`}
+              >
+                <Ban className="w-3.5 h-3.5" />
+                <span>ملغي</span>
               </button>
             </div>
           </div>
@@ -499,17 +537,39 @@ export function OrderDetailsModal({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
           >
             إغلاق
           </button>
 
           <div className="flex items-center gap-2 flex-wrap">
-            {onScheduleOrder && (
+            {!isCancelled && onCancelOrder && (
+              <button
+                type="button"
+                onClick={() => onCancelOrder(order.id)}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-700 dark:text-rose-300 text-xs sm:text-sm font-bold border border-rose-500/30 transition-colors cursor-pointer"
+              >
+                <Ban className="w-4 h-4" />
+                <span>إلغاء الطلب</span>
+              </button>
+            )}
+
+            {isCancelled && onRestoreOrder && (
+              <button
+                type="button"
+                onClick={() => onRestoreOrder(order.id)}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 text-xs sm:text-sm font-bold border border-amber-500/30 transition-colors cursor-pointer"
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span>استعادة الطلب</span>
+              </button>
+            )}
+
+            {!isCancelled && onScheduleOrder && (
               <button
                 type="button"
                 onClick={() => onScheduleOrder(order)}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-700 dark:text-indigo-300 text-xs sm:text-sm font-bold border border-indigo-500/30 transition-colors"
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-700 dark:text-indigo-300 text-xs sm:text-sm font-bold border border-indigo-500/30 transition-colors cursor-pointer"
               >
                 <CalendarClock className="w-4 h-4" />
                 <span>جدولة الطلب 📅</span>
@@ -519,26 +579,26 @@ export function OrderDetailsModal({
             <button
               type="button"
               onClick={() => onPrintReceipt(order)}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm font-semibold border border-slate-200 dark:border-slate-700 transition-colors shadow-xs"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm font-semibold border border-slate-200 dark:border-slate-700 transition-colors shadow-xs cursor-pointer"
             >
               <Printer className="w-4 h-4 text-amber-600 dark:text-amber-400" />
               <span>طباعة إيصال الفاتورة</span>
             </button>
 
             {/* Quick Next-Step Advance Button */}
-            {order.status === 'pending' && (
+            {!isCancelled && order.status === 'pending' && (
               <button
                 type="button"
                 onClick={() => onAdvanceStatus(order.id, 'pending')}
                 disabled={isChangingStatus}
-                className="flex items-center gap-2 px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-md shadow-emerald-600/30 transition-all hover:scale-102"
+                className="flex items-center gap-2 px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-md shadow-emerald-600/30 transition-all hover:scale-102 cursor-pointer"
               >
                 <CheckCircle2 className="w-4 h-4" />
                 <span>تأكيد الطلب وإبلاغ العميل</span>
               </button>
             )}
 
-            {order.status === 'confirmed' && (
+            {!isCancelled && order.status === 'confirmed' && (
               <span className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-sm font-bold border border-emerald-500/20">
                 <CheckCircle2 className="w-4 h-4" />
                 <span>الطلب مؤكد</span>

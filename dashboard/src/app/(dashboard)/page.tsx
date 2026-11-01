@@ -20,7 +20,13 @@ import {
   DollarSign,
   Drumstick,
 } from 'lucide-react';
-import { formatCurrency, formatDateTime, getOrderStatusBadge, getComplaintStatusBadge } from '@/lib/utils';
+import {
+  formatCurrency,
+  formatDateTime,
+  getOrderStatusBadge,
+  getComplaintStatusBadge,
+  isOrderCancelled,
+} from '@/lib/utils';
 import { OrderStatus } from '@/types/database.types';
 
 export const revalidate = 0; // Dynamic server component
@@ -45,7 +51,7 @@ export default async function OverviewDashboardPage() {
     // Today's Orders & revenue
     supabase
       .from('orders')
-      .select('id, total_amount, status, created_at')
+      .select('id, total_amount, status, payment_method, created_at')
       .gte('created_at', todayISO),
 
     // Open complaints
@@ -69,7 +75,7 @@ export default async function OverviewDashboardPage() {
     // Latest 5 orders
     supabase
       .from('orders')
-      .select('id, order_number, customer_name, customer_phone, total_amount, status, created_at')
+      .select('id, order_number, customer_name, customer_phone, total_amount, status, payment_method, created_at')
       .order('created_at', { ascending: false })
       .limit(5),
 
@@ -81,7 +87,7 @@ export default async function OverviewDashboardPage() {
       .limit(4),
   ]);
 
-  const todayOrders = todayOrdersRes.data || [];
+  const todayOrders = (todayOrdersRes.data || []).filter((o) => !isOrderCancelled(o));
   const todayPendingCount = todayOrders.filter((o) => o.status === 'pending').length;
   const todayConfirmedCount = todayOrders.filter((o) => o.status === 'confirmed').length;
   const todaySales = todayOrders
@@ -324,7 +330,7 @@ export default async function OverviewDashboardPage() {
               </div>
             ) : (
               recentOrders.map((order) => {
-                const badge = getOrderStatusBadge(order.status);
+                const badge = getOrderStatusBadge(order.status, order.payment_method);
                 return (
                   <div
                     key={order.id}
