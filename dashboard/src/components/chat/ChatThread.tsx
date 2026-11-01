@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+import Link from 'next/link';
 import {
   Send,
   Bot,
@@ -244,12 +245,14 @@ export function ChatThread({
                 </div>
               )}
 
-              {contact.total_orders > 0 && (
-                <span className="flex items-center gap-1 text-slate-500 dark:text-slate-400 font-medium">
-                  <ShoppingBag className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                  <span>{contact.total_orders} طلب</span>
-                </span>
-              )}
+              <Link
+                href={`/dashboard/orders?contactId=${encodeURIComponent(contact.id)}${contact.phone ? `&phone=${encodeURIComponent(contact.phone)}` : ''}${contact.name ? `&customer=${encodeURIComponent(contact.name)}` : ''}`}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 font-bold text-xs transition cursor-pointer"
+                title="عرض جميع طلبات هذا العميل"
+              >
+                <ShoppingBag className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                <span>طلبات العميل{contact.total_orders > 0 ? ` (${contact.total_orders})` : ''}</span>
+              </Link>
 
               {contact.address && (
                 <span className="flex items-center gap-1 text-slate-500 dark:text-slate-400 truncate max-w-xs" title={contact.address}>
