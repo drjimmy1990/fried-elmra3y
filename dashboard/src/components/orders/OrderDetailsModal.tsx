@@ -428,15 +428,23 @@ export function OrderDetailsModal({
                   <Link
                     key={c.id}
                     href={{pathname: '/dashboard/complaints', query: {complaintId: c.id}}}
-                    className="flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-rose-500/50 transition-colors shadow-xs"
+                    className="flex flex-col gap-1.5 p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-rose-500/50 transition-colors shadow-xs"
                   >
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-slate-900 dark:text-white">#{c.ticket_number}</span>
-                      <span className="text-xs text-slate-500 dark:text-slate-400">
-                        {c.status === 'open' ? 'مفتوحة' : 'تم الحل'}
-                      </span>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-slate-900 dark:text-white">#{c.ticket_number}</span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                          {c.status === 'open' ? 'مفتوحة' : 'تم الحل'}
+                        </span>
+                      </div>
+                      <span className="text-xs text-rose-600 dark:text-rose-400 font-medium">عرض التفاصيل</span>
                     </div>
-                    <span className="text-xs text-rose-600 dark:text-rose-400 font-medium">عرض التفاصيل</span>
+                    {c.created_at && (
+                      <div className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
+                        <Clock className="w-3 h-3 text-slate-400 shrink-0" />
+                        <span>وقت الشكوى: {formatDateTime(c.created_at)}</span>
+                      </div>
+                    )}
                   </Link>
                 ))}
               </div>

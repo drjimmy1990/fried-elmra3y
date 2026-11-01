@@ -15,7 +15,7 @@ import {
   Tag,
   AlertTriangle,
 } from 'lucide-react';
-import { formatCurrency, getOrderStatusBadge, getWhatsAppLink } from '@/lib/utils';
+import { formatCurrency, formatDateTime, getOrderStatusBadge, getWhatsAppLink } from '@/lib/utils';
 import { OrderWithItems, OrderStatus } from './types';
 
 export interface OrderCardProps {
@@ -155,9 +155,17 @@ function OrderCardComponent({
 
       {/* Linked Open Complaint Alert */}
       {complaints.length > 0 && (
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 text-xs text-rose-700 dark:text-rose-300 font-medium">
-          <AlertTriangle className="w-3.5 h-3.5 text-rose-500 dark:text-rose-400 shrink-0" />
-          <span>شكوى مفتوحة #{complaints[0].ticket_number || ''}</span>
+        <div className="flex items-center justify-between gap-1.5 px-2.5 py-1 rounded-lg bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 text-xs text-rose-700 dark:text-rose-300 font-medium">
+          <div className="flex items-center gap-1.5">
+            <AlertTriangle className="w-3.5 h-3.5 text-rose-500 dark:text-rose-400 shrink-0" />
+            <span>شكوى مفتوحة #{complaints[0].ticket_number || ''}</span>
+          </div>
+          {complaints[0].created_at && (
+            <span className="text-[10px] text-rose-600/80 dark:text-rose-300/80 flex items-center gap-1 shrink-0">
+              <Clock className="w-2.5 h-2.5" />
+              <span>{formatDateTime(complaints[0].created_at)}</span>
+            </span>
+          )}
         </div>
       )}
 

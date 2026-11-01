@@ -13,10 +13,12 @@ export function formatDateTime(dateString: string | null | undefined): string {
   if (!dateString) return '-';
   const date = new Date(dateString);
   return date.toLocaleString('ar-EG', {
+    timeZone: 'Africa/Cairo',
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
+    hour12: true,
   });
 }
 

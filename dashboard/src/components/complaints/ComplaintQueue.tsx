@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useSearchParams } from 'next/navigation';
-import { formatDateTime, getWhatsAppLink } from '@/lib/utils';
+import { formatDateTime, formatTimeElapsed, getWhatsAppLink } from '@/lib/utils';
 import { ComplaintCard } from './ComplaintCard';
 import { ComplaintDetailsModal } from './ComplaintDetailsModal';
 import {
@@ -505,7 +505,7 @@ export function ComplaintQueue({ initialComplaints, staffList }: ComplaintQueueP
               <thead>
                 <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-950/70">
                   <th className="py-3 px-4 font-semibold">رقم التذكرة</th>
-                  <th className="py-3 px-4 font-semibold">التاريخ</th>
+                  <th className="py-3 px-4 font-semibold">التاريخ ووقت الشكوى</th>
                   <th className="py-3 px-4 font-semibold">صاحب الشكوى</th>
                   <th className="py-3 px-4 font-semibold">رقم الهاتف</th>
                   <th className="py-3 px-4 font-semibold">القناة</th>
@@ -536,8 +536,14 @@ export function ComplaintQueue({ initialComplaints, staffList }: ComplaintQueueP
                         <td className="py-3.5 px-4 font-bold font-mono text-slate-900 dark:text-white whitespace-nowrap">
                           #{complaint.ticket_number}
                         </td>
-                        <td className="py-3.5 px-4 text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                          {formatDateTime(complaint.created_at)}
+                        <td className="py-3.5 px-4 whitespace-nowrap">
+                          <div className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1">
+                            <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                            <span>{formatDateTime(complaint.created_at)}</span>
+                          </div>
+                          <div className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+                            {formatTimeElapsed(complaint.created_at)}
+                          </div>
                         </td>
                         <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white whitespace-nowrap">
                           {complaint.customer_name || 'عميل'}

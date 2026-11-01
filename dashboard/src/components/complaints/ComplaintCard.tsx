@@ -13,6 +13,7 @@ import {
   getComplaintStatusBadge,
   getWhatsAppLink,
   formatTimeElapsed,
+  formatDateTime,
 } from '@/lib/utils';
 import { ComplaintWithDetails, ComplaintStatus } from './types';
 
@@ -72,8 +73,13 @@ function ComplaintCardComponent({
         </div>
 
         <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-          <Clock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
-          <span>{formatTimeElapsed(complaint.created_at)}</span>
+          <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+          <span className="font-semibold text-slate-700 dark:text-slate-200">
+            {formatDateTime(complaint.created_at)}
+          </span>
+          <span className="text-[11px] text-slate-400 dark:text-slate-500">
+            ({formatTimeElapsed(complaint.created_at)})
+          </span>
         </div>
       </div>
 
