@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   Send,
   Bot,
@@ -118,6 +118,47 @@ export function ChatThread({
       textareaRef.current.focus();
     }
   };
+
+  // Deduplicate consecutive bot messages that share the same text within 30s
+  // (caused by n8n image follow-up nodes logging the text reply a second time)
+  const displayMessages = useMemo(() => {
+    const result: MessageRow[] = [];
+    let lastBotContent: string | null = null;
+    let lastBotTime = 0;
+
+    for (const msg of messages) {
+      if (msg.sender_type === 'bot') {
+        const msgTime = new Date(msg.created_at || 0).getTime();
+        const isDuplicateText =
+          Boolean(msg.content) &&
+          msg.content === lastBotContent &&
+          Math.abs(msgTime - lastBotTime) < 30000;
+
+        if (isDuplicateText) {
+          if (!msg.media_url) {
+            // Skip duplicate text-only bot row
+            continue;
+          }
+          // Keep media attachment row but strip repeated text caption
+          result.push({ ...msg, content: null });
+          lastBotTime = msgTime;
+          continue;
+        }
+
+        if (msg.content) {
+          lastBotContent = msg.content;
+          lastBotTime = msgTime;
+        }
+        result.push(msg);
+      } else {
+        lastBotContent = null;
+        lastBotTime = 0;
+        result.push(msg);
+      }
+    }
+
+    return result;
+  }, [messages]);
 
   // If no contact is selected
   if (!contact) {
@@ -341,13 +382,13 @@ export function ChatThread({
             <Loader2 className="w-6 h-6 animate-spin text-amber-500" />
             <p className="text-xs font-medium">جاري تحميل سجل الرسائل...</p>
           </div>
-        ) : messages.length === 0 ? (
+        ) : displayMessages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 space-y-2 text-slate-400 dark:text-slate-500">
             <MessageCircle className="w-8 h-8 opacity-40 text-slate-400" />
             <p className="text-xs font-medium">لا توجد رسائل سابقة في هذه المحادثة بعد.</p>
           </div>
         ) : (
-          messages.map((message) => {
+          displayMessages.map((message) => {
             const isUser = message.sender_type === 'user';
             const isBot = message.sender_type === 'bot';
             const isAgent = message.sender_type === 'agent';

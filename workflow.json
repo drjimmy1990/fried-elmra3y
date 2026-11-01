@@ -2696,10 +2696,6 @@
               "fieldValue": "={{ $('Switch1').item.json.contact_id }}"
             },
             {
-              "fieldId": "content",
-              "fieldValue": "={{ $('Switch1').item.json.reply }}"
-            },
-            {
               "fieldId": "platform_message_id",
               "fieldValue": "={{ $json.message_id }}"
             },
@@ -2840,10 +2836,6 @@
               "fieldValue": "={{ $('Switch1').item.json.contact_id }}"
             },
             {
-              "fieldId": "content",
-              "fieldValue": "={{ $('Switch1').item.json.reply }}"
-            },
-            {
               "fieldId": "platform_message_id",
               "fieldValue": "={{ $json.message_id }}"
             },
@@ -2854,6 +2846,10 @@
             {
               "fieldId": "is_read",
               "fieldValue": "true"
+            },
+            {
+              "fieldId": "media_url",
+              "fieldValue": "https://i.postimg.cc/PNGsxG9K/Whats-App-Image-2026-10-16-at-4-42-36-PM.jpg"
             }
           ]
         }
