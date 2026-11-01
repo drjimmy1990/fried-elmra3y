@@ -16,6 +16,7 @@ import {
   Sparkles,
   Loader2,
   RotateCcw,
+  ShoppingBag,
 } from 'lucide-react';
 import {
   getComplaintStatusBadge,
@@ -255,7 +256,22 @@ export function ComplaintDetailsModal({
                   )}
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Link
+                    href={{
+                      pathname: '/dashboard/orders',
+                      query: {
+                        ...(complaint.contact_id ? { contactId: complaint.contact_id } : {}),
+                        ...(complaint.customer_phone ? { phone: complaint.customer_phone } : {}),
+                        ...(complaint.customer_name ? { customer: complaint.customer_name } : {}),
+                        ...(complaint.order_id ? { orderId: complaint.order_id } : {}),
+                      },
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition shadow-xs"
+                  >
+                    <ShoppingBag className="w-3.5 h-3.5" />
+                    <span>طلبات العميل</span>
+                  </Link>
                   <a
                     href={`tel:${complaint.customer_phone}`}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition border border-slate-200 dark:border-slate-700"

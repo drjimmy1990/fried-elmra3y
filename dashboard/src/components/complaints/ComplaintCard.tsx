@@ -6,6 +6,7 @@ import {
   Clock,
   Phone,
   MessageCircle,
+  ShoppingBag,
   User,
   Loader2,
   FileText,
@@ -96,6 +97,22 @@ function ComplaintCardComponent({
 
         {/* Quick Contact Buttons */}
         <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+          <Link
+            href={{
+              pathname: '/dashboard/orders',
+              query: {
+                ...(complaint.contact_id ? { contactId: complaint.contact_id } : {}),
+                ...(complaint.customer_phone ? { phone: complaint.customer_phone } : {}),
+                ...(complaint.customer_name ? { customer: complaint.customer_name } : {}),
+                ...(complaint.order_id ? { orderId: complaint.order_id } : {}),
+              },
+            }}
+            title="عرض طلبات هذا العميل"
+            className="flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/25 text-amber-700 dark:text-amber-300 text-[11px] font-bold transition"
+          >
+            <ShoppingBag className="w-3.5 h-3.5" />
+            <span>طلبات العميل</span>
+          </Link>
           <a
             href={`tel:${complaint.customer_phone}`}
             title="اتصال هاتفي"

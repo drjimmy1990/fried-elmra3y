@@ -19,7 +19,7 @@ import {
   CalendarClock,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { formatCurrency, formatDateTime, getOrderStatusBadge } from '@/lib/utils';
 import { encodeScheduleMeta, isScheduledPaymentMethod } from '@/lib/scheduled-orders';
 import { OrderCard } from './OrderCard';
@@ -77,6 +77,12 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
   const [offersList, setOffersList] = useState<{ id: string; title: string }[]>(offers);
 
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const [customerFilter, setCustomerFilter] = useState<{
+    contactId: string | null;
+    phone: string | null;
+    customer: string | null;
+  } | null>(null);
   const [printingOrder, setPrintingOrder] = useState<OrderWithItems | null>(null);
   const [isReceiptPreviewOpen, setIsReceiptPreviewOpen] = useState(false);
   const [isUpdatingOrder, setIsUpdatingOrder] = useState<Record<string, boolean>>({});
@@ -108,7 +114,7 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
     }
   }, [branches, offers, supabase]);
 
-  // Handle deep link ?orderId=
+  // Handle deep link ?orderId= or customer filter (?contactId=&phone=&customer=)
   useEffect(() => {
     const id = searchParams.get('orderId');
     if (id) {
@@ -122,13 +128,67 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
             const { data: items } = await supabase.from('order_items').select('*').eq('order_id', id);
             const fullOrder = { ...(data as any), order_items: (items as any) || [] } as OrderWithItems;
             setSelectedOrder(fullOrder);
-            setOrders((prev) => [fullOrder, ...prev]);
+            setOrders((prev) => (prev.some((x) => x.id === fullOrder.id) ? prev : [fullOrder, ...prev]));
           }
         };
         fetchMissing();
       }
     }
-  }, [searchParams, orders, supabase]);
+
+    const cId = searchParams.get('contactId');
+    const cPhone = searchParams.get('phone');
+    const cName = searchParams.get('customer');
+
+    if (cId || cPhone || cName) {
+      setCustomerFilter({
+        contactId: cId || null,
+        phone: cPhone || null,
+        customer: cName || null,
+      });
+
+      const fetchCustomerOrders = async () => {
+        const orClauses: string[] = [];
+        if (cId) orClauses.push(`contact_id.eq.${cId}`);
+        if (cPhone) orClauses.push(`customer_phone.eq.${cPhone}`);
+        if (orClauses.length === 0) return;
+
+        const { data: custOrders } = await supabase
+          .from('orders')
+          .select('*')
+          .or(orClauses.join(','))
+          .order('created_at', { ascending: false });
+
+        if (custOrders && custOrders.length > 0) {
+          const ids = custOrders.map((o) => o.id);
+          const { data: items } = await supabase
+            .from('order_items')
+            .select('*')
+            .in('order_id', ids);
+
+          const enrichedList: OrderWithItems[] = custOrders.map((ord) => ({
+            ...ord,
+            order_items: (items || []).filter((it) => it.order_id === ord.id),
+            branch: branchesList.find((b) => b.id === ord.branch_id) || null,
+            offer: offersList.find((of) => of.id === ord.offer_id) || null,
+          }));
+
+          setOrders((prev) => {
+            const map = new Map(prev.map((o) => [o.id, o]));
+            for (const eo of enrichedList) {
+              map.set(eo.id, eo);
+            }
+            return Array.from(map.values()).sort(
+              (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            );
+          });
+        }
+      };
+
+      fetchCustomerOrders();
+    } else {
+      setCustomerFilter(null);
+    }
+  }, [searchParams, supabase, branchesList, offersList]);
 
   // Complaint tracking for visible orders
   const [complaintsMap, setComplaintsMap] = useState<Record<string, any[]>>({});
@@ -311,9 +371,31 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
     return isNaN(d.getTime()) ? new Date(dateStr) : d;
   };
 
-  // Filtered orders based on Search, Date, Branch, Offer (excluding scheduled orders)
+  // Filtered orders based on Search, Date, Branch, Offer, and optional Customer Filter
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
+      // If viewing a specific customer's orders (from Complaints), match only their orders
+      if (customerFilter) {
+        const matchContact =
+          customerFilter.contactId && order.contact_id === customerFilter.contactId;
+        const cleanFilterPhone = (customerFilter.phone || '').replace(/\D/g, '');
+        const cleanOrderPhone = (order.customer_phone || '').replace(/\D/g, '');
+        const matchPhone =
+          cleanFilterPhone.length >= 8 &&
+          cleanOrderPhone.length >= 8 &&
+          (cleanOrderPhone.includes(cleanFilterPhone) || cleanFilterPhone.includes(cleanOrderPhone));
+        const matchName =
+          !customerFilter.contactId &&
+          !cleanFilterPhone &&
+          customerFilter.customer &&
+          order.customer_name?.trim().toLowerCase() === customerFilter.customer.trim().toLowerCase();
+
+        if (!matchContact && !matchPhone && !matchName) {
+          return false;
+        }
+        return true;
+      }
+
       if (isScheduledPaymentMethod(order.payment_method)) {
         return false;
       }
@@ -366,7 +448,7 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
 
       return true;
     });
-  }, [orders, searchQuery, dateFilter, selectedBranchId, selectedOfferId]);
+  }, [orders, searchQuery, dateFilter, selectedBranchId, selectedOfferId, customerFilter]);
 
   // Order Confirmation Action: Calls API and optimistically updates
   const handleConfirmOrder = async (orderId: string) => {
@@ -534,6 +616,45 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
 
   return (
     <div className="space-y-6">
+      {/* Active Customer Orders Filter Banner (when navigated from Complaints) */}
+      {customerFilter && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl bg-indigo-500/10 border-2 border-indigo-500/40 px-4 py-3.5 shadow-sm">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-xs">
+              <ShoppingBag className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="text-sm font-extrabold text-slate-900 dark:text-white">
+                عرض جميع طلبات العميل:{' '}
+                <span className="text-indigo-600 dark:text-indigo-400">
+                  {customerFilter.customer || 'العميل'}
+                </span>
+                {customerFilter.phone && (
+                  <span className="font-mono text-xs text-slate-500 dark:text-slate-400 mr-2" dir="ltr">
+                    ({customerFilter.phone})
+                  </span>
+                )}
+              </div>
+              <div className="text-xs text-slate-600 dark:text-slate-300">
+                إجمالي الطلبات المسجلة لهذا العميل: <strong>{filteredOrders.length} طلب</strong>
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setCustomerFilter(null);
+              router.push('/dashboard/orders');
+            }}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white dark:bg-slate-900 hover:bg-rose-50 dark:hover:bg-rose-950/50 text-rose-600 dark:text-rose-400 border border-slate-200 dark:border-slate-700 text-xs font-bold transition self-start sm:self-auto"
+          >
+            <X className="w-3.5 h-3.5" />
+            <span>إلغاء الفلتر وعرض كل الطلبات</span>
+          </button>
+        </div>
+      )}
+
       {/* Page Header & Live Status */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

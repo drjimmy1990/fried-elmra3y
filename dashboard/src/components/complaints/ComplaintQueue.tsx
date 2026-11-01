@@ -615,6 +615,23 @@ export function ComplaintQueue({ initialComplaints, staffList }: ComplaintQueueP
                               </button>
                             )}
 
+                            <Link
+                              href={{
+                                pathname: '/dashboard/orders',
+                                query: {
+                                  ...(complaint.contact_id ? { contactId: complaint.contact_id } : {}),
+                                  ...(complaint.customer_phone ? { phone: complaint.customer_phone } : {}),
+                                  ...(complaint.customer_name ? { customer: complaint.customer_name } : {}),
+                                  ...(complaint.order_id ? { orderId: complaint.order_id } : {}),
+                                },
+                              }}
+                              className="px-2 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 border border-indigo-500/25 text-xs font-bold transition flex items-center gap-1"
+                              title="عرض جميع طلبات هذا العميل"
+                            >
+                              <ShoppingBag className="w-3.5 h-3.5" />
+                              <span>طلبات العميل</span>
+                            </Link>
+
                             {complaint.contact_id && (
                               <Link
                                 href={`/dashboard/chat?contactId=${complaint.contact_id}`}
