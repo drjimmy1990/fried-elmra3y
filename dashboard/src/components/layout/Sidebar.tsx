@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
   ShoppingBag,
+  CalendarClock,
   AlertCircle,
   MessageSquare,
   BookOpen,
@@ -25,13 +26,14 @@ interface SidebarProps {
   permissions?: StaffPermission[];
   restaurantName?: string;
   issueOrdersCount?: number;
+  scheduledOrdersCount?: number;
   openComplaintsCount?: number;
   needsHumanCount?: number;
   isOpen: boolean;
   onClose: () => void;
 }
 
-type BadgeKind = 'orders' | 'complaints' | 'chat';
+type BadgeKind = 'orders' | 'scheduled' | 'complaints' | 'chat';
 
 interface NavItem {
   title: string;
@@ -61,6 +63,16 @@ const NAV_ITEMS: NavItem[] = [
     roles: ['admin', 'order_agent'],
     badge: 'orders',
     badgeTitle: 'أوردرات قيد الانتظار',
+    section: 'غرفة العمليات',
+  },
+  {
+    title: 'الطلبات المجدولة',
+    href: '/dashboard/scheduled-orders',
+    permission: 'scheduled_orders',
+    icon: CalendarClock,
+    roles: ['admin', 'order_agent'],
+    badge: 'scheduled',
+    badgeTitle: 'أوردرات مجدولة قادمة',
     section: 'غرفة العمليات',
   },
   {
@@ -143,6 +155,7 @@ const NAV_ITEMS: NavItem[] = [
 
 const BADGE_STYLES: Record<BadgeKind, string> = {
   orders: 'bg-orange-500/10 text-orange-600 dark:bg-orange-500/20 dark:text-orange-300 border border-orange-500/25',
+  scheduled: 'bg-indigo-500/10 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-300 border border-indigo-500/25',
   complaints: 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-300 border border-rose-500/25',
   chat: 'bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-300 border border-amber-500/25',
 };
@@ -152,6 +165,7 @@ export function Sidebar({
   permissions,
   restaurantName = 'تشيكن مراعي',
   issueOrdersCount = 0,
+  scheduledOrdersCount = 0,
   openComplaintsCount = 0,
   needsHumanCount = 0,
   isOpen,
@@ -225,6 +239,8 @@ export function Sidebar({
               const badgeCount =
                 item.badge === 'orders'
                   ? issueOrdersCount
+                  : item.badge === 'scheduled'
+                  ? scheduledOrdersCount
                   : item.badge === 'complaints'
                   ? openComplaintsCount
                   : item.badge === 'chat'

@@ -26,6 +26,7 @@ import {
   Sparkles,
   Building2,
   Tag,
+  CalendarClock,
 } from 'lucide-react';
 import { formatCurrency, formatDateTime, getOrderStatusBadge } from '@/lib/utils';
 import { OrderWithItems, OrderStatus } from './types';
@@ -38,6 +39,7 @@ interface OrderDetailsModalProps {
   onChangeStatus: (orderId: string, newStatus: OrderStatus) => Promise<void>;
   onUpdateNotes: (orderId: string, notes: string) => Promise<boolean>;
   onPrintReceipt: (order: OrderWithItems) => void;
+  onScheduleOrder?: (order: OrderWithItems) => void;
   complaints?: any[];
 }
 
@@ -48,7 +50,9 @@ export function OrderDetailsModal({
   onAdvanceStatus,
   onChangeStatus,
   onUpdateNotes,
-  onPrintReceipt, complaints = [] }: OrderDetailsModalProps) {
+  onPrintReceipt,
+  onScheduleOrder,
+  complaints = [] }: OrderDetailsModalProps) {
   const [internalNotes, setInternalNotes] = useState('');
   const [isSavingNotes, setIsSavingNotes] = useState(false);
   const [notesSaveSuccess, setNotesSaveSuccess] = useState(false);
@@ -500,7 +504,18 @@ export function OrderDetailsModal({
             إغلاق
           </button>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {onScheduleOrder && (
+              <button
+                type="button"
+                onClick={() => onScheduleOrder(order)}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-700 dark:text-indigo-300 text-xs sm:text-sm font-bold border border-indigo-500/30 transition-colors"
+              >
+                <CalendarClock className="w-4 h-4" />
+                <span>جدولة الطلب 📅</span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={() => onPrintReceipt(order)}

@@ -3,15 +3,17 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { ShoppingBag, AlertTriangle, X } from 'lucide-react';
+import { ShoppingBag, AlertTriangle, CalendarClock, X } from 'lucide-react';
 import { Database, UserRole } from '@/types/database.types';
+import { parseScheduleMeta } from '@/lib/scheduled-orders';
+import { formatDateTime } from '@/lib/utils';
 
 type OrderRow = Database['public']['Tables']['orders']['Row'];
 type ComplaintRow = Database['public']['Tables']['complaints']['Row'];
 
 export interface AlertNotification {
   id: string;
-  type: 'order' | 'complaint';
+  type: 'order' | 'complaint' | 'scheduled_order';
   title: string;
   message: string;
   href: string;
@@ -372,6 +374,74 @@ export function RealtimeAudioProvider({
     };
   }, [playChime, role]);
 
+  // Periodic watcher for Scheduled Orders reaching their preparation alert window
+  const alertedScheduledMapRef = useRef<Map<string, number>>(new Map());
+  useEffect(() => {
+    if (role === 'support_agent') return;
+    const supabase = createClient();
+
+    const checkScheduledOrders = async () => {
+      try {
+        const { data } = await supabase
+          .from('orders')
+          .select('id, order_number, customer_name, total_amount, payment_method')
+          .like('payment_method', 'scheduled|%');
+
+        if (!data || data.length === 0) return;
+        const now = new Date();
+
+        for (const ord of data) {
+          const meta = parseScheduleMeta(ord.payment_method, now);
+          if (!meta.isScheduled || !meta.isAlertDue || !meta.scheduledFor) continue;
+
+          // Re-alert every 10 minutes until staff sends the scheduled order to the kitchen
+          const lastAlertedAt = alertedScheduledMapRef.current.get(ord.id) || 0;
+          if (now.getTime() - lastAlertedAt < 10 * 60 * 1000) continue;
+
+          alertedScheduledMapRef.current.set(ord.id, now.getTime());
+
+          const deliveryTimeFormatted = formatDateTime(meta.scheduledFor);
+          const notification: AlertNotification = {
+            id: `sched-${ord.id}-${now.getTime()}`,
+            type: 'scheduled_order',
+            title: `⏰ حان موعد تحضير طلب مجدول #${ord.order_number}`,
+            message: `العميل: ${ord.customer_name} — موعد التوصيل الفعلي: ${deliveryTimeFormatted}`,
+            href: '/dashboard/scheduled-orders',
+            timestamp: now,
+          };
+
+          playChime();
+          setNotifications((prev) => [notification, ...prev.slice(0, 4)]);
+
+          if (
+            notificationsEnabledRef.current &&
+            typeof window !== 'undefined' &&
+            'Notification' in window &&
+            Notification.permission === 'granted'
+          ) {
+            try {
+              const nativeNotif = new Notification(notification.title, {
+                body: notification.message,
+                icon: '/favicon.ico',
+                tag: `sched-${ord.id}`,
+              });
+              nativeNotif.onclick = () => {
+                window.focus();
+                window.location.href = notification.href;
+              };
+            } catch {}
+          }
+        }
+      } catch (err) {
+        console.warn('Scheduled orders check error:', err);
+      }
+    };
+
+    checkScheduledOrders();
+    const interval = setInterval(checkScheduledOrders, 30000);
+    return () => clearInterval(interval);
+  }, [playChime, role]);
+
   // Auto-dismiss in-app toast notifications after 9 seconds
   useEffect(() => {
     if (notifications.length === 0) return;
@@ -414,11 +484,15 @@ export function RealtimeAudioProvider({
               className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
                 item.type === 'order'
                   ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20'
+                  : item.type === 'scheduled_order'
+                  ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30 animate-pulse'
                   : 'bg-rose-500/15 text-rose-400 border border-rose-500/20'
               }`}
             >
               {item.type === 'order' ? (
                 <ShoppingBag className="h-5 w-5" />
+              ) : item.type === 'scheduled_order' ? (
+                <CalendarClock className="h-5 w-5" />
               ) : (
                 <AlertTriangle className="h-5 w-5" />
               )}
@@ -435,7 +509,13 @@ export function RealtimeAudioProvider({
                   onClick={() => dismissNotification(item.id)}
                   className="inline-flex items-center gap-1 rounded-lg bg-amber-600 px-3 py-1 text-xs font-bold text-white hover:bg-amber-500 transition shadow-xs"
                 >
-                  <span>{item.type === 'order' ? 'عرض الطلب' : 'عرض الشكوى'}</span>
+                  <span>
+                    {item.type === 'order'
+                      ? 'عرض الطلب'
+                      : item.type === 'scheduled_order'
+                      ? 'فتح الطلب المجدول 📅'
+                      : 'عرض الشكوى'}
+                  </span>
                 </Link>
                 <button
                   type="button"

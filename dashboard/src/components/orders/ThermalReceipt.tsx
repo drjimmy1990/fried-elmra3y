@@ -3,6 +3,7 @@
 import React, { useEffect } from 'react';
 import { Printer, X, Utensils } from 'lucide-react';
 import { formatCurrency, formatDateTime } from '@/lib/utils';
+import { parseScheduleMeta } from '@/lib/scheduled-orders';
 import { OrderWithItems } from './types';
 
 interface ThermalReceiptProps {
@@ -74,8 +75,22 @@ export function ThermalReceipt({
         </div>
         <div className="flex justify-between text-[10px] text-gray-700">
           <span>طريقة الدفع:</span>
-          <span>{order.payment_method === 'cash_on_delivery' ? 'كاش عند الاستلام' : order.payment_method}</span>
+          <span>
+            {order.payment_method === 'cash_on_delivery' || order.payment_method === 'cash' || order.payment_method?.startsWith('scheduled|')
+              ? 'كاش عند الاستلام'
+              : order.payment_method}
+          </span>
         </div>
+        {(() => {
+          const sched = parseScheduleMeta(order.payment_method);
+          if (!sched.isScheduled || !sched.scheduledFor) return null;
+          return (
+            <div className="flex justify-between text-[10px] font-bold text-black pt-0.5">
+              <span>موعد التوصيل المجدول:</span>
+              <span>{formatDateTime(sched.scheduledFor)}</span>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Customer Info */}

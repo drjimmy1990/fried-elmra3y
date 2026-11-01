@@ -48,6 +48,7 @@ export default async function DashboardLayout({
   // Operational badge counts + restaurant name + bot status, in parallel.
   const [
     { count: issueOrdersCount },
+    { count: scheduledOrdersCount },
     { count: openComplaintsCount },
     { count: needsHumanCount },
     { data: publicSettings },
@@ -56,7 +57,12 @@ export default async function DashboardLayout({
     supabase
       .from('orders')
       .select('id', { count: 'exact', head: true })
-      .eq('status', 'pending'),
+      .eq('status', 'pending')
+      .not('payment_method', 'like', 'scheduled|%'),
+    supabase
+      .from('orders')
+      .select('id', { count: 'exact', head: true })
+      .like('payment_method', 'scheduled|%'),
     supabase
       .from('complaints')
       .select('id', { count: 'exact', head: true })
@@ -89,6 +95,7 @@ export default async function DashboardLayout({
         restaurantName={readRestaurantName(publicSettings)}
         botEnabled={botSettings?.bot_enabled ?? true}
         issueOrdersCount={issueOrdersCount || 0}
+        scheduledOrdersCount={scheduledOrdersCount || 0}
         openComplaintsCount={openComplaintsCount || 0}
         needsHumanCount={needsHumanCount || 0}
       >

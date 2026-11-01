@@ -3,6 +3,7 @@ export type UserRole = 'admin' | 'order_agent' | 'support_agent';
 export type StaffPermission =
   | 'overview'
   | 'orders'
+  | 'scheduled_orders'
   | 'complaints'
   | 'offers'
   | 'comments'
@@ -26,6 +27,12 @@ export const PERMISSION_DEFINITIONS: PermissionMeta[] = [
     label: 'الطلبات 🛒',
     description: 'استقبال وتأكيد الأوردرات وطباعة الفواتير',
     route: '/orders',
+  },
+  {
+    key: 'scheduled_orders',
+    label: 'الطلبات المجدولة 📅',
+    description: 'حفظ ومتابعة الأوردرات المجدولة والتنبيه قبل موعد تحضيرها للمطبخ',
+    route: '/scheduled-orders',
   },
   {
     key: 'complaints',
@@ -100,6 +107,7 @@ export interface StaffUpdatePayload {
 export const VALID_DASHBOARD_ROUTES = [
   '/',
   '/orders',
+  '/scheduled-orders',
   '/complaints',
   '/chat',
   '/comments',
@@ -116,6 +124,7 @@ export type DashboardRoute = (typeof VALID_DASHBOARD_ROUTES)[number];
 const ROUTE_TO_PERMISSION: Record<string, StaffPermission> = {
   '/': 'overview',
   '/orders': 'orders',
+  '/scheduled-orders': 'scheduled_orders',
   '/complaints': 'complaints',
   '/chat': 'chat',
   '/comments': 'comments',
@@ -130,6 +139,7 @@ const ROUTE_TO_PERMISSION: Record<string, StaffPermission> = {
 const PERMISSION_TO_DASHBOARD_PATH: Record<StaffPermission, string> = {
   overview: '/dashboard',
   orders: '/dashboard/orders',
+  scheduled_orders: '/dashboard/scheduled-orders',
   complaints: '/dashboard/complaints',
   offers: '/dashboard/offers',
   comments: '/dashboard/comments',
@@ -144,9 +154,9 @@ const PERMISSION_TO_DASHBOARD_PATH: Record<StaffPermission, string> = {
 /** Default permissions assigned when a role is chosen without custom overrides. */
 export function defaultPermissionsForRole(role: UserRole): StaffPermission[] {
   if (role === 'admin') return [...ALL_STAFF_PERMISSIONS];
-  if (role === 'order_agent') return ['orders'];
+  if (role === 'order_agent') return ['orders', 'scheduled_orders'];
   if (role === 'support_agent') return ['complaints', 'comments'];
-  return ['orders'];
+  return ['orders', 'scheduled_orders'];
 }
 
 /** Validates and normalizes an arbitrary permissions value from metadata. */
@@ -160,6 +170,9 @@ export function resolveUserPermissions(
         typeof p === 'string' && (ALL_STAFF_PERMISSIONS as string[]).includes(p)
     );
     if (valid.length > 0) {
+      if (role === 'admin' && !valid.includes('scheduled_orders')) {
+        valid.push('scheduled_orders');
+      }
       return Array.from(new Set(valid));
     }
   }
@@ -229,6 +242,7 @@ export function homeRouteForRole(
   const priorityOrder: StaffPermission[] = [
     'overview',
     'orders',
+    'scheduled_orders',
     'complaints',
     'offers',
     'comments',

@@ -18,6 +18,7 @@ interface DashboardShellProps {
   restaurantName?: string;
   botEnabled?: boolean;
   issueOrdersCount?: number;
+  scheduledOrdersCount?: number;
   openComplaintsCount?: number;
   needsHumanCount?: number;
   children: React.ReactNode;
@@ -28,6 +29,7 @@ export function DashboardShell({
   restaurantName = 'تشيكن مراعي',
   botEnabled = true,
   issueOrdersCount = 0,
+  scheduledOrdersCount = 0,
   openComplaintsCount = 0,
   needsHumanCount = 0,
   children,
@@ -42,6 +44,7 @@ export function DashboardShell({
         permissions={user.permissions}
         restaurantName={restaurantName}
         issueOrdersCount={issueOrdersCount}
+        scheduledOrdersCount={scheduledOrdersCount}
         openComplaintsCount={openComplaintsCount}
         needsHumanCount={needsHumanCount}
         isOpen={isSidebarOpen}

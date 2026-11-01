@@ -16,12 +16,15 @@ import {
   Building2,
   Tag,
   Loader2,
+  CalendarClock,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useSearchParams } from 'next/navigation';
 import { formatCurrency, formatDateTime, getOrderStatusBadge } from '@/lib/utils';
+import { encodeScheduleMeta, isScheduledPaymentMethod } from '@/lib/scheduled-orders';
 import { OrderCard } from './OrderCard';
 import { OrderDetailsModal } from './OrderDetailsModal';
+import { ScheduleOrderModal } from './ScheduleOrderModal';
 import { ThermalReceipt } from './ThermalReceipt';
 import {
   OrderWithItems,
@@ -308,9 +311,12 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
     return isNaN(d.getTime()) ? new Date(dateStr) : d;
   };
 
-  // Filtered orders based on Search, Date, Branch, Offer
+  // Filtered orders based on Search, Date, Branch, Offer (excluding scheduled orders)
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
+      if (isScheduledPaymentMethod(order.payment_method)) {
+        return false;
+      }
       // 1. Search filter: customer name, customer phone, order number
       if (searchQuery.trim()) {
         const query = searchQuery.trim().toLowerCase();
@@ -482,6 +488,35 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
   };
 
   // Thermal Receipt Printing
+  const [schedulingOrder, setSchedulingOrder] = useState<OrderWithItems | null>(null);
+
+  const handleConfirmSchedule = async (
+    orderId: string,
+    scheduledForIso: string,
+    prepAlertMinutes: number
+  ) => {
+    const encoded = encodeScheduleMeta(scheduledForIso, prepAlertMinutes);
+    const { error } = await supabase
+      .from('orders')
+      .update({
+        payment_method: encoded,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', orderId);
+
+    if (error) {
+      alert('تعذر جدولة الطلب. يرجى المحاولة مرة أخرى.');
+      return;
+    }
+
+    setOrders((prev) =>
+      prev.map((o) => (o.id === orderId ? { ...o, payment_method: encoded } : o))
+    );
+    if (selectedOrder?.id === orderId) {
+      setSelectedOrder(null);
+    }
+  };
+
   const handlePrintReceipt = (order: OrderWithItems) => {
     setPrintingOrder(order);
     setTimeout(() => {
@@ -777,6 +812,7 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
                         onSelectOrder={(ord) => setSelectedOrder(ord)}
                         onAdvanceStatus={handleAdvanceStatus}
                         onPrintReceipt={handlePrintReceipt}
+                        onScheduleOrder={(ord) => setSchedulingOrder(ord)}
                         isUpdating={isUpdatingOrder[order.id]}
                       />
                     ))
@@ -880,6 +916,15 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
                           <div className="flex items-center justify-center gap-1.5">
                             <button
                               type="button"
+                              onClick={() => setSchedulingOrder(order)}
+                              className="p-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 border border-indigo-500/25 transition-colors"
+                              title="جدولة الطلب 📅"
+                            >
+                              <CalendarClock className="w-3.5 h-3.5" />
+                            </button>
+
+                            <button
+                              type="button"
                               onClick={() => handlePrintReceipt(order)}
                               className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors"
                               title="طباعة إيصال الفاتورة"
@@ -933,6 +978,15 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
         onChangeStatus={handleChangeStatus}
         onUpdateNotes={handleUpdateNotes}
         onPrintReceipt={handlePrintReceipt}
+        onScheduleOrder={(ord) => setSchedulingOrder(ord)}
+      />
+
+      {/* Schedule Order Modal */}
+      <ScheduleOrderModal
+        order={schedulingOrder}
+        isOpen={Boolean(schedulingOrder)}
+        onClose={() => setSchedulingOrder(null)}
+        onConfirmSchedule={handleConfirmSchedule}
       />
 
       {/* Thermal Receipt Print Component */}

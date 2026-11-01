@@ -14,6 +14,7 @@ import {
   Building2,
   Tag,
   AlertTriangle,
+  CalendarClock,
 } from 'lucide-react';
 import { formatCurrency, formatDateTime, getOrderStatusBadge } from '@/lib/utils';
 import { OrderWithItems, OrderStatus } from './types';
@@ -24,6 +25,7 @@ export interface OrderCardProps {
   onSelectOrder: (order: OrderWithItems) => void;
   onAdvanceStatus: (orderId: string, currentStatus?: OrderStatus) => Promise<void>;
   onPrintReceipt: (order: OrderWithItems) => void;
+  onScheduleOrder?: (order: OrderWithItems) => void;
   isUpdating?: boolean;
 }
 
@@ -60,6 +62,7 @@ function OrderCardComponent({
   onSelectOrder,
   onAdvanceStatus,
   onPrintReceipt,
+  onScheduleOrder,
   isUpdating = false,
 }: OrderCardProps) {
   const currentBadge = getOrderStatusBadge(order.status);
@@ -209,7 +212,7 @@ function OrderCardComponent({
         className="flex items-center justify-between gap-1.5 pt-2 border-t border-slate-100 dark:border-slate-800/60"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
           {/* Quick Print Button */}
           <button
             type="button"
@@ -219,6 +222,19 @@ function OrderCardComponent({
           >
             <Printer className="w-4 h-4 text-amber-600 dark:text-amber-400" />
           </button>
+
+          {/* Schedule Order Button */}
+          {onScheduleOrder && (
+            <button
+              type="button"
+              onClick={() => onScheduleOrder(order)}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 text-xs font-bold transition-colors border border-indigo-500/25"
+              title="حفظ في الطلبات المجدولة مع تنبيه قبل الموعد"
+            >
+              <CalendarClock className="w-3.5 h-3.5" />
+              <span>جدولة</span>
+            </button>
+          )}
         </div>
 
         {/* Quick Advance Status Button */}
