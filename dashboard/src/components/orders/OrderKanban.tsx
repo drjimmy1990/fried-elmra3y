@@ -789,26 +789,24 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
       ) : (
         /* Detailed Table View */
         <div className="rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-md dark:shadow-xl overflow-hidden">
-          <div className="overflow-x-auto">
+          <div className="w-full">
             <table className="w-full text-right text-xs">
               <thead>
                 <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 bg-slate-50/80 dark:bg-slate-950/70">
-                  <th className="py-3 px-4 font-semibold">رقم الطلب</th>
-                  <th className="py-3 px-4 font-semibold">التاريخ والوقت</th>
-                  <th className="py-3 px-4 font-semibold">العميل</th>
-                  <th className="py-3 px-4 font-semibold">رقم الهاتف</th>
-                  <th className="py-3 px-4 font-semibold">الفرع</th>
-                  <th className="py-3 px-4 font-semibold">العنوان</th>
-                  <th className="py-3 px-4 font-semibold">الأصناف</th>
-                  <th className="py-3 px-4 font-semibold">الإجمالي</th>
-                  <th className="py-3 px-4 font-semibold">الحالة</th>
-                  <th className="py-3 px-4 font-semibold text-center">الإجراءات</th>
+                  <th className="py-3 px-3 font-semibold whitespace-nowrap">رقم الطلب والفرع</th>
+                  <th className="py-3 px-3 font-semibold whitespace-nowrap">التاريخ والوقت</th>
+                  <th className="py-3 px-3 font-semibold whitespace-nowrap">العميل والهاتف</th>
+                  <th className="py-3 px-3 font-semibold">العنوان</th>
+                  <th className="py-3 px-3 font-semibold">الأصناف والملاحظات</th>
+                  <th className="py-3 px-3 font-semibold whitespace-nowrap">الإجمالي</th>
+                  <th className="py-3 px-3 font-semibold whitespace-nowrap">الحالة</th>
+                  <th className="py-3 px-3 font-semibold text-center whitespace-nowrap">الإجراءات</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                 {filteredOrders.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="py-12 text-center text-slate-400 dark:text-slate-500">
+                    <td colSpan={8} className="py-12 text-center text-slate-400 dark:text-slate-500">
                       لا توجد طلبات مطابقة لمعايير البحث
                     </td>
                   </tr>
@@ -819,40 +817,56 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
                       (acc, it) => acc + (it.quantity || 1),
                       0
                     );
+                    const itemsSummary = (order.order_items || [])
+                      .map((it) => `${it.quantity}x ${it.item_name}${it.notes ? ` (${it.notes})` : ''}`)
+                      .join('، ');
 
                     return (
                       <tr
                         key={order.id}
-                        className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors cursor-pointer"
+                        className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors cursor-pointer align-top"
                         onClick={() => setSelectedOrder(order)}
                       >
-                        <td className="py-3.5 px-4 font-bold font-mono text-slate-900 dark:text-white">
-                          #{order.order_number}
+                        <td className="py-3.5 px-3 whitespace-nowrap">
+                          <div className="font-bold font-mono text-slate-900 dark:text-white">
+                            #{order.order_number}
+                          </div>
+                          {order.branch?.name && (
+                            <span className="mt-1 inline-block rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 text-[10px] font-medium border border-blue-500/20">
+                              {order.branch.name}
+                            </span>
+                          )}
                         </td>
-                        <td className="py-3.5 px-4 text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                        <td className="py-3.5 px-3 text-slate-600 dark:text-slate-300 whitespace-nowrap font-medium">
                           {formatDateTime(order.created_at)}
                         </td>
-                        <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white whitespace-nowrap">
-                          {order.customer_name}
+                        <td className="py-3.5 px-3 whitespace-nowrap">
+                          <div className="font-bold text-slate-900 dark:text-white">
+                            {order.customer_name || '-'}
+                          </div>
+                          {order.customer_phone && (
+                            <div className="font-mono text-[11px] text-slate-500 dark:text-slate-400 mt-0.5" dir="ltr">
+                              {order.customer_phone}
+                            </div>
+                          )}
                         </td>
-                        <td className="py-3.5 px-4 font-mono text-slate-700 dark:text-slate-300 whitespace-nowrap" dir="ltr">
-                          {order.customer_phone}
+                        <td className="py-3.5 px-3 text-slate-700 dark:text-slate-300 whitespace-normal break-words leading-relaxed min-w-[170px]">
+                          {order.delivery_address || '-'}
                         </td>
-                        <td className="py-3.5 px-4 text-blue-600 dark:text-blue-400 font-medium whitespace-nowrap">
-                          {order.branch?.name || '-'}
+                        <td className="py-3.5 px-3 text-slate-700 dark:text-slate-300 whitespace-normal break-words leading-relaxed min-w-[180px]">
+                          <div className="font-semibold text-slate-800 dark:text-slate-200">
+                            {itemsSummary || `${totalItems} أصناف`}
+                          </div>
+                          {order.customer_notes && (
+                            <div className="text-[11px] text-amber-700 dark:text-amber-400 font-medium mt-0.5">
+                              📝 {order.customer_notes}
+                            </div>
+                          )}
                         </td>
-                        <td
-                          className="py-3.5 px-3 text-slate-700 dark:text-slate-300 whitespace-normal break-words leading-relaxed min-w-[200px]"
-                        >
-                          {order.delivery_address}
-                        </td>
-                        <td className="py-3.5 px-4 text-slate-700 dark:text-slate-300 whitespace-nowrap">
-                          {totalItems} أصناف
-                        </td>
-                        <td className="py-3.5 px-4 font-bold font-mono text-amber-600 dark:text-amber-400 whitespace-nowrap">
+                        <td className="py-3.5 px-3 font-bold font-mono text-amber-600 dark:text-amber-400 whitespace-nowrap">
                           {formatCurrency(Number(order.total_amount) || 0)}
                         </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap">
+                        <td className="py-3.5 px-3 whitespace-nowrap">
                           <span
                             className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold border ${badge.color}`}
                           >
@@ -860,7 +874,7 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
                           </span>
                         </td>
                         <td
-                          className="py-3.5 px-4 text-center whitespace-nowrap"
+                          className="py-3.5 px-3 text-center whitespace-nowrap"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <div className="flex items-center justify-center gap-1.5">
