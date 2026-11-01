@@ -40,13 +40,18 @@ export function ChatContainer({
   const activeContactRef = useRef(activeContact);
   activeContactRef.current = activeContact;
 
-  // Sync props if initialActiveContact changes externally (e.g. searchParams)
+  // Track server-provided initialActiveContact.id so we ONLY reset activeContact
+  // when the server prop itself changes (e.g. external navigation), NEVER when user clicks in sidebar
+  const prevInitialContactIdRef = useRef<string | null>(initialActiveContact?.id || null);
   useEffect(() => {
-    if (initialActiveContact && initialActiveContact.id !== activeContact?.id) {
+    const nextInitialId = initialActiveContact?.id || null;
+    if (nextInitialId && nextInitialId !== prevInitialContactIdRef.current) {
+      prevInitialContactIdRef.current = nextInitialId;
+      activeContactRef.current = initialActiveContact;
       setActiveContact(initialActiveContact);
       setMessages(initialMessages);
     }
-  }, [initialActiveContact, initialMessages, activeContact?.id]);
+  }, [initialActiveContact, initialMessages]);
 
   // Mark active contact messages as read on initial mount
   useEffect(() => {
@@ -67,11 +72,12 @@ export function ChatContainer({
   // Select contact handler
   const handleSelectContact = useCallback(
     async (contact: ContactWithMeta) => {
-      if (activeContact?.id === contact.id) {
+      if (activeContactRef.current?.id === contact.id) {
         setIsMobileSidebarOpen(false);
         return;
       }
 
+      activeContactRef.current = contact;
       setActiveContact(contact);
       setIsMobileSidebarOpen(false);
       setIsLoadingMessages(true);
@@ -91,6 +97,11 @@ export function ChatContainer({
           .eq('contact_id', contact.id)
           .order('created_at', { ascending: true })
           .limit(200);
+
+        // Guard against race condition if user clicked another contact while loading
+        if (activeContactRef.current?.id !== contact.id) {
+          return;
+        }
 
         if (!error && threadMessages) {
           setMessages(threadMessages);
@@ -112,10 +123,12 @@ export function ChatContainer({
       } catch (err) {
         console.error('Error loading chat messages:', err);
       } finally {
-        setIsLoadingMessages(false);
+        if (activeContactRef.current?.id === contact.id) {
+          setIsLoadingMessages(false);
+        }
       }
     },
-    [activeContact?.id, supabase]
+    [supabase]
   );
 
   // Toggle Bot AI for active contact
