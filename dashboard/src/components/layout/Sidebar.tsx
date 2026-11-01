@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
+  BarChart3,
   ShoppingBag,
   CalendarClock,
   AlertCircle,
@@ -52,6 +53,14 @@ const NAV_ITEMS: NavItem[] = [
     href: '/dashboard',
     permission: 'overview',
     icon: LayoutDashboard,
+    roles: ['admin'],
+    section: 'غرفة العمليات',
+  },
+  {
+    title: 'الإحصائيات والتقارير',
+    href: '/dashboard/analytics',
+    permission: 'analytics',
+    icon: BarChart3,
     roles: ['admin'],
     section: 'غرفة العمليات',
   },

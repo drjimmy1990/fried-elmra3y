@@ -2,6 +2,7 @@ export type UserRole = 'admin' | 'order_agent' | 'support_agent';
 
 export type StaffPermission =
   | 'overview'
+  | 'analytics'
   | 'orders'
   | 'scheduled_orders'
   | 'complaints'
@@ -72,9 +73,15 @@ export const PERMISSION_DEFINITIONS: PermissionMeta[] = [
   },
   {
     key: 'overview',
-    label: 'الرئيسية والإحصائيات 📊',
-    description: 'عرض لوحة الإحصائيات والملخص اليومي للمطعم',
+    label: 'الرئيسية 📊',
+    description: 'عرض لوحة العمليات والملخص اليومي للمطعم',
     route: '/',
+  },
+  {
+    key: 'analytics',
+    label: 'الإحصائيات والتقارير المالية 📈',
+    description: 'عرض التقارير المالية التفصيلية، أكثر الفروع والعروض والأصناف مبيعاً، والرسوم البيانية',
+    route: '/analytics',
   },
   {
     key: 'channels',
@@ -106,6 +113,7 @@ export interface StaffUpdatePayload {
 
 export const VALID_DASHBOARD_ROUTES = [
   '/',
+  '/analytics',
   '/orders',
   '/scheduled-orders',
   '/complaints',
@@ -123,6 +131,7 @@ export type DashboardRoute = (typeof VALID_DASHBOARD_ROUTES)[number];
 
 const ROUTE_TO_PERMISSION: Record<string, StaffPermission> = {
   '/': 'overview',
+  '/analytics': 'analytics',
   '/orders': 'orders',
   '/scheduled-orders': 'scheduled_orders',
   '/complaints': 'complaints',
@@ -138,6 +147,7 @@ const ROUTE_TO_PERMISSION: Record<string, StaffPermission> = {
 
 const PERMISSION_TO_DASHBOARD_PATH: Record<StaffPermission, string> = {
   overview: '/dashboard',
+  analytics: '/dashboard/analytics',
   orders: '/dashboard/orders',
   scheduled_orders: '/dashboard/scheduled-orders',
   complaints: '/dashboard/complaints',
@@ -172,6 +182,9 @@ export function resolveUserPermissions(
     if (valid.length > 0) {
       if (role === 'admin' && !valid.includes('scheduled_orders')) {
         valid.push('scheduled_orders');
+      }
+      if (role === 'admin' && !valid.includes('analytics')) {
+        valid.push('analytics');
       }
       return Array.from(new Set(valid));
     }
@@ -221,6 +234,7 @@ export function computeDatabaseRoleForPermissions(
     'team',
     'settings',
     'overview',
+    'analytics',
     'chat',
   ];
   const needsAdminRls =
@@ -241,6 +255,7 @@ export function homeRouteForRole(
   // Priority order for landing page
   const priorityOrder: StaffPermission[] = [
     'overview',
+    'analytics',
     'orders',
     'scheduled_orders',
     'complaints',
