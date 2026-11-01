@@ -68,9 +68,10 @@ function OrderCardComponent({
   const totalItemCount = (order.order_items || []).reduce((sum, item) => sum + (item.quantity || 1), 0);
   const itemsPreview = (order.order_items || [])
     .slice(0, 2)
-    .map((item) => `${item.quantity}x ${item.item_name}`)
+    .map((item) => `${item.quantity}x ${item.item_name}${item.notes ? ` (${item.notes})` : ''}`)
     .join('، ');
   const remainingCount = (order.order_items || []).length > 2 ? order.order_items.length - 2 : 0;
+  const combinedCustomerNotes = (order.customer_notes || '').trim();
 
   return (
     <div
@@ -161,26 +162,31 @@ function OrderCardComponent({
       )}
 
       {/* Order Items Preview */}
-      <div className="rounded-xl bg-slate-50 dark:bg-slate-950/60 p-2.5 border border-slate-100 dark:border-slate-800/60 text-xs">
-        <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-1">
+      <div className="rounded-xl bg-slate-50 dark:bg-slate-950/60 p-2.5 border border-slate-100 dark:border-slate-800/60 text-xs space-y-1.5">
+        <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
           <span className="flex items-center gap-1">
             <ShoppingBag className="w-3 h-3 text-amber-600 dark:text-amber-500/80" />
             <span>الأصناف ({totalItemCount} قطع)</span>
           </span>
-          {order.customer_notes && (
-            <span className="text-[10px] text-amber-700 dark:text-amber-400 bg-amber-500/10 px-1 rounded-xs">
+          {combinedCustomerNotes && (
+            <span className="text-[10px] text-amber-700 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-xs font-semibold">
               يوجد ملاحظات
             </span>
           )}
         </div>
         <div className="text-slate-700 dark:text-slate-300 font-medium line-clamp-2 leading-relaxed">
-          {itemsPreview || order.customer_notes || 'تفاصيل الأصناف بالداخل'}
+          {itemsPreview || combinedCustomerNotes || 'تفاصيل الأصناف بالداخل'}
           {remainingCount > 0 && (
             <span className="text-amber-600 dark:text-amber-400/90 font-semibold mr-1">
               +{remainingCount} صنف آخر
             </span>
           )}
         </div>
+        {combinedCustomerNotes && (
+          <div className="pt-1.5 border-t border-amber-500/20 text-[11px] font-semibold text-amber-700 dark:text-amber-300 leading-snug">
+            📝 ملاحظة: {combinedCustomerNotes}
+          </div>
+        )}
       </div>
 
       {/* Price Footer */}

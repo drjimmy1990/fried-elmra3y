@@ -59,7 +59,7 @@ export function ThermalReceipt({
           <span>{restaurantName}</span>
         </div>
         <p className="text-[10px] text-gray-700 mt-0.5">فرايد تشيكن - بروست - وجبات سريعة</p>
-        <p className="text-[9px] text-gray-600 mt-0.5" dir="ltr">Hotline: 01000000000 / 01100000000</p>
+        <p className="text-[9px] text-gray-600 mt-0.5" dir="ltr">Hotline: 17330</p>
       </div>
 
       {/* Order Info & Meta */}
@@ -176,6 +176,14 @@ export function ThermalReceipt({
           );
         })()}
       </div>
+
+      {/* Customer Special Instructions / Delivery Schedule */}
+      {order.customer_notes && (
+        <div className="py-1.5 border-b border-dashed border-black text-[10px]">
+          <span className="font-bold">ملاحظات العميل / موعد التوصيل:</span>
+          <p className="mt-0.5 text-gray-900 font-semibold leading-tight">{order.customer_notes}</p>
+        </div>
+      )}
 
       {/* Kitchen & Delivery Special Instructions */}
       {order.internal_notes && (

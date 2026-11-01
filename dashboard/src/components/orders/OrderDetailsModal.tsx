@@ -229,6 +229,35 @@ export function OrderDetailsModal({
                   <span>{order.delivery_address}</span>
                 </div>
               </div>
+
+              {(() => {
+                const rawCustomerNote = (order.customer_notes || '').trim();
+                const itemNotesSummary = Array.from(
+                  new Set(
+                    (order.order_items || [])
+                      .map((it) => (it.notes || '').trim())
+                      .filter(Boolean)
+                  )
+                ).join(' | ');
+                const displayNote =
+                  rawCustomerNote && itemNotesSummary && !rawCustomerNote.includes(itemNotesSummary)
+                    ? `${rawCustomerNote} (${itemNotesSummary})`
+                    : rawCustomerNote || itemNotesSummary;
+
+                if (!displayNote) return null;
+
+                return (
+                  <div className="md:col-span-2 mt-1 rounded-xl bg-amber-500/10 border border-amber-500/30 p-3">
+                    <div className="text-xs font-bold text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                      <FileText className="w-3.5 h-3.5 shrink-0" />
+                      <span>ملاحظات العميل (التوصيل / عادي أو سبايسي):</span>
+                    </div>
+                    <div className="text-sm font-semibold text-slate-900 dark:text-white mt-1">
+                      {displayNote}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
 
