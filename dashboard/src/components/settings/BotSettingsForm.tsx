@@ -31,6 +31,93 @@ interface BotSettingsFormProps {
   initialSettings: BotSettings;
 }
 
+function formatArabicTimeLabel(time24: string): string {
+  const [hStr, mStr] = (time24 || '12:00').split(':');
+  const h = parseInt(hStr, 10);
+  const m = mStr || '00';
+  if (Number.isNaN(h)) return time24;
+  if (h === 0 && m === '00') return '12:00 منتصف الليل';
+  if (h === 0) return `12:${m} بعد منتصف الليل`;
+  if (h === 12 && m === '00') return '12:00 ظهراً';
+  if (h === 12) return `12:${m} ظهراً`;
+  if (h >= 1 && h <= 4) return `${h}:${m} فجراً`;
+  if (h >= 5 && h <= 11) return `${h}:${m} صباحاً`;
+  if (h >= 13 && h <= 15) return `${h - 12}:${m} ظهراً`;
+  return `${h - 12}:${m} مساءً`;
+}
+
+function buildDeliveryHoursPromptSection(
+  enabled: boolean,
+  openTime24: string,
+  closeTime24: string,
+  offHoursReply: string
+): string {
+  if (!enabled) {
+    return [
+      '• مواعيد العمل ونظام التوصيل (دليفري فقط):',
+      '  - استقبال أوردرات الدليفري عبر الماسنجر متاح على مدار الـ 24 ساعة في جميع الفروع.',
+      '  - جميع الأوردرات عبر الماسنجر مخصصة للتوصيل المنزلي (دليفري فقط)؛ لا يوجد حجز استلام من الفرع أو صالة عبر الماسنجر، وممنوع نهائياً سؤال العميل "دليفري ولا استلام من الفرع؟". إذا طلب العميل استلاماً من الفرع، وضح له بلباقة أن طلبات الماسنجر للدليفري فقط، أو يشرفنا في أقرب فرع ليطلب مباشرة من الكاشير.',
+      '  - متوسط وقت التوصيل المتوقع حوالي 45 دقيقة (يختلف حسب قرب أو بُعد العنوان عن الفرع وضغط الطلبات، والتأكيد على 17330).',
+      '  - رسوم التوصيل محددة وتختلف حسب المنطقة والفرع التابع له.',
+      '  - الدفع عند الاستلام (كاش)، وممنوع سؤال العميل عن طريقة الدفع.',
+    ].join('\n');
+  }
+
+  const openLabel = formatArabicTimeLabel(openTime24);
+  const closeLabel = formatArabicTimeLabel(closeTime24);
+  const openH = parseInt((openTime24 || '12:00').split(':')[0], 10);
+  const closeH = parseInt((closeTime24 || '00:00').split(':')[0], 10);
+
+  const closedHours: number[] = [];
+  for (let h = 0; h < 24; h++) {
+    let isOpen = true;
+    if (openH < closeH) {
+      isOpen = h >= openH && h < closeH;
+    } else if (openH > closeH) {
+      isOpen = h >= openH || h < closeH;
+    }
+    if (!isOpen) closedHours.push(h);
+  }
+
+  const closedHoursList = closedHours.length > 0 ? closedHours.join('، ') : 'لا يوجد';
+  const lastClosedH = closedHours.length > 0 ? closedHours[closedHours.length - 1] : (openH + 23) % 24;
+  const closedStart24 = closeTime24 || '00:00';
+  const closedEnd24 = `${String(lastClosedH).padStart(2, '0')}:59`;
+
+  const cleanOffMsg =
+    (offHoursReply || '').trim() ||
+    `بنعتذر لحضرتك يا فندم، مواعيد استقبال أوردرات الدليفري عبر الماسنجر يومياً من الساعة ${openLabel} حتى الساعة ${closeLabel} 🕒. لو حابب تطلب أوردر دلوقتي تقدر تتصل مباشرة على الخط الساخن 17330 📞، وتحت أمرك هنا في أي وقت لأي استفسار عن المنيو أو العروض أو لتسجيل أي شكوى!`;
+
+  return [
+    '• مواعيد العمل ونظام التوصيل (دليفري فقط):',
+    `  - مواعيد استقبال أوردرات الدليفري عبر الماسنجر يومياً من الساعة **${openLabel}** حتى الساعة **${closeLabel}** (من \`${openTime24}\` حتى \`${closeTime24 === '00:00' ? '23:59' : closeTime24}\` بتوقيت مصر) في جميع الفروع.`,
+    `  - ⚠️ **إغلاق استقبال أوردرات الماسنجر من الساعة ${closeLabel} حتى ${openLabel} (\`${closedStart24}\` إلى \`${closedEnd24}\` - مهم جداً):**`,
+    `    - انظر دائماً إلى **"الوقت الحالي (مصر)"** المرفق مع رسالة العميل (صيغة 24 ساعة \`H:mm\`). إذا كان الوقت الحالي بين الساعة **\`${closedStart24}\` (${closeLabel})** و **\`${closedEnd24}\`** (أي الساعات \`${closedHoursList}\`)، فإن استقبال الأوردرات عبر الماسنجر متوقف في هذا التوقيت!`,
+    `    - في فترة خارج مواعيد دليفري الماسنجر (\`${closedStart24}\` حتى \`${closedEnd24}\`):`,
+    '      1. **الاستفسارات العادية والشكاوى مستمرة بشكل طبيعي تماماً:** يمكنك الرد طبيعياً على أي استفسار عن المنيو والعروض والأسعار والفروع (`normal`, `menu`, `branches`, `all_offers`, `single_offer`)، وكذلك **استقبال وتسجيل الشكاوى (`complaint`) بشكل طبيعي وفوري**!',
+    `      2. **منع عمل أوردر على الماسنجر وتوجيه العميل للخط الساخن 17330:** إذا طلب العميل **عمل أوردر جديد** في هذا التوقيت (\`${closedStart24}\` إلى \`${closedEnd24}\`)، **ممنوع منعاً باتاً** طلب بيانات توصيل أو عرض ملخص أوردر أو تأكيد أي أوردر (\`order\`) على الماسنجر! اعتذر له بلباقة وقل له: **"${cleanOffMsg}"**.`,
+    '  - جميع الأوردرات عبر الماسنجر مخصصة للتوصيل المنزلي (دليفري فقط)؛ لا يوجد حجز استلام من الفرع أو صالة عبر الماسنجر، وممنوع نهائياً سؤال العميل "دليفري ولا استلام من الفرع؟". إذا طلب العميل استلاماً من الفرع، وضح له بلباقة أن طلبات الماسنجر للدليفري فقط، أو يشرفنا في أقرب فرع ليطلب مباشرة من الكاشير.',
+    '  - متوسط وقت التوصيل المتوقع حوالي 45 دقيقة (يختلف حسب قرب أو بُعد العنوان عن الفرع وضغط الطلبات، والتأكيد على 17330).',
+    '  - رسوم التوصيل محددة وتختلف حسب المنطقة والفرع التابع له.',
+    '  - الدفع عند الاستلام (كاش)، وممنوع سؤال العميل عن طريقة الدفع.',
+  ].join('\n');
+}
+
+function syncPromptWithDeliveryHours(
+  currentPrompt: string,
+  enabled: boolean,
+  openTime24: string,
+  closeTime24: string,
+  offHoursReply: string
+): string {
+  const newSection = buildDeliveryHoursPromptSection(enabled, openTime24, closeTime24, offHoursReply);
+  const sectionRegex = /• مواعيد العمل ونظام التوصيل \(دليفري فقط\):[\s\S]*?(?=\n• الفروع والكيدز أريا|\n• تخصيص الطلبات|$)/;
+  if (sectionRegex.test(currentPrompt)) {
+    return currentPrompt.replace(sectionRegex, newSection + '\n');
+  }
+  return `${currentPrompt.trim()}\n\n${newSection}`;
+}
+
 export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
   const router = useRouter();
   const supabase = createClient();
@@ -77,10 +164,34 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
     field: K,
     value: BotSettingsFormData[K]
   ) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+    setFormData((prev) => {
+      const next = {
+        ...prev,
+        [field]: value,
+      };
+
+      if (
+        field === 'business_hours_enabled' ||
+        field === 'open_time' ||
+        field === 'close_time' ||
+        field === 'off_hours_message'
+      ) {
+        const openLabel = formatArabicTimeLabel(next.open_time);
+        const closeLabel = formatArabicTimeLabel(next.close_time);
+        if (field === 'open_time' || field === 'close_time') {
+          next.off_hours_message = `بنعتذر لحضرتك يا فندم، مواعيد استقبال أوردرات الدليفري عبر الماسنجر يومياً من الساعة ${openLabel} حتى الساعة ${closeLabel} 🕒. لو حابب تطلب أوردر دلوقتي تقدر تتصل مباشرة على الخط الساخن 17330 📞، وتحت أمرك هنا في أي وقت لأي استفسار عن المنيو أو العروض أو لتسجيل أي شكوى!`;
+        }
+        next.ai_system_prompt = syncPromptWithDeliveryHours(
+          next.ai_system_prompt,
+          next.business_hours_enabled,
+          next.open_time,
+          next.close_time,
+          next.off_hours_message
+        );
+      }
+
+      return next;
+    });
   };
 
   // Test Telegram Connection
@@ -386,14 +497,20 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
               <Clock className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">مواعيد العمل وخارج أوقات التشغيل</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">تحديد أوقات عمل المطعم ورسالة الرد التلقائي أثناء الإغلاق</p>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                مواعيد استقبال أوردرات الدليفري عبر الماسنجر
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                تحديد ساعات استقبال الأوردرات (الشكاوى والرد على الاستفسارات تعمل 24 ساعة طبيعياً، وخارج المواعيد يوجه البوت للخط الساخن 17330 لطلب أوردر)
+              </p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
             <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-              {formData.business_hours_enabled ? 'مفعلة' : 'معطلة (متاح 24/7)'}
+              {formData.business_hours_enabled
+                ? `مفعلة (${formatArabicTimeLabel(formData.open_time)} ← ${formatArabicTimeLabel(formData.close_time)})`
+                : 'معطلة (متاح 24/7)'}
             </span>
             <label className="relative inline-flex items-center cursor-pointer select-none">
               <input
@@ -409,10 +526,54 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
 
         {formData.business_hours_enabled && (
           <div className="space-y-6 animate-in fade-in slide-in-from-top-2">
+            {/* Quick Presets */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 ml-1">اختيار سريع للمواعيد:</span>
+              {[
+                { label: 'من 12 ظهراً لـ 12 منتصف الليل', open: '12:00', close: '00:00' },
+                { label: 'من 11 صباحاً لـ 3 فجراً', open: '11:00', close: '03:00' },
+                { label: 'من 12 ظهراً لـ 2 فجراً', open: '12:00', close: '02:00' },
+              ].map((preset) => {
+                const isSelected = formData.open_time === preset.open && formData.close_time === preset.close;
+                return (
+                  <button
+                    key={`${preset.open}-${preset.close}`}
+                    type="button"
+                    onClick={() => {
+                      const openLabel = formatArabicTimeLabel(preset.open);
+                      const closeLabel = formatArabicTimeLabel(preset.close);
+                      const autoMsg = `بنعتذر لحضرتك يا فندم، مواعيد استقبال أوردرات الدليفري عبر الماسنجر يومياً من الساعة ${openLabel} حتى الساعة ${closeLabel} 🕒. لو حابب تطلب أوردر دلوقتي تقدر تتصل مباشرة على الخط الساخن 17330 📞، وتحت أمرك هنا في أي وقت لأي استفسار عن المنيو أو العروض أو لتسجيل أي شكوى!`;
+                      setFormData((prev) => ({
+                        ...prev,
+                        open_time: preset.open,
+                        close_time: preset.close,
+                        off_hours_message: autoMsg,
+                        ai_system_prompt: syncPromptWithDeliveryHours(
+                          prev.ai_system_prompt,
+                          true,
+                          preset.open,
+                          preset.close,
+                          autoMsg
+                        ),
+                      }));
+                    }}
+                    className={cn(
+                      'px-3 py-1.5 rounded-xl text-xs font-bold border transition cursor-pointer',
+                      isSelected
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                        : 'bg-slate-50 dark:bg-slate-900/70 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-blue-400'
+                    )}
+                  >
+                    {preset.label}
+                  </button>
+                );
+              })}
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                  وقت بدء العمل اليومي (Open Time)
+                  وقت بدء استقبال أوردرات الدليفري (Open Time) — ({formatArabicTimeLabel(formData.open_time)})
                 </label>
                 <input
                   type="time"
@@ -424,7 +585,7 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                  وقت إغلاق العمل اليومي (Close Time)
+                  وقت إيقاف استقبال أوردرات الدليفري (Close Time) — ({formatArabicTimeLabel(formData.close_time)})
                 </label>
                 <input
                   type="time"
@@ -438,7 +599,7 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  رسالة الرد التلقائي خارج أوقات العمل الرسمية
+                  رسالة الاعتذار عند طلب أوردر خارج المواعيد (توجيه للخط الساخن 17330)
                 </label>
                 <button
                   type="button"
@@ -453,11 +614,11 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
                 rows={3}
                 value={formData.off_hours_message}
                 onChange={(e) => handleInputChange('off_hours_message', e.target.value)}
-                placeholder="اكتب الرسالة التي تظهر للعملاء خارج مواعيد العمل..."
+                placeholder="اكتب الرسالة التي يرد بها البوت إذا حاول العميل عمل أوردر خارج مواعيد الدليفري..."
                 className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-700/80 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 rounded-xl p-3.5 text-slate-900 dark:text-white text-sm outline-none transition leading-relaxed placeholder:text-slate-400 dark:placeholder:text-slate-500"
               />
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-                تُرسل هذه الرسالة آلياً عند تواصل العملاء في الفترات التي تقع خارج ساعات العمل المحددة أعلاه.
+              <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium mt-1.5">
+                ✨ أي تعديل في الساعات أو الرسالة هنا يقوم بتحديث قسم المواعيد داخل توجيهات الذكاء الاصطناعي (AI System Prompt) بالأسفل تلقائياً فور التغيير!
               </p>
             </div>
           </div>
