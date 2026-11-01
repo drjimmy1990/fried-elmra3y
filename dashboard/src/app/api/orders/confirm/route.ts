@@ -57,10 +57,29 @@ export async function POST(request: NextRequest) {
           .eq('id', order.contact_id)
           .single();
 
-        if (contact && contact.platform_user_id && (contact.channel_id || order.channel_id)) {
-          const channelId = contact.channel_id || order.channel_id;
+        let channelId = contact?.channel_id || order.channel_id || null;
+        if (contact && !channelId) {
+          const { data: defaultChannel } = await adminDb
+            .from('channels')
+            .select('id')
+            .eq('platform', 'facebook')
+            .eq('status', 'connected')
+            .order('connected_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (defaultChannel?.id) {
+            channelId = defaultChannel.id;
+            await adminDb
+              .from('contacts')
+              .update({ channel_id: channelId })
+              .eq('id', contact.id);
+          }
+        }
+
+        if (contact && contact.platform_user_id && channelId) {
           try {
-            const creds = await loadChannelCredentials(adminDb, channelId!);
+            const creds = await loadChannelCredentials(adminDb, channelId);
             const confirmText = `ألف هنا يا ${order.customer_name || 'فندم'}! 🍗🔥\nتم تأكيد أوردرك رقم #${order.order_number} بنجاح!\nجاري تجهيزه في المطعم وتسليمه لمندوب التوصيل فوراً 🛵`;
 
             const messageId = await sendMessengerMessage(

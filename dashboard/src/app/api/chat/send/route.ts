@@ -6,8 +6,8 @@ import { sendMessengerMessage } from '@/lib/meta/messenger';
 
 export async function POST(request: NextRequest) {
   try {
-    // 1. Verify authenticated user (admin only per owner requirement)
-    const staff = await requireStaff(['admin']);
+    // 1. Verify authenticated active staff member
+    const staff = await requireStaff();
     if (!staff.ok) {
       return staff.response;
     }
@@ -38,16 +38,36 @@ export async function POST(request: NextRequest) {
         return jsonError('جهة الاتصال غير موجودة', 404);
       }
 
-      // 6. If contact is on Messenger and has platform_user_id, send via Facebook Graph API
+      // 4. Resolve channel_id (auto-fallback to active connected Facebook page if null)
       let deliveryWarning: string | null = null;
       let platformMessageId: string | null = null;
       let sendError: string | null = null;
 
       const isMessenger = contact.platform === 'messenger' || contact.platform.toLowerCase() === 'facebook';
+      let resolvedChannelId = contact.channel_id;
 
-      if (isMessenger && contact.platform_user_id && contact.channel_id) {
+      if (isMessenger && !resolvedChannelId) {
+        const { data: defaultChannel } = await adminDb
+          .from('channels')
+          .select('id')
+          .eq('platform', 'facebook')
+          .eq('status', 'connected')
+          .order('connected_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (defaultChannel?.id) {
+          resolvedChannelId = defaultChannel.id;
+          await adminDb
+            .from('contacts')
+            .update({ channel_id: resolvedChannelId })
+            .eq('id', contact.id);
+        }
+      }
+
+      if (isMessenger && contact.platform_user_id && resolvedChannelId) {
         try {
-          const creds = await loadChannelCredentials(adminDb, contact.channel_id);
+          const creds = await loadChannelCredentials(adminDb, resolvedChannelId);
           const msgId = await sendMessengerMessage(
             contact.platform_user_id,
             trimmedContent,
