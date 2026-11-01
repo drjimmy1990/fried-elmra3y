@@ -9,6 +9,96 @@ export function formatCurrency(amount: number, currency: string = 'EGP'): string
   return `${amount.toFixed(2)} ${currency === 'EGP' ? 'ج.م' : currency}`;
 }
 
+export function normalizeOrderPricing<
+  T extends {
+    id?: string;
+    item_name?: string;
+    quantity?: number | null;
+    unit_price?: number | null;
+    total_price?: number | null;
+    notes?: string | null;
+  }
+>(order: {
+  subtotal?: number | null;
+  delivery_fee?: number | null;
+  total_amount?: number | null;
+  order_items?: T[] | null;
+}) {
+  const deliveryFee = Number(order.delivery_fee) || 0;
+  const totalAmount = Number(order.total_amount) || 0;
+  const expectedSubtotal = Math.max(0, totalAmount - deliveryFee);
+  const rawItems = order.order_items || [];
+
+  const baseItems = rawItems.map((item) => {
+    const qty = Number(item.quantity) || 1;
+    const rawUnit = Number(item.unit_price) || 0;
+    const rawTotal = Number(item.total_price) || rawUnit * qty;
+    return {
+      ...item,
+      normalizedQty: qty,
+      normalizedUnitPrice: rawUnit,
+      normalizedLineTotal: rawTotal,
+      reductionIfLineTotal:
+        qty > 1 && rawUnit > 0 && Math.abs(rawTotal - rawUnit * qty) <= 1
+          ? rawUnit * (qty - 1)
+          : 0,
+    };
+  });
+
+  const rawTotalSum = baseItems.reduce((sum, it) => sum + it.normalizedLineTotal, 0);
+  const excess = rawTotalSum - expectedSubtotal;
+
+  if (expectedSubtotal > 0 && excess > 1) {
+    // Find subset of multi-qty items whose reductionIfLineTotal sums to excess
+    const multiIndices = baseItems
+      .map((it, idx) => (it.reductionIfLineTotal > 0 ? idx : -1))
+      .filter((idx) => idx !== -1);
+
+    let matchedMask = 0;
+    const count = multiIndices.length;
+    if (count > 0 && count <= 12) {
+      for (let mask = 1; mask < 1 << count; mask++) {
+        let sumRed = 0;
+        for (let b = 0; b < count; b++) {
+          if (mask & (1 << b)) {
+            sumRed += baseItems[multiIndices[b]].reductionIfLineTotal;
+          }
+        }
+        if (Math.abs(sumRed - excess) <= 1) {
+          matchedMask = mask;
+          break;
+        }
+      }
+    }
+
+    if (matchedMask > 0) {
+      for (let b = 0; b < count; b++) {
+        if (matchedMask & (1 << b)) {
+          const idx = multiIndices[b];
+          const it = baseItems[idx];
+          it.normalizedLineTotal = it.normalizedUnitPrice;
+          it.normalizedUnitPrice = it.normalizedUnitPrice / it.normalizedQty;
+        }
+      }
+    }
+  }
+
+  const normalizedItemsSum = baseItems.reduce((sum, it) => sum + it.normalizedLineTotal, 0);
+  const displaySubtotal =
+    expectedSubtotal > 0
+      ? expectedSubtotal
+      : normalizedItemsSum > 0
+      ? normalizedItemsSum
+      : Number(order.subtotal) || 0;
+
+  return {
+    items: baseItems,
+    displaySubtotal,
+    deliveryFee,
+    totalAmount,
+  };
+}
+
 export function formatDateTime(dateString: string | null | undefined): string {
   if (!dateString) return '-';
   const date = new Date(dateString);

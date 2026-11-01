@@ -29,7 +29,7 @@ import {
   CalendarClock,
   RotateCcw,
 } from 'lucide-react';
-import { formatCurrency, formatDateTime, getOrderStatusBadge, isOrderCancelled } from '@/lib/utils';
+import { formatCurrency, formatDateTime, getOrderStatusBadge, isOrderCancelled, normalizeOrderPricing } from '@/lib/utils';
 import { OrderWithItems, OrderStatus } from './types';
 
 interface OrderDetailsModalProps {
@@ -294,10 +294,10 @@ export function OrderDetailsModal({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
-                  {order.order_items.map((item) => {
-                    const qty = Number(item.quantity) || 1;
-                    const unitPrice = Number(item.unit_price) || 0;
-                    const lineTotal = Number(item.total_price) || unitPrice * qty;
+                  {normalizeOrderPricing(order).items.map((item) => {
+                    const qty = item.normalizedQty;
+                    const unitPrice = item.normalizedUnitPrice;
+                    const lineTotal = item.normalizedLineTotal;
                     return (
                       <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-colors">
                         <td className="py-3 px-4">
@@ -327,20 +327,7 @@ export function OrderDetailsModal({
             {/* Financial Summary */}
             <div className="p-4 bg-slate-50/90 dark:bg-slate-950/90 border-t border-slate-100 dark:border-slate-800/80 space-y-2 text-xs">
               {(() => {
-                const itemsSum = order.order_items.reduce((sum, item) => {
-                  const qty = Number(item.quantity) || 1;
-                  const unitPrice = Number(item.unit_price) || 0;
-                  const lineTotal = Number(item.total_price) || unitPrice * qty;
-                  return sum + lineTotal;
-                }, 0);
-                const deliveryFee = Number(order.delivery_fee) || 0;
-                const totalAmount = Number(order.total_amount) || 0;
-                const displaySubtotal =
-                  Number(order.subtotal) > 0
-                    ? Number(order.subtotal)
-                    : itemsSum > 0
-                    ? itemsSum
-                    : Math.max(0, totalAmount - deliveryFee);
+                const { displaySubtotal, deliveryFee, totalAmount } = normalizeOrderPricing(order);
 
                 return (
                   <>

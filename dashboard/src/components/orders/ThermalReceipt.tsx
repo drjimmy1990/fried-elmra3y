@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { Printer, X, Utensils } from 'lucide-react';
-import { formatCurrency, formatDateTime } from '@/lib/utils';
+import { formatCurrency, formatDateTime, normalizeOrderPricing } from '@/lib/utils';
 import { parseScheduleMeta } from '@/lib/scheduled-orders';
 import { OrderWithItems } from './types';
 
@@ -124,10 +124,10 @@ export function ThermalReceipt({
           </thead>
           <tbody className="divide-y divide-dotted divide-gray-300">
             {order.order_items && order.order_items.length > 0 ? (
-              order.order_items.map((item, idx) => {
-                const qty = Number(item.quantity) || 1;
-                const unitPrice = Number(item.unit_price) || 0;
-                const lineTotal = Number(item.total_price) || unitPrice * qty;
+              normalizeOrderPricing(order).items.map((item, idx) => {
+                const qty = item.normalizedQty;
+                const unitPrice = item.normalizedUnitPrice;
+                const lineTotal = item.normalizedLineTotal;
                 return (
                   <tr key={idx} className="align-top">
                     <td className="py-1 pr-0.5">
@@ -158,20 +158,7 @@ export function ThermalReceipt({
       {/* Financial Totals */}
       <div className="py-2 border-b border-dashed border-black text-[11px] space-y-1">
         {(() => {
-          const itemsSum = (order.order_items || []).reduce((sum, item) => {
-            const qty = Number(item.quantity) || 1;
-            const unitPrice = Number(item.unit_price) || 0;
-            const lineTotal = Number(item.total_price) || unitPrice * qty;
-            return sum + lineTotal;
-          }, 0);
-          const deliveryFee = Number(order.delivery_fee) || 0;
-          const totalAmount = Number(order.total_amount) || 0;
-          const displaySubtotal =
-            Number(order.subtotal) > 0
-              ? Number(order.subtotal)
-              : itemsSum > 0
-              ? itemsSum
-              : Math.max(0, totalAmount - deliveryFee);
+          const { displaySubtotal, deliveryFee, totalAmount } = normalizeOrderPricing(order);
 
           return (
             <>
