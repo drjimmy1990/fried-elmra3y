@@ -56,7 +56,10 @@ function parseScheduleSettingsFromPrompt(prompt: string | null): {
   if (prompt.includes('جدولة الأوردرات المسبقة متوقفة حالياً')) {
     return { scheduledOrdersEnabled: false, maxScheduleHours: 5 };
   }
-  const match = prompt.match(/بحد أقصى\s*\*\*(\d+)\s*ساعات?\*\*\s*مقدماً/);
+  const match =
+    prompt.match(/بحد أقصى\s*\*\*(\d+)\s*ساعات?\*\*\s*مقدماً/) ||
+    prompt.match(/حد أقصى\s*(\d+)\s*ساعات?/) ||
+    prompt.match(/الحد الأقصى\s*(\d+)\s*ساعات?/);
   if (match && match[1]) {
     const parsed = parseInt(match[1], 10);
     if (!Number.isNaN(parsed) && parsed >= 1 && parsed <= 24) {
@@ -64,6 +67,26 @@ function parseScheduleSettingsFromPrompt(prompt: string | null): {
     }
   }
   return { scheduledOrdersEnabled: true, maxScheduleHours: 5 };
+}
+
+function buildScheduleRulesBlock(
+  scheduledOrdersEnabled: boolean,
+  maxScheduleHours: number,
+  openLabel: string,
+  closeLabel: string
+): string {
+  const hoursCount = Math.max(1, Math.min(24, Number(maxScheduleHours) || 5));
+  return scheduledOrdersEnabled
+    ? [
+        `  - ⏳ **قواعد الأوردرات المجدولة مسبقاً (Scheduled Orders - حد أقصى ${hoursCount} ساعات):**`,
+        `    - يُسمح للعميل بطلب أوردر مجدول لاستلامه في وقت لاحق من نفس اليوم بحد أقصى **${hoursCount} ساعات** مقدماً من "الوقت الحالي (مصر)" المرفق مع رسالة العميل.`,
+        `    - **شرط أساسي إلزامي للأوردر المجدول:** يجب أن يكون موعد الاستلام المطلوب: (أ) خلال **${hoursCount} ساعات على الأكثر** من وقت رسالة العميل، و(ب) **داخل مواعيد عمل الدليفري المعتمدة** (أي بين الساعة **${openLabel}** وقبل إغلاق الأوردرات في الساعة **${closeLabel}**).`,
+        `    - إذا طلب العميل جدولة أوردر لموعد يبعد **أكثر من ${hoursCount} ساعات** عن الوقت الحالي، أو ليوم آخر ("بكرة")، أو لموعد يقع **خارج مواعيد عمل الدليفري** (بعد الساعة ${closeLabel} أو قبل الساعة ${openLabel}): **ممنوع منعاً باتاً** تأكيد الأوردر (\`order\`)! اعتذر له بلباقة وقل له: **"بنعتذر لحضرتك يا فندم، حجز الأوردرات المجدولة متاح بحد أقصى ${hoursCount} ساعات قبل موعد الاستلام، وبشرط أن يكون موعد التوصيل داخل مواعيد عمل الدليفري (من ${openLabel} حتى ${closeLabel}) 🕒. تقدر تكلمنا قبل الموعد بـ ${hoursCount} ساعات وهنسجل أوردرك فوراً، أو تتصل على الخط الساخن 17330 📞!"**.`,
+      ].join('\n')
+    : [
+        '  - ⏳ **قواعد الأوردرات المجدولة مسبقاً (جدولة الأوردرات المسبقة متوقفة حالياً):**',
+        '    - استقبال الأوردرات عبر الماسنجر مخصص للتجهيز والتوصيل الفوري فقط (خلال حوالي 45 دقيقة)؛ إذا طلب العميل حجز أوردر لوقت متأخر أو ليوم آخر، اعتذر له بلباقة واطلب منه مراسلتنا وقت رغبته في استلام الطلب مباشرة أو الاتصال على الخط الساخن 17330.',
+      ].join('\n');
 }
 
 function buildDeliveryHoursPromptSection(
@@ -76,19 +99,12 @@ function buildDeliveryHoursPromptSection(
 ): string {
   const openLabel = formatArabicTimeLabel(openTime24);
   const closeLabel = formatArabicTimeLabel(closeTime24);
-  const hoursCount = Math.max(1, Math.min(24, Number(maxScheduleHours) || 5));
-
-  const scheduleBlock = scheduledOrdersEnabled
-    ? [
-        `  - ⏳ **قواعد الأوردرات المجدولة مسبقاً (Scheduled Orders - حد أقصى ${hoursCount} ساعات):**`,
-        `    - يُسمح للعميل بطلب أوردر مجدول لاستلامه في وقت لاحق من نفس اليوم بحد أقصى **${hoursCount} ساعات** مقدماً من "الوقت الحالي (مصر)" المرفق مع رسالة العميل.`,
-        `    - **شرط أساسي إلزامي للأوردر المجدول:** يجب أن يكون موعد الاستلام المطلوب: (أ) خلال **${hoursCount} ساعات على الأكثر** من وقت رسالة العميل، و(ب) **داخل مواعيد عمل الدليفري المعتمدة** (أي بين الساعة **${openLabel}** وقبل إغلاق الأوردرات في الساعة **${closeLabel}**).`,
-        `    - إذا طلب العميل جدولة أوردر لموعد يبعد **أكثر من ${hoursCount} ساعات** عن الوقت الحالي، أو ليوم آخر ("بكرة")، أو لموعد يقع **خارج مواعيد عمل الدليفري** (بعد الساعة ${closeLabel} أو قبل الساعة ${openLabel}): **ممنوع منعاً باتاً** تأكيد الأوردر (\`order\`)! اعتذر له بلباقة وقل له: **"بنعتذر لحضرتك يا فندم، حجز الأوردرات المجدولة متاح بحد أقصى ${hoursCount} ساعات قبل موعد الاستلام، وبشرط أن يكون موعد التوصيل داخل مواعيد عمل الدليفري (من ${openLabel} حتى ${closeLabel}) 🕒. تقدر تكلمنا قبل الموعد بـ ${hoursCount} ساعات وهنسجل أوردرك فوراً، أو تتصل على الخط الساخن 17330 📞!"**.`,
-      ].join('\n')
-    : [
-        '  - ⏳ **قواعد الأوردرات المجدولة مسبقاً (جدولة الأوردرات المسبقة متوقفة حالياً):**',
-        '    - استقبال الأوردرات عبر الماسنجر مخصص للتجهيز والتوصيل الفوري فقط (خلال حوالي 45 دقيقة)؛ إذا طلب العميل حجز أوردر لوقت متأخر أو ليوم آخر، اعتذر له بلباقة واطلب منه مراسلتنا وقت رغبته في استلام الطلب مباشرة أو الاتصال على الخط الساخن 17330.',
-      ].join('\n');
+  const scheduleBlock = buildScheduleRulesBlock(
+    scheduledOrdersEnabled,
+    maxScheduleHours,
+    openLabel,
+    closeLabel
+  );
 
   if (!enabled) {
     return [
@@ -148,8 +164,24 @@ function syncPromptWithDeliveryHours(
   closeTime24: string,
   offHoursReply: string,
   scheduledOrdersEnabled = true,
-  maxScheduleHours = 5
+  maxScheduleHours = 5,
+  onlyScheduleChanged = false
 ): string {
+  const openLabel = formatArabicTimeLabel(openTime24);
+  const closeLabel = formatArabicTimeLabel(closeTime24);
+  const scheduleSubRegex =
+    /  - ⏳ \*\*قواعد الأوردرات المجدولة مسبقاً[\s\S]*?(?=\n  - جميع الأوردرات عبر الماسنجر|\n• الفروع|\n• تخصيص الطلبات|$)/;
+
+  if (onlyScheduleChanged && scheduleSubRegex.test(currentPrompt)) {
+    const newScheduleBlock = buildScheduleRulesBlock(
+      scheduledOrdersEnabled,
+      maxScheduleHours,
+      openLabel,
+      closeLabel
+    );
+    return currentPrompt.replace(scheduleSubRegex, newScheduleBlock);
+  }
+
   const newSection = buildDeliveryHoursPromptSection(
     enabled,
     openTime24,
@@ -158,7 +190,7 @@ function syncPromptWithDeliveryHours(
     scheduledOrdersEnabled,
     maxScheduleHours
   );
-  const sectionRegex = /• مواعيد العمل ونظام التوصيل \(دليفري فقط\):[\s\S]*?(?=\n• الفروع والكيدز أريا|\n• تخصيص الطلبات|$)/;
+  const sectionRegex = /• مواعيد العمل ونظام التوصيل[^\n]*[\s\S]*?(?=\n• الفروع|\n• تخصيص الطلبات|$)/;
   if (sectionRegex.test(currentPrompt)) {
     return currentPrompt.replace(sectionRegex, newSection + '\n');
   }
@@ -234,6 +266,8 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
         if (field === 'open_time' || field === 'close_time') {
           next.off_hours_message = `بنعتذر لحضرتك يا فندم، مواعيد استقبال أوردرات الدليفري عبر الماسنجر يومياً من الساعة ${openLabel} حتى الساعة ${closeLabel} 🕒. لو حابب تطلب أوردر دلوقتي تقدر تتصل مباشرة على الخط الساخن 17330 📞، وتحت أمرك هنا في أي وقت لأي استفسار عن المنيو أو العروض أو لتسجيل أي شكوى!`;
         }
+        const onlyScheduleChanged =
+          field === 'scheduled_orders_enabled' || field === 'max_schedule_hours';
         next.ai_system_prompt = syncPromptWithDeliveryHours(
           next.ai_system_prompt,
           next.business_hours_enabled,
@@ -241,7 +275,8 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
           next.close_time,
           next.off_hours_message,
           next.scheduled_orders_enabled,
-          next.max_schedule_hours
+          next.max_schedule_hours,
+          onlyScheduleChanged
         );
       }
 
