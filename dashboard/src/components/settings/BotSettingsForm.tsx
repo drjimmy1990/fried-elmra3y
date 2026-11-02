@@ -46,16 +46,55 @@ function formatArabicTimeLabel(time24: string): string {
   return `${h - 12}:${m} مساءً`;
 }
 
+function parseScheduleSettingsFromPrompt(prompt: string | null): {
+  scheduledOrdersEnabled: boolean;
+  maxScheduleHours: number;
+} {
+  if (!prompt) {
+    return { scheduledOrdersEnabled: true, maxScheduleHours: 5 };
+  }
+  if (prompt.includes('جدولة الأوردرات المسبقة متوقفة حالياً')) {
+    return { scheduledOrdersEnabled: false, maxScheduleHours: 5 };
+  }
+  const match = prompt.match(/بحد أقصى\s*\*\*(\d+)\s*ساعات?\*\*\s*مقدماً/);
+  if (match && match[1]) {
+    const parsed = parseInt(match[1], 10);
+    if (!Number.isNaN(parsed) && parsed >= 1 && parsed <= 24) {
+      return { scheduledOrdersEnabled: true, maxScheduleHours: parsed };
+    }
+  }
+  return { scheduledOrdersEnabled: true, maxScheduleHours: 5 };
+}
+
 function buildDeliveryHoursPromptSection(
   enabled: boolean,
   openTime24: string,
   closeTime24: string,
-  offHoursReply: string
+  offHoursReply: string,
+  scheduledOrdersEnabled = true,
+  maxScheduleHours = 5
 ): string {
+  const openLabel = formatArabicTimeLabel(openTime24);
+  const closeLabel = formatArabicTimeLabel(closeTime24);
+  const hoursCount = Math.max(1, Math.min(24, Number(maxScheduleHours) || 5));
+
+  const scheduleBlock = scheduledOrdersEnabled
+    ? [
+        `  - ⏳ **قواعد الأوردرات المجدولة مسبقاً (Scheduled Orders - حد أقصى ${hoursCount} ساعات):**`,
+        `    - يُسمح للعميل بطلب أوردر مجدول لاستلامه في وقت لاحق من نفس اليوم بحد أقصى **${hoursCount} ساعات** مقدماً من "الوقت الحالي (مصر)" المرفق مع رسالة العميل.`,
+        `    - **شرط أساسي إلزامي للأوردر المجدول:** يجب أن يكون موعد الاستلام المطلوب: (أ) خلال **${hoursCount} ساعات على الأكثر** من وقت رسالة العميل، و(ب) **داخل مواعيد عمل الدليفري المعتمدة** (أي بين الساعة **${openLabel}** وقبل إغلاق الأوردرات في الساعة **${closeLabel}**).`,
+        `    - إذا طلب العميل جدولة أوردر لموعد يبعد **أكثر من ${hoursCount} ساعات** عن الوقت الحالي، أو ليوم آخر ("بكرة")، أو لموعد يقع **خارج مواعيد عمل الدليفري** (بعد الساعة ${closeLabel} أو قبل الساعة ${openLabel}): **ممنوع منعاً باتاً** تأكيد الأوردر (\`order\`)! اعتذر له بلباقة وقل له: **"بنعتذر لحضرتك يا فندم، حجز الأوردرات المجدولة متاح بحد أقصى ${hoursCount} ساعات قبل موعد الاستلام، وبشرط أن يكون موعد التوصيل داخل مواعيد عمل الدليفري (من ${openLabel} حتى ${closeLabel}) 🕒. تقدر تكلمنا قبل الموعد بـ ${hoursCount} ساعات وهنسجل أوردرك فوراً، أو تتصل على الخط الساخن 17330 📞!"**.`,
+      ].join('\n')
+    : [
+        '  - ⏳ **قواعد الأوردرات المجدولة مسبقاً (جدولة الأوردرات المسبقة متوقفة حالياً):**',
+        '    - استقبال الأوردرات عبر الماسنجر مخصص للتجهيز والتوصيل الفوري فقط (خلال حوالي 45 دقيقة)؛ إذا طلب العميل حجز أوردر لوقت متأخر أو ليوم آخر، اعتذر له بلباقة واطلب منه مراسلتنا وقت رغبته في استلام الطلب مباشرة أو الاتصال على الخط الساخن 17330.',
+      ].join('\n');
+
   if (!enabled) {
     return [
       '• مواعيد العمل ونظام التوصيل (دليفري فقط):',
       '  - استقبال أوردرات الدليفري عبر الماسنجر متاح على مدار الـ 24 ساعة في جميع الفروع.',
+      scheduleBlock,
       '  - جميع الأوردرات عبر الماسنجر مخصصة للتوصيل المنزلي (دليفري فقط)؛ لا يوجد حجز استلام من الفرع أو صالة عبر الماسنجر، وممنوع نهائياً سؤال العميل "دليفري ولا استلام من الفرع؟". إذا طلب العميل استلاماً من الفرع، وضح له بلباقة أن طلبات الماسنجر للدليفري فقط، أو يشرفنا في أقرب فرع ليطلب مباشرة من الكاشير.',
       '  - متوسط وقت التوصيل المتوقع حوالي 45 دقيقة (يختلف حسب قرب أو بُعد العنوان عن الفرع وضغط الطلبات، والتأكيد على 17330).',
       '  - رسوم التوصيل محددة وتختلف حسب المنطقة والفرع التابع له.',
@@ -63,8 +102,6 @@ function buildDeliveryHoursPromptSection(
     ].join('\n');
   }
 
-  const openLabel = formatArabicTimeLabel(openTime24);
-  const closeLabel = formatArabicTimeLabel(closeTime24);
   const openH = parseInt((openTime24 || '12:00').split(':')[0], 10);
   const closeH = parseInt((closeTime24 || '00:00').split(':')[0], 10);
 
@@ -96,6 +133,7 @@ function buildDeliveryHoursPromptSection(
     `    - في فترة خارج مواعيد دليفري الماسنجر (\`${closedStart24}\` حتى \`${closedEnd24}\`):`,
     '      1. **الاستفسارات العادية والشكاوى مستمرة بشكل طبيعي تماماً:** يمكنك الرد طبيعياً على أي استفسار عن المنيو والعروض والأسعار والفروع (`normal`, `menu`, `branches`, `all_offers`, `single_offer`)، وكذلك **استقبال وتسجيل الشكاوى (`complaint`) بشكل طبيعي وفوري**!',
     `      2. **منع عمل أوردر على الماسنجر وتوجيه العميل للخط الساخن 17330:** إذا طلب العميل **عمل أوردر جديد** في هذا التوقيت (\`${closedStart24}\` إلى \`${closedEnd24}\`)، **ممنوع منعاً باتاً** طلب بيانات توصيل أو عرض ملخص أوردر أو تأكيد أي أوردر (\`order\`) على الماسنجر! اعتذر له بلباقة وقل له: **"${cleanOffMsg}"**.`,
+    scheduleBlock,
     '  - جميع الأوردرات عبر الماسنجر مخصصة للتوصيل المنزلي (دليفري فقط)؛ لا يوجد حجز استلام من الفرع أو صالة عبر الماسنجر، وممنوع نهائياً سؤال العميل "دليفري ولا استلام من الفرع؟". إذا طلب العميل استلاماً من الفرع، وضح له بلباقة أن طلبات الماسنجر للدليفري فقط، أو يشرفنا في أقرب فرع ليطلب مباشرة من الكاشير.',
     '  - متوسط وقت التوصيل المتوقع حوالي 45 دقيقة (يختلف حسب قرب أو بُعد العنوان عن الفرع وضغط الطلبات، والتأكيد على 17330).',
     '  - رسوم التوصيل محددة وتختلف حسب المنطقة والفرع التابع له.',
@@ -108,9 +146,18 @@ function syncPromptWithDeliveryHours(
   enabled: boolean,
   openTime24: string,
   closeTime24: string,
-  offHoursReply: string
+  offHoursReply: string,
+  scheduledOrdersEnabled = true,
+  maxScheduleHours = 5
 ): string {
-  const newSection = buildDeliveryHoursPromptSection(enabled, openTime24, closeTime24, offHoursReply);
+  const newSection = buildDeliveryHoursPromptSection(
+    enabled,
+    openTime24,
+    closeTime24,
+    offHoursReply,
+    scheduledOrdersEnabled,
+    maxScheduleHours
+  );
   const sectionRegex = /• مواعيد العمل ونظام التوصيل \(دليفري فقط\):[\s\S]*?(?=\n• الفروع والكيدز أريا|\n• تخصيص الطلبات|$)/;
   if (sectionRegex.test(currentPrompt)) {
     return currentPrompt.replace(sectionRegex, newSection + '\n');
@@ -128,6 +175,8 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
     return timeStr.slice(0, 5);
   };
 
+  const parsedSchedule = parseScheduleSettingsFromPrompt(initialSettings.ai_system_prompt);
+
   const [formData, setFormData] = useState<BotSettingsFormData>({
     bot_enabled: initialSettings.bot_enabled ?? true,
     auto_pause_on_complaint: initialSettings.auto_pause_on_complaint ?? true,
@@ -135,8 +184,10 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
     delivery_fee: Number(initialSettings.delivery_fee) || 0,
     currency: initialSettings.currency || 'EGP',
     business_hours_enabled: initialSettings.business_hours_enabled ?? false,
-    open_time: formatTimeInput(initialSettings.open_time) || '10:00',
-    close_time: formatTimeInput(initialSettings.close_time) || '02:00',
+    open_time: formatTimeInput(initialSettings.open_time) || '12:00',
+    close_time: formatTimeInput(initialSettings.close_time) || '00:00',
+    scheduled_orders_enabled: parsedSchedule.scheduledOrdersEnabled,
+    max_schedule_hours: parsedSchedule.maxScheduleHours,
     welcome_message: initialSettings.welcome_message || '',
     human_handoff_message: initialSettings.human_handoff_message || '',
     off_hours_message: initialSettings.off_hours_message || DEFAULT_OFF_HOURS_MESSAGE,
@@ -174,7 +225,9 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
         field === 'business_hours_enabled' ||
         field === 'open_time' ||
         field === 'close_time' ||
-        field === 'off_hours_message'
+        field === 'off_hours_message' ||
+        field === 'scheduled_orders_enabled' ||
+        field === 'max_schedule_hours'
       ) {
         const openLabel = formatArabicTimeLabel(next.open_time);
         const closeLabel = formatArabicTimeLabel(next.close_time);
@@ -186,7 +239,9 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
           next.business_hours_enabled,
           next.open_time,
           next.close_time,
-          next.off_hours_message
+          next.off_hours_message,
+          next.scheduled_orders_enabled,
+          next.max_schedule_hours
         );
       }
 
@@ -553,7 +608,9 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
                           true,
                           preset.open,
                           preset.close,
-                          autoMsg
+                          autoMsg,
+                          prev.scheduled_orders_enabled,
+                          prev.max_schedule_hours
                         ),
                       }));
                     }}
@@ -629,6 +686,96 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
             مواعيد العمل معطلة حالياً: يستقبل البوت الطلبات والاستفسارات على مدار الـ 24 ساعة بدون انقطاع.
           </p>
         )}
+
+        {/* Scheduled Orders Advance Window Sub-Section */}
+        <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <span>⏳ التحكم في الوقت المتاح للأوردرات المجدولة مسبقاً (Scheduled Orders)</span>
+                <span
+                  className={cn(
+                    'text-[11px] px-2.5 py-0.5 rounded-full font-bold border',
+                    formData.scheduled_orders_enabled
+                      ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30'
+                      : 'bg-slate-200/70 dark:bg-slate-800 text-slate-500 border-slate-300 dark:border-slate-700'
+                  )}
+                >
+                  {formData.scheduled_orders_enabled
+                    ? `حد أقصى ${formData.max_schedule_hours} ساعات مقدماً`
+                    : 'الأوردرات الفورية فقط'}
+                </span>
+              </h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                تحديد أقصى عدد ساعات يُسمح للعميل بجدولة استلام الأوردر خلالها، بشرط أن يقع موعد الاستلام داخل مواعيد عمل الدليفري ({formatArabicTimeLabel(formData.open_time)} ← {formatArabicTimeLabel(formData.close_time)})
+              </p>
+            </div>
+
+            <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
+              <input
+                type="checkbox"
+                checked={formData.scheduled_orders_enabled}
+                onChange={(e) => handleInputChange('scheduled_orders_enabled', e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-slate-200 dark:bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+            </label>
+          </div>
+
+          {formData.scheduled_orders_enabled && (
+            <div className="p-4 rounded-xl bg-amber-500/5 border border-amber-500/20 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300 ml-1">
+                    أقصى مدة مسموحة للاستلام:
+                  </span>
+                  {[2, 3, 4, 5, 6, 8, 12].map((hrs) => {
+                    const active = Number(formData.max_schedule_hours) === hrs;
+                    return (
+                      <button
+                        key={hrs}
+                        type="button"
+                        onClick={() => handleInputChange('max_schedule_hours', hrs)}
+                        className={cn(
+                          'px-3 py-1.5 rounded-xl text-xs font-bold border transition cursor-pointer',
+                          active
+                            ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-xs'
+                            : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-amber-400'
+                        )}
+                      >
+                        {hrs === 2 ? 'ساعتين' : `${hrs} ساعات`}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+                    عدد الساعات:
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={24}
+                    value={formData.max_schedule_hours}
+                    onChange={(e) =>
+                      handleInputChange(
+                        'max_schedule_hours',
+                        Math.max(1, Math.min(24, parseInt(e.target.value, 10) || 1))
+                      )
+                    }
+                    className="w-20 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 focus:border-amber-500 rounded-xl px-3 py-1.5 text-center text-sm font-black text-slate-900 dark:text-white outline-none"
+                  />
+                  <span className="text-xs font-bold text-slate-500">ساعة</span>
+                </div>
+              </div>
+
+              <p className="text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed">
+                📌 <strong>القاعدة المطبقة حالياً في الأجنت:</strong> يقبل البوت الأوردرات المجدولة فقط إذا كان العميل سيستلم الأوردر خلال <strong>{formData.max_schedule_hours} ساعات بحد أقصى</strong> من وقت رسالته، وبشرط أن يكون موعد التوصيل المطلوب قبل الساعة <strong>{formatArabicTimeLabel(formData.close_time)}</strong> (ضمن ساعات فتح الدليفري).
+              </p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* 5. AI Agent System Prompt (Gemini 2.0 Flash) */}

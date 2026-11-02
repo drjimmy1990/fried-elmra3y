@@ -12,6 +12,8 @@ export interface BotSettingsFormData {
   business_hours_enabled: boolean;
   open_time: string;
   close_time: string;
+  scheduled_orders_enabled: boolean;
+  max_schedule_hours: number;
   welcome_message: string;
   human_handoff_message: string;
   off_hours_message: string;
