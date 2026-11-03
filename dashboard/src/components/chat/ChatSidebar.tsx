@@ -130,10 +130,10 @@ export function ChatSidebar({
 
   return (
     <aside
-      className={`flex flex-col h-full max-h-full min-h-0 overflow-hidden bg-white dark:bg-[#0B0F17] border-l border-slate-200/80 dark:border-slate-800/80 transition-all duration-200 select-none ${
-        isMobileOpen
-          ? 'fixed inset-0 z-40 w-full sm:w-96'
-          : 'w-full md:w-80 lg:w-96 shrink-0'
+      className={`flex-col h-full max-h-full min-h-0 overflow-hidden bg-white dark:bg-[#0B0F17] border-l border-slate-200/80 dark:border-slate-800/80 transition-all duration-200 select-none ${
+        isMobileOpen || !selectedContactId
+          ? 'flex w-full md:w-80 lg:w-96 shrink-0'
+          : 'hidden md:flex md:w-80 lg:w-96 shrink-0'
       }`}
     >
       {/* Sidebar Header & Search */}

@@ -414,33 +414,70 @@ export function ChatContainer({
   }, [supabase]);
 
   return (
-    <div className="flex flex-1 h-full max-h-full min-h-0 w-full rounded-2xl sm:rounded-3xl bg-white dark:bg-[#0E1523] border border-slate-200/90 dark:border-slate-700/80 shadow-xl dark:shadow-2xl overflow-hidden relative transition-colors">
-      {/* Sidebar: Contacts List */}
-      <ChatSidebar
-        contacts={contacts}
-        selectedContactId={activeContact?.id || null}
-        onSelectContact={handleSelectContact}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        filter={filter}
-        onFilterChange={setFilter}
-        isMobileOpen={isMobileSidebarOpen}
-        onCloseMobile={() => setIsMobileSidebarOpen(false)}
-        channels={channels}
-      />
+    <div className="flex flex-col flex-1 h-full max-h-full min-h-0 w-full rounded-2xl sm:rounded-3xl bg-white dark:bg-[#0E1523] border border-slate-200/90 dark:border-slate-700/80 shadow-xl dark:shadow-2xl overflow-hidden relative transition-colors">
+      {/* Mobile Switcher Bar (Conversations List vs Active Chat Messages) */}
+      <div className="flex md:hidden items-center gap-1.5 p-2 border-b border-slate-200/80 dark:border-slate-800/80 bg-slate-100/80 dark:bg-slate-950/80 shrink-0">
+        <button
+          type="button"
+          onClick={() => setIsMobileSidebarOpen(false)}
+          className={`flex-1 py-2 px-3 rounded-xl text-xs font-extrabold transition flex items-center justify-center gap-1.5 ${
+            !isMobileSidebarOpen && activeContact
+              ? 'bg-amber-500 text-slate-950 shadow-xs'
+              : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800'
+          }`}
+        >
+          <span>💬 رسائل المحادثة</span>
+          {activeContact?.name && (
+            <span className="truncate max-w-[110px] opacity-90">({activeContact.name})</span>
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={() => setIsMobileSidebarOpen(true)}
+          className={`flex-1 py-2 px-3 rounded-xl text-xs font-extrabold transition flex items-center justify-center gap-1.5 ${
+            isMobileSidebarOpen || !activeContact
+              ? 'bg-amber-500 text-slate-950 shadow-xs'
+              : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800'
+          }`}
+        >
+          <span>👥 كل المحادثات ({contacts.length})</span>
+        </button>
+      </div>
 
-      {/* Main: Active Thread */}
-      <ChatThread
-        contact={activeContact}
-        messages={messages}
-        isLoadingMessages={isLoadingMessages}
-        isSending={isSending}
-        onSendMessage={handleSendMessage}
-        onToggleAi={handleToggleAi}
-        onDismissNeedsHuman={handleDismissNeedsHuman}
-        onBackToSidebar={() => setIsMobileSidebarOpen(true)}
-        channels={channels}
-      />
+      <div className="flex flex-1 min-h-0 w-full overflow-hidden relative">
+        {/* Sidebar: Contacts List */}
+        <ChatSidebar
+          contacts={contacts}
+          selectedContactId={activeContact?.id || null}
+          onSelectContact={handleSelectContact}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          filter={filter}
+          onFilterChange={setFilter}
+          isMobileOpen={isMobileSidebarOpen}
+          onCloseMobile={() => setIsMobileSidebarOpen(false)}
+          channels={channels}
+        />
+
+        {/* Main: Active Thread */}
+        <div
+          className={`flex-1 flex flex-col h-full max-h-full min-h-0 min-w-0 overflow-hidden ${
+            isMobileSidebarOpen && activeContact ? 'hidden md:flex' : 'flex'
+          }`}
+        >
+          <ChatThread
+            contact={activeContact}
+            messages={messages}
+            isLoadingMessages={isLoadingMessages}
+            isSending={isSending}
+            onSendMessage={handleSendMessage}
+            onToggleAi={handleToggleAi}
+            onDismissNeedsHuman={handleDismissNeedsHuman}
+            onBackToSidebar={() => setIsMobileSidebarOpen(true)}
+            channels={channels}
+          />
+        </div>
+      </div>
     </div>
   );
 }

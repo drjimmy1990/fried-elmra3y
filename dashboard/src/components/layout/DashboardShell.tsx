@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Sidebar } from './Sidebar';
+import { Sidebar, MobileNavTabs } from './Sidebar';
 import { Topbar } from './Topbar';
 import { UserRole } from '@/types/database.types';
 import { StaffPermission } from '@/lib/role-guard';
@@ -37,7 +37,7 @@ export function DashboardShell({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen bg-slate-50 text-slate-900 dark:bg-[#090D16] dark:text-slate-100 font-sans transition-colors duration-200">
+    <div className="flex min-h-screen w-full overflow-x-hidden bg-slate-50 text-slate-900 dark:bg-[#090D16] dark:text-slate-100 font-sans transition-colors duration-200">
       {/* Role & Permission-Aware Sidebar */}
       <Sidebar
         role={user.role}
@@ -57,6 +57,17 @@ export function DashboardShell({
           user={user}
           botEnabled={botEnabled}
           onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
+        />
+
+        {/* Always-visible scrollable tab bar on mobile / iPhone */}
+        <MobileNavTabs
+          role={user.role}
+          permissions={user.permissions}
+          issueOrdersCount={issueOrdersCount}
+          scheduledOrdersCount={scheduledOrdersCount}
+          openComplaintsCount={openComplaintsCount}
+          needsHumanCount={needsHumanCount}
+          onOpenDrawer={() => setIsSidebarOpen(true)}
         />
 
         {/* Page Content — individual pages control their max-width & padding */}

@@ -201,12 +201,14 @@ export function Sidebar({
 
       {/* Sidebar Drawer */}
       <aside
-        className={`fixed inset-y-0 right-0 z-50 flex w-72 flex-col border-l border-slate-200 bg-white text-slate-800 shadow-xl dark:border-slate-800 dark:bg-[#0E1424] dark:text-slate-100 dark:shadow-2xl transition-all duration-300 ease-in-out lg:sticky lg:top-0 lg:h-screen lg:z-auto lg:translate-x-0 ${
-          isOpen ? 'translate-x-0' : 'translate-x-full'
+        className={`fixed inset-y-0 right-0 z-50 flex h-dvh max-h-dvh w-72 max-w-[85vw] flex-col border-l border-slate-200 bg-white text-slate-800 shadow-xl dark:border-slate-800 dark:bg-[#0E1424] dark:text-slate-100 dark:shadow-2xl transition-all duration-300 ease-in-out lg:sticky lg:top-0 lg:h-screen lg:max-h-screen lg:z-auto lg:translate-x-0 lg:visible lg:pointer-events-auto ${
+          isOpen
+            ? 'translate-x-0 visible pointer-events-auto'
+            : 'translate-x-full invisible pointer-events-none'
         }`}
       >
         {/* Branding & Logo Header */}
-        <div className="flex h-20 items-center justify-between border-b border-slate-200 dark:border-slate-800 px-5">
+        <div className="flex h-20 shrink-0 items-center justify-between border-b border-slate-200 dark:border-slate-800 px-5">
           <Link href="/dashboard" onClick={onClose} className="flex min-w-0 items-center gap-3">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-tr from-red-600 to-amber-500 p-0.5 shadow-md shadow-red-500/20">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -236,14 +238,18 @@ export function Sidebar({
         </div>
 
         {/* Navigation Links */}
-        <div className="flex-1 overflow-y-auto px-4 py-4 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800">
-          <nav className="space-y-1">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-4 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800">
+          <nav className="space-y-1 pb-6">
             {visibleItems.map((item, index) => {
               const Icon = item.icon;
+              const shortHref = item.href.replace(/^\/dashboard/, '') || '/';
               const isActive =
                 item.href === '/dashboard'
-                  ? pathname === '/dashboard'
-                  : pathname === item.href || pathname.startsWith(item.href + '/');
+                  ? pathname === '/dashboard' || pathname === '/'
+                  : pathname === item.href ||
+                    pathname.startsWith(item.href + '/') ||
+                    pathname === shortHref ||
+                    pathname.startsWith(shortHref + '/');
 
               const badgeCount =
                 item.badge === 'orders'
@@ -312,7 +318,7 @@ export function Sidebar({
         </div>
 
         {/* Sidebar Footer Info */}
-        <div className="border-t border-slate-200/80 dark:border-slate-800/80 p-4 bg-slate-50/60 dark:bg-[#0B0F17]/60">
+        <div className="shrink-0 border-t border-slate-200/80 dark:border-slate-800/80 p-4 bg-slate-50/60 dark:bg-[#0B0F17]/60">
           <div className="flex items-center justify-between rounded-xl bg-white dark:bg-slate-900/80 p-3 text-xs text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800">
             <span className="flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -323,5 +329,90 @@ export function Sidebar({
         </div>
       </aside>
     </>
+  );
+}
+
+export function MobileNavTabs({
+  role,
+  permissions,
+  issueOrdersCount = 0,
+  scheduledOrdersCount = 0,
+  openComplaintsCount = 0,
+  needsHumanCount = 0,
+  onOpenDrawer,
+}: {
+  role: UserRole;
+  permissions?: StaffPermission[];
+  issueOrdersCount?: number;
+  scheduledOrdersCount?: number;
+  openComplaintsCount?: number;
+  needsHumanCount?: number;
+  onOpenDrawer?: () => void;
+}) {
+  const pathname = usePathname();
+  const activePermissions =
+    permissions && permissions.length > 0 ? permissions : defaultPermissionsForRole(role);
+  const visibleItems = NAV_ITEMS.filter((item) => activePermissions.includes(item.permission));
+
+  return (
+    <div className="sticky top-20 z-20 flex w-full items-center gap-1.5 overflow-x-auto border-b border-slate-200/80 bg-white/95 px-3 py-2 backdrop-blur-md dark:border-slate-800/80 dark:bg-[#0E1424]/95 lg:hidden no-scrollbar">
+      {visibleItems.map((item) => {
+        const Icon = item.icon;
+        const shortHref = item.href.replace(/^\/dashboard/, '') || '/';
+        const isActive =
+          item.href === '/dashboard'
+            ? pathname === '/dashboard' || pathname === '/'
+            : pathname === item.href ||
+              pathname.startsWith(item.href + '/') ||
+              pathname === shortHref ||
+              pathname.startsWith(shortHref + '/');
+
+        const badgeCount =
+          item.badge === 'orders'
+            ? issueOrdersCount
+            : item.badge === 'scheduled'
+            ? scheduledOrdersCount
+            : item.badge === 'complaints'
+            ? openComplaintsCount
+            : item.badge === 'chat'
+            ? needsHumanCount
+            : 0;
+
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={`inline-flex shrink-0 items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-all ${
+              isActive
+                ? 'border-amber-500/40 bg-amber-500/15 text-amber-700 dark:text-amber-300 shadow-xs'
+                : 'border-slate-200/80 bg-slate-50/80 text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-300'
+            }`}
+          >
+            <Icon className={`h-3.5 w-3.5 shrink-0 ${isActive ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400'}`} />
+            <span>{item.title}</span>
+            {item.badge && badgeCount > 0 && (
+              <span
+                className={`inline-flex items-center justify-center rounded-full px-1.5 py-0.2 text-[10px] font-extrabold ${
+                  isActive
+                    ? 'bg-amber-500/25 text-amber-800 dark:text-amber-200'
+                    : BADGE_STYLES[item.badge]
+                }`}
+              >
+                {badgeCount}
+              </span>
+            )}
+          </Link>
+        );
+      })}
+      {onOpenDrawer && (
+        <button
+          type="button"
+          onClick={onOpenDrawer}
+          className="inline-flex shrink-0 items-center gap-1 rounded-xl border border-slate-200/80 bg-slate-100/80 px-2.5 py-1.5 text-xs font-bold text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
+        >
+          <span>القائمة</span>
+        </button>
+      )}
+    </div>
   );
 }
