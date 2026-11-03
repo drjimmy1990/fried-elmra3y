@@ -1,10 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Sidebar, MobileNavTabs } from './Sidebar';
 import { Topbar } from './Topbar';
 import { UserRole } from '@/types/database.types';
 import { StaffPermission } from '@/lib/role-guard';
+import { createClient } from '@/lib/supabase/client';
+import { isOrderCancelled } from '@/lib/utils';
+import { isScheduledPaymentMethod } from '@/lib/scheduled-orders';
 
 interface DashboardShellProps {
   user: {
@@ -35,6 +38,96 @@ export function DashboardShell({
   children,
 }: DashboardShellProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [livePendingOrdersCount, setLivePendingOrdersCount] = useState(issueOrdersCount);
+  const [liveScheduledCount, setLiveScheduledCount] = useState(scheduledOrdersCount);
+  const [liveComplaintsCount, setLiveComplaintsCount] = useState(openComplaintsCount);
+  const [liveNeedsHumanCount, setLiveNeedsHumanCount] = useState(needsHumanCount);
+
+  const supabase = useMemo(() => createClient(), []);
+
+  useEffect(() => {
+    setLivePendingOrdersCount(issueOrdersCount);
+  }, [issueOrdersCount]);
+
+  useEffect(() => {
+    setLiveScheduledCount(scheduledOrdersCount);
+  }, [scheduledOrdersCount]);
+
+  useEffect(() => {
+    setLiveComplaintsCount(openComplaintsCount);
+  }, [openComplaintsCount]);
+
+  useEffect(() => {
+    setLiveNeedsHumanCount(needsHumanCount);
+  }, [needsHumanCount]);
+
+  const refreshOrderCounts = useCallback(async () => {
+    const since = new Date();
+    since.setHours(0, 0, 0, 0);
+    since.setDate(since.getDate() - 8);
+
+    const [{ data: pendingRows }, { count: schedCount }] = await Promise.all([
+      supabase
+        .from('orders')
+        .select('id, status, payment_method')
+        .eq('status', 'pending')
+        .gte('created_at', since.toISOString()),
+      supabase
+        .from('orders')
+        .select('id', { count: 'exact', head: true })
+        .like('payment_method', 'scheduled|%'),
+    ]);
+
+    if (pendingRows) {
+      const activePending = pendingRows.filter(
+        (o) => !isOrderCancelled(o) && !isScheduledPaymentMethod(o.payment_method)
+      ).length;
+      setLivePendingOrdersCount(activePending);
+    }
+    if (typeof schedCount === 'number') {
+      setLiveScheduledCount(schedCount);
+    }
+  }, [supabase]);
+
+  const refreshComplaintsCount = useCallback(async () => {
+    const { count } = await supabase
+      .from('complaints')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'open');
+    if (typeof count === 'number') {
+      setLiveComplaintsCount(count);
+    }
+  }, [supabase]);
+
+  const refreshNeedsHumanCount = useCallback(async () => {
+    const { count } = await supabase
+      .from('contacts')
+      .select('id', { count: 'exact', head: true })
+      .eq('needs_human', true);
+    if (typeof count === 'number') {
+      setLiveNeedsHumanCount(count);
+    }
+  }, [supabase]);
+
+  useEffect(() => {
+    const channelName = `shell_badges_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const channel = supabase
+      .channel(channelName)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+        refreshOrderCounts();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'complaints' }, () => {
+        refreshComplaintsCount();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'contacts' }, () => {
+        refreshNeedsHumanCount();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase, refreshOrderCounts, refreshComplaintsCount, refreshNeedsHumanCount]);
 
   return (
     <div className="flex min-h-screen w-full overflow-x-hidden bg-slate-50 text-slate-900 dark:bg-[#090D16] dark:text-slate-100 font-sans transition-colors duration-200">
@@ -43,10 +136,10 @@ export function DashboardShell({
         role={user.role}
         permissions={user.permissions}
         restaurantName={restaurantName}
-        issueOrdersCount={issueOrdersCount}
-        scheduledOrdersCount={scheduledOrdersCount}
-        openComplaintsCount={openComplaintsCount}
-        needsHumanCount={needsHumanCount}
+        issueOrdersCount={livePendingOrdersCount}
+        scheduledOrdersCount={liveScheduledCount}
+        openComplaintsCount={liveComplaintsCount}
+        needsHumanCount={liveNeedsHumanCount}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
       />
@@ -63,10 +156,10 @@ export function DashboardShell({
         <MobileNavTabs
           role={user.role}
           permissions={user.permissions}
-          issueOrdersCount={issueOrdersCount}
-          scheduledOrdersCount={scheduledOrdersCount}
-          openComplaintsCount={openComplaintsCount}
-          needsHumanCount={needsHumanCount}
+          issueOrdersCount={livePendingOrdersCount}
+          scheduledOrdersCount={liveScheduledCount}
+          openComplaintsCount={liveComplaintsCount}
+          needsHumanCount={liveNeedsHumanCount}
           onOpenDrawer={() => setIsSidebarOpen(true)}
         />
 

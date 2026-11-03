@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase/server';
 import { RealtimeAudioProvider } from '@/components/providers/RealtimeAudioProvider';
 import { DashboardShell } from '@/components/layout/DashboardShell';
 import { extractStaffAuth } from '@/lib/role-guard';
+import { isOrderCancelled } from '@/lib/utils';
+import { isScheduledPaymentMethod } from '@/lib/scheduled-orders';
 
 const DEFAULT_RESTAURANT_NAME = 'تشيكن مراعي';
 
@@ -46,8 +48,12 @@ export default async function DashboardLayout({
   const { displayRole, permissions } = extractStaffAuth(user, profile);
 
   // Operational badge counts + restaurant name + bot status, in parallel.
+  const since = new Date();
+  since.setHours(0, 0, 0, 0);
+  since.setDate(since.getDate() - 8);
+
   const [
-    { count: issueOrdersCount },
+    { data: pendingOrdersRows },
     { count: scheduledOrdersCount },
     { count: openComplaintsCount },
     { count: needsHumanCount },
@@ -56,9 +62,9 @@ export default async function DashboardLayout({
   ] = await Promise.all([
     supabase
       .from('orders')
-      .select('id', { count: 'exact', head: true })
+      .select('id, status, payment_method')
       .eq('status', 'pending')
-      .not('payment_method', 'like', 'scheduled|%'),
+      .gte('created_at', since.toISOString()),
     supabase
       .from('orders')
       .select('id', { count: 'exact', head: true })
@@ -74,6 +80,10 @@ export default async function DashboardLayout({
     supabase.rpc('get_public_settings'),
     supabase.from('bot_settings').select('bot_enabled').limit(1).maybeSingle(),
   ]);
+
+  const issueOrdersCount = (pendingOrdersRows || []).filter(
+    (o) => !isOrderCancelled(o) && !isScheduledPaymentMethod(o.payment_method)
+  ).length;
 
   const userProfile = {
     id: user.id,
