@@ -110,22 +110,50 @@ export function DashboardShell({
   }, [supabase]);
 
   useEffect(() => {
-    const channelName = `shell_badges_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-    const channel = supabase
-      .channel(channelName)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
-        refreshOrderCounts();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'complaints' }, () => {
-        refreshComplaintsCount();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'contacts' }, () => {
-        refreshNeedsHumanCount();
-      })
-      .subscribe();
+    let isMounted = true;
+    let activeChannel: ReturnType<typeof supabase.channel> | null = null;
+
+    const setupShellRealtime = async () => {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          supabase.realtime.setAuth(session.access_token);
+        }
+      } catch {}
+
+      if (!isMounted) return;
+
+      const channelName = `shell_badges_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+      activeChannel = supabase
+        .channel(channelName)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+          refreshOrderCounts();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'complaints' }, () => {
+          refreshComplaintsCount();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'contacts' }, () => {
+          refreshNeedsHumanCount();
+        })
+        .subscribe();
+    };
+
+    setupShellRealtime();
+
+    const interval = setInterval(() => {
+      refreshOrderCounts();
+      refreshComplaintsCount();
+      refreshNeedsHumanCount();
+    }, 8000);
 
     return () => {
-      supabase.removeChannel(channel);
+      isMounted = false;
+      clearInterval(interval);
+      if (activeChannel) {
+        supabase.removeChannel(activeChannel);
+      }
     };
   }, [supabase, refreshOrderCounts, refreshComplaintsCount, refreshNeedsHumanCount]);
 

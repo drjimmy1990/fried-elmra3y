@@ -14,48 +14,37 @@ export const revalidate = 0;
 export default async function ScheduledOrdersPage() {
   const supabase = await createClient();
 
-  const { data: orders, error: ordersError } = await supabase
-    .from('orders')
-    .select('*')
-    .like('payment_method', 'scheduled|%')
-    .order('created_at', { ascending: false })
-    .limit(500);
+  const [{ data: orders, error: ordersError }, { data: branches }, { data: offers }] =
+    await Promise.all([
+      supabase
+        .from('orders')
+        .select('*, order_items(*)')
+        .like('payment_method', 'scheduled|%')
+        .order('created_at', { ascending: false })
+        .limit(500),
+      supabase
+        .from('branches')
+        .select('id, name')
+        .eq('is_active', true)
+        .order('name'),
+      supabase
+        .from('offers')
+        .select('id, title, price_after')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false }),
+    ]);
 
   if (ordersError) {
     console.error('Failed to fetch scheduled orders:', ordersError);
   }
 
-  const rawOrders: OrderRow[] = orders || [];
-  const orderIds = rawOrders.map((o) => o.id);
-
-  let rawItems: OrderItemRow[] = [];
-  if (orderIds.length > 0) {
-    const { data: items } = await supabase
-      .from('order_items')
-      .select('*')
-      .in('order_id', orderIds);
-    rawItems = items || [];
-  }
-
-  const [{ data: branches }, { data: offers }] = await Promise.all([
-    supabase
-      .from('branches')
-      .select('id, name')
-      .eq('is_active', true)
-      .order('name'),
-    supabase
-      .from('offers')
-      .select('id, title, price_after')
-      .eq('is_active', true)
-      .order('created_at', { ascending: false }),
-  ]);
-
+  const rawOrders = (orders || []) as (OrderRow & { order_items?: OrderItemRow[] })[];
   const activeBranches = branches || [];
   const activeOffers = offers || [];
 
   const initialOrders: OrderWithItems[] = rawOrders.map((order) => ({
     ...order,
-    order_items: rawItems.filter((item) => item.order_id === order.id),
+    order_items: Array.isArray(order.order_items) ? order.order_items : [],
     branch: activeBranches.find((b) => b.id === order.branch_id) || null,
     offer: activeOffers.find((o) => o.id === order.offer_id) || null,
   }));

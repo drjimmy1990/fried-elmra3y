@@ -125,10 +125,19 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
         setSelectedOrder(found);
       } else {
         const fetchMissing = async () => {
-          const { data } = await supabase.from('orders').select('*').eq('id', id).single();
+          const { data } = await supabase
+            .from('orders')
+            .select('*, order_items(*)')
+            .eq('id', id)
+            .single();
           if (data) {
-            const { data: items } = await supabase.from('order_items').select('*').eq('order_id', id);
-            const fullOrder = { ...(data as any), order_items: (items as any) || [] } as OrderWithItems;
+            const raw = data as any;
+            const fullOrder: OrderWithItems = {
+              ...raw,
+              order_items: Array.isArray(raw.order_items) ? raw.order_items : [],
+              branch: branchesList.find((b) => b.id === raw.branch_id) || null,
+              offer: offersList.find((of) => of.id === raw.offer_id) || null,
+            };
             setSelectedOrder(fullOrder);
             setOrders((prev) => (prev.some((x) => x.id === fullOrder.id) ? prev : [fullOrder, ...prev]));
           }
@@ -156,20 +165,14 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
 
         const { data: custOrders } = await supabase
           .from('orders')
-          .select('*')
+          .select('*, order_items(*)')
           .or(orClauses.join(','))
           .order('created_at', { ascending: false });
 
         if (custOrders && custOrders.length > 0) {
-          const ids = custOrders.map((o) => o.id);
-          const { data: items } = await supabase
-            .from('order_items')
-            .select('*')
-            .in('order_id', ids);
-
-          const enrichedList: OrderWithItems[] = custOrders.map((ord) => ({
+          const enrichedList: OrderWithItems[] = (custOrders as any[]).map((ord) => ({
             ...ord,
-            order_items: (items || []).filter((it) => it.order_id === ord.id),
+            order_items: Array.isArray(ord.order_items) ? ord.order_items : [],
             branch: branchesList.find((b) => b.id === ord.branch_id) || null,
             offer: offersList.find((of) => of.id === ord.offer_id) || null,
           }));
@@ -192,17 +195,17 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
     }
   }, [searchParams, supabase, branchesList, offersList]);
 
-  // Complaint tracking for visible orders
+  // Complaint tracking for orders (avoid .in('order_id', ids) which overflows URL headers when >300 orders)
   const [complaintsMap, setComplaintsMap] = useState<Record<string, any[]>>({});
 
   useEffect(() => {
     const fetchComplaints = async () => {
-      const ids = orders.map((o) => o.id);
-      if (ids.length === 0) return;
       const { data } = await supabase
         .from('complaints')
         .select('id, ticket_number, order_id, status')
-        .in('order_id', ids);
+        .not('order_id', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(1000);
 
       if (data) {
         const map: Record<string, any[]> = {};
@@ -216,7 +219,7 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
       }
     };
     fetchComplaints();
-  }, [orders, supabase]);
+  }, [supabase]);
 
   // Restaurant name for thermal receipt
   const [restaurantName, setRestaurantName] = useState('المطعم');
@@ -246,114 +249,249 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
     }
   }, [initialOrders]);
 
-  // Realtime subscription on orders and complaints
+  // Realtime subscription on orders and complaints + 4-second live background sync
   useEffect(() => {
-    const channelName = `realtime_orders_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'orders',
-        },
-        (payload) => {
-          setIsRealtimeActive(true);
+    let isMounted = true;
+    let activeChannel: ReturnType<typeof supabase.channel> | null = null;
+    const retryTimers: ReturnType<typeof setTimeout>[] = [];
 
-          if (payload.eventType === 'INSERT') {
-            const newOrder = payload.new as OrderRow;
+    const fetchItemsWithRetries = (orderId: string) => {
+      const fetchOnce = async () => {
+        if (!isMounted) return;
+        try {
+          const { data: items, error } = await supabase
+            .from('order_items')
+            .select('*')
+            .eq('order_id', orderId);
 
-            // Construct full order immediately with zero delay
-            const fullOrder: OrderWithItems = {
-              ...newOrder,
-              order_items: [],
-              branch: branchesList.find((b) => b.id === newOrder.branch_id) || null,
-              offer: offersList.find((o) => o.id === newOrder.offer_id) || null,
-            };
-
-            // 1. Immediately prepend order to state so card appears instantly with 0ms latency
-            setOrders((prev) => {
-              if (prev.some((o) => o.id === newOrder.id)) {
-                return prev.map((o) => (o.id === newOrder.id ? { ...o, ...newOrder } : o));
-              }
-              return [fullOrder, ...prev];
-            });
-
-            // 2. Fetch order items asynchronously in background without blocking card rendering
-            const fetchItems = async () => {
-              try {
-                const { data: items, error } = await supabase
-                  .from('order_items')
-                  .select('*')
-                  .eq('order_id', newOrder.id);
-
-                if (!error && items && items.length > 0) {
-                  setOrders((prev) =>
-                    prev.map((o) =>
-                      o.id === newOrder.id ? { ...o, order_items: items as any } : o
-                    )
-                  );
-                  setSelectedOrder((prev) =>
-                    prev?.id === newOrder.id ? { ...prev, order_items: items as any } : prev
-                  );
-                }
-              } catch (err) {
-                console.warn('Non-blocking items fetch warning:', err);
-              }
-            };
-
-            // Immediate fetch
-            fetchItems();
-            // Retry fetch after 1.5s to catch items created in background by n8n
-            setTimeout(fetchItems, 1500);
-          } else if (payload.eventType === 'UPDATE') {
-            const updatedOrder = payload.new as OrderRow;
+          if (!error && items && items.length > 0 && isMounted) {
             setOrders((prev) =>
-              prev.map((o) => (o.id === updatedOrder.id ? { ...o, ...updatedOrder } : o))
+              prev.map((o) => (o.id === orderId ? { ...o, order_items: items as any } : o))
             );
             setSelectedOrder((prev) =>
-              prev?.id === updatedOrder.id ? { ...prev, ...updatedOrder } : prev
+              prev?.id === orderId ? { ...prev, order_items: items as any } : prev
             );
-          } else if (payload.eventType === 'DELETE') {
-            setOrders((prev) => prev.filter((o) => o.id !== payload.old.id));
           }
+        } catch (err) {
+          console.warn('Non-blocking items fetch warning:', err);
         }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'complaints',
-        },
-        (payload) => {
-          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            const c = payload.new as any;
-            if (!c.order_id) return;
-            setComplaintsMap((prev) => {
-              const orderComplaints = prev[c.order_id] || [];
-              const exists = orderComplaints.some((x) => x.id === c.id);
-              if (exists) {
-                return { ...prev, [c.order_id]: orderComplaints.map((x) => (x.id === c.id ? c : x)) };
-              } else {
-                return { ...prev, [c.order_id]: [...orderComplaints, c] };
-              }
-            });
-          }
-        }
-      )
-      .subscribe((status, err) => {
-        if (status === 'SUBSCRIBED') {
-          setIsRealtimeActive(true);
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          console.warn(`Realtime channel status: ${status}`, err);
-          setIsRealtimeActive(false);
-        }
+      };
+
+      // Immediate + staggered retries to catch n8n Create a row6 (which runs 1-4s after Create a row5)
+      fetchOnce();
+      [1000, 2500, 5000].forEach((delay) => {
+        retryTimers.push(setTimeout(fetchOnce, delay));
       });
+    };
+
+    const syncLatestOrders = async () => {
+      if (!isMounted) return;
+      try {
+        const { data, error } = await supabase
+          .from('orders')
+          .select('*, order_items(*)')
+          .order('created_at', { ascending: false })
+          .limit(35);
+
+        if (error || !data || !isMounted) return;
+
+        const latestRows = data as (OrderRow & { order_items?: any[] })[];
+
+        setOrders((prev) => {
+          let changed = false;
+          const prevMap = new Map(prev.map((o) => [o.id, o]));
+          const newlyDiscovered: OrderWithItems[] = [];
+
+          for (const row of latestRows) {
+            const incomingItems = Array.isArray(row.order_items) ? row.order_items : [];
+            const existing = prevMap.get(row.id);
+
+            if (!existing) {
+              changed = true;
+              newlyDiscovered.push({
+                ...row,
+                order_items: incomingItems,
+                branch: branchesList.find((b) => b.id === row.branch_id) || null,
+                offer: offersList.find((of) => of.id === row.offer_id) || null,
+              });
+            } else {
+              const existingItemsCount = existing.order_items?.length || 0;
+              const statusChanged = existing.status !== row.status;
+              const paymentChanged = existing.payment_method !== row.payment_method;
+              const totalChanged = Number(existing.total_amount) !== Number(row.total_amount);
+              const notesChanged = existing.customer_notes !== row.customer_notes;
+              const itemsArrived =
+                incomingItems.length > 0 &&
+                (incomingItems.length !== existingItemsCount ||
+                  JSON.stringify(incomingItems) !== JSON.stringify(existing.order_items || []));
+
+              if (statusChanged || paymentChanged || totalChanged || notesChanged || itemsArrived) {
+                changed = true;
+                prevMap.set(row.id, {
+                  ...existing,
+                  ...row,
+                  order_items: incomingItems.length > 0 ? incomingItems : existing.order_items || [],
+                  branch: branchesList.find((b) => b.id === row.branch_id) || existing.branch || null,
+                  offer: offersList.find((of) => of.id === row.offer_id) || existing.offer || null,
+                });
+              }
+            }
+          }
+
+          if (!changed) return prev;
+          const combined = [...newlyDiscovered, ...Array.from(prevMap.values())];
+          return combined.sort(
+            (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          );
+        });
+
+        setSelectedOrder((prevSelected) => {
+          if (!prevSelected) return prevSelected;
+          const match = latestRows.find((r) => r.id === prevSelected.id);
+          if (!match) return prevSelected;
+          const incomingItems = Array.isArray(match.order_items) ? match.order_items : [];
+          return {
+            ...prevSelected,
+            ...match,
+            order_items: incomingItems.length > 0 ? incomingItems : prevSelected.order_items || [],
+          };
+        });
+      } catch (err) {
+        console.warn('Background orders sync warning:', err);
+      }
+    };
+
+    const setupRealtime = async () => {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          supabase.realtime.setAuth(session.access_token);
+        }
+      } catch {}
+
+      if (!isMounted) return;
+
+      const channelName = `realtime_orders_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      activeChannel = supabase
+        .channel(channelName)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'orders',
+          },
+          (payload) => {
+            if (!isMounted) return;
+            setIsRealtimeActive(true);
+
+            if (payload.eventType === 'INSERT') {
+              const newOrder = payload.new as OrderRow;
+
+              const fullOrder: OrderWithItems = {
+                ...newOrder,
+                order_items: [],
+                branch: branchesList.find((b) => b.id === newOrder.branch_id) || null,
+                offer: offersList.find((o) => o.id === newOrder.offer_id) || null,
+              };
+
+              setOrders((prev) => {
+                if (prev.some((o) => o.id === newOrder.id)) {
+                  return prev.map((o) => (o.id === newOrder.id ? { ...o, ...newOrder } : o));
+                }
+                return [fullOrder, ...prev];
+              });
+
+              fetchItemsWithRetries(newOrder.id);
+            } else if (payload.eventType === 'UPDATE') {
+              const updatedOrder = payload.new as OrderRow;
+              setOrders((prev) =>
+                prev.map((o) =>
+                  o.id === updatedOrder.id
+                    ? {
+                        ...o,
+                        ...updatedOrder,
+                        branch: branchesList.find((b) => b.id === updatedOrder.branch_id) || o.branch || null,
+                        offer: offersList.find((of) => of.id === updatedOrder.offer_id) || o.offer || null,
+                      }
+                    : o
+                )
+              );
+              setSelectedOrder((prev) =>
+                prev?.id === updatedOrder.id ? { ...prev, ...updatedOrder } : prev
+              );
+              fetchItemsWithRetries(updatedOrder.id);
+            } else if (payload.eventType === 'DELETE') {
+              setOrders((prev) => prev.filter((o) => o.id !== payload.old.id));
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'complaints',
+          },
+          (payload) => {
+            if (!isMounted) return;
+            if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+              const c = payload.new as any;
+              if (!c.order_id) return;
+              setComplaintsMap((prev) => {
+                const orderComplaints = prev[c.order_id] || [];
+                const exists = orderComplaints.some((x) => x.id === c.id);
+                if (exists) {
+                  return { ...prev, [c.order_id]: orderComplaints.map((x) => (x.id === c.id ? c : x)) };
+                } else {
+                  return { ...prev, [c.order_id]: [...orderComplaints, c] };
+                }
+              });
+            }
+          }
+        )
+        .subscribe((status, err) => {
+          if (!isMounted) return;
+          if (status === 'SUBSCRIBED') {
+            setIsRealtimeActive(true);
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+            console.warn(`Realtime channel status: ${status}`, err);
+            // Keep badge active since 4-second live background sync is always running
+            setIsRealtimeActive(true);
+          }
+        });
+    };
+
+    setupRealtime();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.access_token) {
+        supabase.realtime.setAuth(session.access_token);
+      }
+    });
+
+    // Run background sync every 4 seconds + when tab regains focus/visibility
+    const pollInterval = setInterval(syncLatestOrders, 4000);
+    const handleVisibilityOrFocus = () => {
+      if (document.visibilityState === 'visible') {
+        syncLatestOrders();
+      }
+    };
+    window.addEventListener('focus', handleVisibilityOrFocus);
+    document.addEventListener('visibilitychange', handleVisibilityOrFocus);
 
     return () => {
-      supabase.removeChannel(channel);
+      isMounted = false;
+      clearInterval(pollInterval);
+      retryTimers.forEach(clearTimeout);
+      window.removeEventListener('focus', handleVisibilityOrFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+      authListener.subscription.unsubscribe();
+      if (activeChannel) {
+        supabase.removeChannel(activeChannel);
+      }
     };
   }, [supabase, branchesList, offersList]);
 

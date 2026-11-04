@@ -279,117 +279,225 @@ export function RealtimeAudioProvider({
     setNotifications((prev) => prev.filter((item) => item.id !== id));
   }, []);
 
+  const seenOrderIdsRef = useRef<Set<string>>(new Set());
+  const seenComplaintIdsRef = useRef<Set<string>>(new Set());
+
   useEffect(() => {
+    let isMounted = true;
     const supabase = createClient();
-    const channel = supabase.channel('realtime-dashboard-alerts');
+    let activeChannel: ReturnType<typeof supabase.channel> | null = null;
 
     // Filter events based on staff role
     const listenToOrders = role !== 'support_agent';
     const listenToComplaints = role !== 'order_agent';
 
-    if (listenToOrders) {
-      channel.on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'orders' },
-        (payload) => {
-          const newOrder = payload.new as OrderRow;
-          const orderNum = newOrder.order_number || 'جديد';
-          const amount = newOrder.total_amount ? Number(newOrder.total_amount).toFixed(2) : '0';
-          const customer = newOrder.customer_name || 'عميل';
+    const triggerOrderAlert = (newOrder: Partial<OrderRow>) => {
+      if (!newOrder.id || seenOrderIdsRef.current.has(newOrder.id)) return;
+      seenOrderIdsRef.current.add(newOrder.id);
 
-          const notification: AlertNotification = {
-            id: `order-${newOrder.id || Date.now()}`,
-            type: 'order',
-            title: `طلب جديد رقم #${orderNum} 🍗`,
-            message: `طلب جديد بقيمة ${amount} ج.م للعميل ${customer}`,
-            href: '/dashboard/orders',
-            timestamp: new Date(),
+      const orderNum = newOrder.order_number || 'جديد';
+      const amount = newOrder.total_amount ? Number(newOrder.total_amount).toFixed(2) : '0';
+      const customer = newOrder.customer_name || 'عميل';
+
+      const notification: AlertNotification = {
+        id: `order-${newOrder.id}`,
+        type: 'order',
+        title: `طلب جديد رقم #${orderNum} 🍗`,
+        message: `طلب جديد بقيمة ${amount} ج.م للعميل ${customer}`,
+        href: '/dashboard/orders',
+        timestamp: new Date(),
+      };
+
+      // 1. Play Chime
+      playChime();
+
+      // 2. In-app toast stack
+      setNotifications((prev) => [notification, ...prev.slice(0, 4)]);
+
+      // 3. Browser native notification (tab in background / desktop)
+      if (
+        notificationsEnabledRef.current &&
+        typeof window !== 'undefined' &&
+        'Notification' in window &&
+        Notification.permission === 'granted'
+      ) {
+        try {
+          const nativeNotif = new Notification(notification.title, {
+            body: notification.message,
+            icon: '/favicon.ico',
+            tag: notification.id,
+          });
+          nativeNotif.onclick = () => {
+            window.focus();
+            window.location.href = notification.href;
           };
+        } catch (err) {
+          console.warn('Native notification failed:', err);
+        }
+      }
+    };
 
-          // 1. Play Chime
-          playChime();
+    const triggerComplaintAlert = (newComplaint: Partial<ComplaintRow>) => {
+      if (!newComplaint.id || seenComplaintIdsRef.current.has(newComplaint.id)) return;
+      seenComplaintIdsRef.current.add(newComplaint.id);
 
-          // 2. In-app toast stack
-          setNotifications((prev) => [notification, ...prev.slice(0, 4)]);
+      const customer = newComplaint.customer_name || 'عميل';
+      const ticketNum = newComplaint.ticket_number || '';
 
-          // 3. Browser native notification (tab in background / desktop)
-          if (
-            notificationsEnabledRef.current &&
-            typeof window !== 'undefined' &&
-            'Notification' in window &&
-            Notification.permission === 'granted'
-          ) {
-            try {
-              const nativeNotif = new Notification(notification.title, {
-                body: notification.message,
-                icon: '/favicon.ico',
-                tag: notification.id,
-              });
-              nativeNotif.onclick = () => {
-                window.focus();
-                window.location.href = notification.href;
-              };
-            } catch (err) {
-              console.warn('Native notification failed:', err);
+      const notification: AlertNotification = {
+        id: `complaint-${newComplaint.id}`,
+        type: 'complaint',
+        title: `شكوى جديدة ${ticketNum ? `(#${ticketNum})` : ''} ⚠️`,
+        message: `شكوى جديدة من العميل ${customer}!`,
+        href: '/dashboard/complaints',
+        timestamp: new Date(),
+      };
+
+      // 1. Play Chime
+      playChime();
+
+      // 2. In-app toast stack
+      setNotifications((prev) => [notification, ...prev.slice(0, 4)]);
+
+      // 3. Browser native notification
+      if (
+        notificationsEnabledRef.current &&
+        typeof window !== 'undefined' &&
+        'Notification' in window &&
+        Notification.permission === 'granted'
+      ) {
+        try {
+          const nativeNotif = new Notification(notification.title, {
+            body: notification.message,
+            icon: '/favicon.ico',
+            tag: notification.id,
+          });
+          nativeNotif.onclick = () => {
+            window.focus();
+            window.location.href = notification.href;
+          };
+        } catch (err) {
+          console.warn('Native notification failed:', err);
+        }
+      }
+    };
+
+    let baselineInitialized = false;
+    const mountedAtIso = new Date(Date.now() - 15000).toISOString();
+
+    const pollRecentAlerts = async () => {
+      if (!isMounted) return;
+      try {
+        if (!baselineInitialized) {
+          const [ordersRes, complaintsRes] = await Promise.all([
+            listenToOrders
+              ? supabase
+                  .from('orders')
+                  .select('id')
+                  .order('created_at', { ascending: false })
+                  .limit(50)
+              : Promise.resolve({ data: [] as { id: string }[] }),
+            listenToComplaints
+              ? supabase
+                  .from('complaints')
+                  .select('id')
+                  .order('created_at', { ascending: false })
+                  .limit(50)
+              : Promise.resolve({ data: [] as { id: string }[] }),
+          ]);
+
+          (ordersRes.data || []).forEach((o) => seenOrderIdsRef.current.add(o.id));
+          (complaintsRes.data || []).forEach((c) => seenComplaintIdsRef.current.add(c.id));
+          baselineInitialized = true;
+          return;
+        }
+
+        if (listenToOrders) {
+          const { data: recentOrders } = await supabase
+            .from('orders')
+            .select('id, order_number, customer_name, total_amount, created_at')
+            .gte('created_at', mountedAtIso)
+            .order('created_at', { ascending: true })
+            .limit(15);
+
+          if (recentOrders && isMounted) {
+            for (const ord of recentOrders) {
+              if (!seenOrderIdsRef.current.has(ord.id)) {
+                triggerOrderAlert(ord);
+              }
             }
           }
         }
-      );
-    }
 
-    if (listenToComplaints) {
-      channel.on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'complaints' },
-        (payload) => {
-          const newComplaint = payload.new as ComplaintRow;
-          const customer = newComplaint.customer_name || 'عميل';
-          const ticketNum = newComplaint.ticket_number || '';
+        if (listenToComplaints) {
+          const { data: recentComplaints } = await supabase
+            .from('complaints')
+            .select('id, ticket_number, customer_name, created_at')
+            .gte('created_at', mountedAtIso)
+            .order('created_at', { ascending: true })
+            .limit(15);
 
-          const notification: AlertNotification = {
-            id: `complaint-${newComplaint.id || Date.now()}`,
-            type: 'complaint',
-            title: `شكوى جديدة ${ticketNum ? `(#${ticketNum})` : ''} ⚠️`,
-            message: `شكوى جديدة من العميل ${customer}!`,
-            href: '/dashboard/complaints',
-            timestamp: new Date(),
-          };
-
-          // 1. Play Chime
-          playChime();
-
-          // 2. In-app toast stack
-          setNotifications((prev) => [notification, ...prev.slice(0, 4)]);
-
-          // 3. Browser native notification
-          if (
-            notificationsEnabledRef.current &&
-            typeof window !== 'undefined' &&
-            'Notification' in window &&
-            Notification.permission === 'granted'
-          ) {
-            try {
-              const nativeNotif = new Notification(notification.title, {
-                body: notification.message,
-                icon: '/favicon.ico',
-                tag: notification.id,
-              });
-              nativeNotif.onclick = () => {
-                window.focus();
-                window.location.href = notification.href;
-              };
-            } catch (err) {
-              console.warn('Native notification failed:', err);
+          if (recentComplaints && isMounted) {
+            for (const comp of recentComplaints) {
+              if (!seenComplaintIdsRef.current.has(comp.id)) {
+                triggerComplaintAlert(comp);
+              }
             }
           }
         }
-      );
-    }
+      } catch {}
+    };
 
-    channel.subscribe();
+    const initRealtime = async () => {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          supabase.realtime.setAuth(session.access_token);
+        }
+      } catch {}
+
+      await pollRecentAlerts();
+      if (!isMounted) return;
+
+      const channelName = `realtime_dashboard_alerts_${Date.now()}`;
+      activeChannel = supabase.channel(channelName);
+
+      if (listenToOrders) {
+        activeChannel.on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'orders' },
+          (payload) => {
+            if (!isMounted) return;
+            triggerOrderAlert(payload.new as OrderRow);
+          }
+        );
+      }
+
+      if (listenToComplaints) {
+        activeChannel.on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'complaints' },
+          (payload) => {
+            if (!isMounted) return;
+            triggerComplaintAlert(payload.new as ComplaintRow);
+          }
+        );
+      }
+
+      activeChannel.subscribe();
+    };
+
+    initRealtime();
+    const pollInterval = setInterval(pollRecentAlerts, 5000);
 
     return () => {
-      supabase.removeChannel(channel);
+      isMounted = false;
+      clearInterval(pollInterval);
+      if (activeChannel) {
+        supabase.removeChannel(activeChannel);
+      }
     };
   }, [playChime, role]);
 

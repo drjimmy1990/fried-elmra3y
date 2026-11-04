@@ -20,53 +20,40 @@ export default async function OrdersPage() {
   since.setHours(0, 0, 0, 0);
   since.setDate(since.getDate() - 8);
 
-  const { data: orders, error: ordersError } = await supabase
-    .from('orders')
-    .select('*')
-    .gte('created_at', since.toISOString())
-    .order('created_at', { ascending: false })
-    .limit(2000);
+  // Fetch orders WITH embedded order_items in a single query to avoid URL header overflow
+  // when hundreds of order UUIDs would otherwise be passed to .in('order_id', orderIds)
+  const [{ data: orders, error: ordersError }, { data: branches }, { data: offers }] =
+    await Promise.all([
+      supabase
+        .from('orders')
+        .select('*, order_items(*)')
+        .gte('created_at', since.toISOString())
+        .order('created_at', { ascending: false })
+        .limit(2000),
+      supabase
+        .from('branches')
+        .select('id, name')
+        .eq('is_active', true)
+        .order('name'),
+      supabase
+        .from('offers')
+        .select('id, title')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false }),
+    ]);
 
   if (ordersError) {
     console.error('Failed to fetch initial orders:', ordersError);
   }
 
-  const rawOrders: OrderRow[] = orders || [];
-  const orderIds = rawOrders.map((o) => o.id);
-
-  let rawItems: OrderItemRow[] = [];
-  if (orderIds.length > 0) {
-    const { data: items, error: itemsError } = await supabase
-      .from('order_items')
-      .select('*')
-      .in('order_id', orderIds);
-
-    if (itemsError) {
-      console.error('Failed to fetch initial order items:', itemsError);
-    }
-    rawItems = items || [];
-  }
-
-  // Fetch active branches and active offers for filtering and display
-  const { data: branches } = await supabase
-    .from('branches')
-    .select('id, name')
-    .eq('is_active', true)
-    .order('name');
-
-  const { data: offers } = await supabase
-    .from('offers')
-    .select('id, title')
-    .eq('is_active', true)
-    .order('created_at', { ascending: false });
-
+  const rawOrders = (orders || []) as (OrderRow & { order_items?: OrderItemRow[] })[];
   const activeBranches = branches || [];
   const activeOffers = offers || [];
 
   // Combine orders with their associated order items, branch, and offer
   const initialOrders: OrderWithItems[] = rawOrders.map((order) => ({
     ...order,
-    order_items: rawItems.filter((item) => item.order_id === order.id),
+    order_items: Array.isArray(order.order_items) ? order.order_items : [],
     branch: activeBranches.find((b) => b.id === order.branch_id) || null,
     offer: activeOffers.find((o) => o.id === order.offer_id) || null,
   }));
