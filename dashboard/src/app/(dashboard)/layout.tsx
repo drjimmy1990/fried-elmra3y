@@ -7,6 +7,7 @@ import { extractStaffAuth } from '@/lib/role-guard';
 import { isOrderCancelled } from '@/lib/utils';
 import { isScheduledPaymentMethod } from '@/lib/scheduled-orders';
 import { isMergedOrDeclinedModOrder } from '@/lib/order-templates';
+import { isDemoUser } from '@/lib/demo-mode';
 
 const DEFAULT_RESTAURANT_NAME = 'تشيكن مراعي';
 
@@ -106,6 +107,7 @@ export default async function DashboardLayout({
     <RealtimeAudioProvider role={userProfile.role}>
       <DashboardShell
         user={userProfile}
+        isDemo={isDemoUser(user)}
         restaurantName={readRestaurantName(publicSettings)}
         botEnabled={botSettings?.bot_enabled ?? true}
         issueOrdersCount={issueOrdersCount || 0}

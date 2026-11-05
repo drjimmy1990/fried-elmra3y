@@ -3,6 +3,7 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { NextResponse, type NextRequest } from 'next/server';
 import { Database } from '@/types/database.types';
 import { extractStaffAuth, homeRouteForRole, isRouteAllowed } from '@/lib/role-guard';
+import { DEMO_COOKIE_NAME, isDemoUser } from '@/lib/demo-mode';
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -37,16 +38,42 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const isDemo = isDemoUser(user);
+  request.cookies.set(DEMO_COOKIE_NAME, isDemo ? '1' : '0');
+  supabaseResponse.cookies.set(DEMO_COOKIE_NAME, isDemo ? '1' : '0', {
+    path: '/',
+    sameSite: 'lax',
+    httpOnly: false,
+  });
+
   const pathname = request.nextUrl.pathname;
   const redirectTo = (path: string, search = '') => {
-    const url = request.nextUrl.clone();
-    url.pathname = path;
-    url.search = search;
-    return NextResponse.redirect(url);
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = path;
+    redirectUrl.search = search;
+    const res = NextResponse.redirect(redirectUrl);
+    res.cookies.set(DEMO_COOKIE_NAME, isDemo ? '1' : '0', {
+      path: '/',
+      sameSite: 'lax',
+      httpOnly: false,
+    });
+    return res;
   };
 
   // API routes do their own auth checks (and must return JSON, not redirects)
-  if (pathname.startsWith('/api/')) return supabaseResponse;
+  if (pathname.startsWith('/api/')) {
+    if (isDemo && !['GET', 'HEAD', 'OPTIONS'].includes(request.method.toUpperCase())) {
+      return NextResponse.json(
+        {
+          error:
+            'وضع العرض التجريبي (للقراءة فقط): هذا الحساب مخصص لمعاينة النظام ولا يقوم بتعديل البيانات الفعلية للمطعم أو إرسال رسائل للعملاء.',
+          isDemoBlocked: true,
+        },
+        { status: 403 }
+      );
+    }
+    return supabaseResponse;
+  }
 
   if (pathname === '/login') {
     // Signed-in users skip the login page, unless they were bounced for a deactivated account

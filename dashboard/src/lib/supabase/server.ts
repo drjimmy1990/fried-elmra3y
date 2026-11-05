@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { Database } from '@/types/database.types';
+import { createDemoAwareFetch, isDemoFromCookies } from '@/lib/demo-mode';
 
 export async function createClient(): Promise<SupabaseClient<Database>> {
   const cookieStore = await cookies();
@@ -12,6 +13,9 @@ export async function createClient(): Promise<SupabaseClient<Database>> {
     url,
     key,
     {
+      global: {
+        fetch: createDemoAwareFetch(() => isDemoFromCookies(cookieStore.getAll())),
+      },
       cookies: {
         getAll() {
           return cookieStore.getAll();

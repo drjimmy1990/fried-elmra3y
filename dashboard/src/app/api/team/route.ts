@@ -8,6 +8,7 @@ import {
   extractStaffAuth,
   resolveUserPermissions,
 } from '@/lib/role-guard';
+import { DEMO_ACCOUNT_EMAIL, isDemoUser, maskDemoPhone } from '@/lib/demo-mode';
 
 // Helper to initialize service role client when available
 function getAdminClient() {
@@ -61,7 +62,8 @@ export async function GET() {
       return NextResponse.json({ error: authCheck.error }, { status: authCheck.status });
     }
 
-    const { supabase } = authCheck;
+    const { user, supabase } = authCheck;
+    const isDemo = isDemoUser(user);
     const adminClient = getAdminClient();
 
     // 1. Fetch all profiles
@@ -93,11 +95,17 @@ export async function GET() {
     const staff = (profiles || []).map((p) => {
       const authUser = authUserMap.get(p.id);
       const { displayRole, permissions } = extractStaffAuth(authUser, p);
+      const rawEmail = authUser?.email || null;
+      const maskedEmail =
+        isDemo && rawEmail && rawEmail.toLowerCase() !== DEMO_ACCOUNT_EMAIL
+          ? `${rawEmail.slice(0, 2)}••••@khedewy.com`
+          : rawEmail;
       return {
         ...p,
+        phone: isDemo && p.phone ? maskDemoPhone(p.phone) : p.phone,
         role: displayRole,
         permissions,
-        email: authUser?.email || null,
+        email: maskedEmail,
       };
     });
 
