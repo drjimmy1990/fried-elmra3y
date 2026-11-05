@@ -34,6 +34,19 @@ export async function POST(request: NextRequest) {
         return jsonError('الطلب غير موجود', 404);
       }
 
+      // Idempotency guard: if order is already confirmed and not cancelled, avoid sending duplicate Messenger confirmation
+      const pm = order.payment_method || '';
+      const isCancelled = pm === 'cancelled' || pm.startsWith('cancelled|');
+      if (order.status === 'confirmed' && !isCancelled) {
+        return NextResponse.json({
+          success: true,
+          alreadyProcessed: true,
+          order,
+          confirmationSent: false,
+          warning: null,
+        });
+      }
+
       // 4. Update order status to 'confirmed'
       const { data: updatedOrder, error: updateError } = await adminDb
         .from('orders')

@@ -221,7 +221,7 @@ export function OrderDetailsModal({
                   </a>
                   {order.contact_id && (
                     <Link
-                      href={{ pathname: '/dashboard/chat', query: { contactId: order.contact_id } }}
+                      href={{ pathname: '/chat', query: { contactId: order.contact_id } }}
                       className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-xs font-medium border border-indigo-500/20 transition-colors"
                       title="فتح محادثة العميل"
                     >
@@ -424,7 +424,7 @@ export function OrderDetailsModal({
                 {complaints.map(c => (
                   <Link
                     key={c.id}
-                    href={{pathname: '/dashboard/complaints', query: {complaintId: c.id}}}
+                    href={{pathname: '/complaints', query: {complaintId: c.id}}}
                     className="flex flex-col gap-1.5 p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-rose-500/50 transition-colors shadow-xs"
                   >
                     <div className="flex items-center justify-between">

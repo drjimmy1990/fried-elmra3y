@@ -371,12 +371,22 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
               const paymentChanged = existing.payment_method !== row.payment_method;
               const totalChanged = Number(existing.total_amount) !== Number(row.total_amount);
               const notesChanged = existing.customer_notes !== row.customer_notes;
+              const internalNotesChanged = existing.internal_notes !== row.internal_notes;
+              const addressChanged = existing.delivery_address !== row.delivery_address;
               const itemsArrived =
                 incomingItems.length > 0 &&
                 (incomingItems.length !== existingItemsCount ||
                   JSON.stringify(incomingItems) !== JSON.stringify(existing.order_items || []));
 
-              if (statusChanged || paymentChanged || totalChanged || notesChanged || itemsArrived) {
+              if (
+                statusChanged ||
+                paymentChanged ||
+                totalChanged ||
+                notesChanged ||
+                internalNotesChanged ||
+                addressChanged ||
+                itemsArrived
+              ) {
                 changed = true;
                 prevMap.set(row.id, {
                   ...existing,
@@ -401,10 +411,21 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
           const match = latestRows.find((r) => r.id === prevSelected.id);
           if (!match) return prevSelected;
           const incomingItems = Array.isArray(match.order_items) ? match.order_items : [];
+          const hasChanged =
+            match.status !== prevSelected.status ||
+            match.payment_method !== prevSelected.payment_method ||
+            Number(match.total_amount) !== Number(prevSelected.total_amount) ||
+            match.internal_notes !== prevSelected.internal_notes ||
+            match.customer_notes !== prevSelected.customer_notes ||
+            (incomingItems.length > 0 &&
+              incomingItems.length !== (prevSelected.order_items?.length || 0));
+          if (!hasChanged) return prevSelected;
           return {
             ...prevSelected,
             ...match,
             order_items: incomingItems.length > 0 ? incomingItems : prevSelected.order_items || [],
+            branch: branchesList.find((b) => b.id === match.branch_id) || prevSelected.branch || null,
+            offer: offersList.find((of) => of.id === match.offer_id) || prevSelected.offer || null,
           };
         });
 
@@ -991,19 +1012,27 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
           setOrders((prev) =>
             prev.map((o) => {
               if (originalOrder && o.id === originalOrder.id) {
+                const freshItems =
+                  Array.isArray(data.updatedOrder?.order_items) &&
+                  data.updatedOrder.order_items.length > 0
+                    ? data.updatedOrder.order_items
+                    : modOrder.order_items && modOrder.order_items.length > 0
+                    ? modOrder.order_items
+                    : o.order_items;
+                const newBranchId = data.updatedOrder?.branch_id || modOrder.branch_id || o.branch_id;
+                const newOfferId = data.updatedOrder?.offer_id || modOrder.offer_id || o.offer_id;
                 return {
                   ...o,
                   ...(data.updatedOrder || {}),
-                  order_items:
-                    modOrder.order_items && modOrder.order_items.length > 0
-                      ? modOrder.order_items
-                      : o.order_items,
+                  order_items: freshItems,
+                  branch: branchesList.find((b) => b.id === newBranchId) || o.branch || null,
+                  offer: offersList.find((of) => of.id === newOfferId) || o.offer || null,
                   status: 'confirmed',
                 };
               }
               if (o.id === modOrder.id) {
                 return originalOrder
-                  ? { ...o, payment_method: 'mod_merged' }
+                  ? { ...o, payment_method: 'mod_merged', internal_notes: '[MOD_MERGED]' }
                   : {
                       ...o,
                       status: 'confirmed',

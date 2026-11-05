@@ -161,6 +161,16 @@ export function interpolateOrderTemplate(
     .trim();
 }
 
+function normalizeArabicText(input: string): string {
+  return input
+    .toLowerCase()
+    .replace(/[أإآ]/g, 'ا')
+    .replace(/ة/g, 'ه')
+    .replace(/ى/g, 'ي')
+    .replace(/[\u064B-\u065F\u0670]/g, '')
+    .trim();
+}
+
 export function isMergedOrDeclinedModOrder(order?: {
   payment_method?: string | null;
   internal_notes?: string | null;
@@ -177,12 +187,19 @@ export function isOrderModificationRow(order?: {
   payment_method?: string | null;
 } | null): boolean {
   if (!order) return false;
-  const notes = (order.customer_notes || '').trim();
+  if (order.payment_method === 'mod_pending') return true;
+  const rawNotes = (order.customer_notes || '').trim();
+  if (!rawNotes) return false;
+  if (rawNotes.includes('[ORDER_MODIFICATION]')) return true;
+  const norm = normalizeArabicText(rawNotes);
   return (
-    notes.includes('تعديل على الأوردر') ||
-    notes.includes('تعديل على الاوردر') ||
-    notes.startsWith('تعديل:') ||
-    order.payment_method === 'mod_pending'
+    norm.includes('تعديل علي الاوردر') ||
+    norm.includes('تعديل في الاوردر') ||
+    norm.includes('تعديل الاوردر') ||
+    norm.includes('تعديل علي الطلب') ||
+    norm.includes('تعديل الطلب') ||
+    norm.startsWith('تعديل:') ||
+    norm.startsWith('تعديل ')
   );
 }
 
@@ -206,14 +223,18 @@ export function isPendingModificationRequest(order?: {
 
 export function extractModificationSummary(customerNotes?: string | null): string {
   if (!customerNotes) return 'طلب تعديل على الأصناف أو الملاحظات';
-  const cleaned = customerNotes.trim();
+  const cleaned = customerNotes.replace(/\[ORDER_MODIFICATION\]/gi, '').trim();
   const parts = cleaned.split('|').map((p) => p.trim()).filter(Boolean);
   if (parts.length > 0) {
-    return parts[0]
-      .replace(/^تعديل على الأوردر المؤكد\s*:\s*/i, '')
-      .replace(/^تعديل على الاوردر المؤكد\s*:\s*/i, '')
-      .replace(/^تعديل\s*:\s*/i, '')
-      .trim() || cleaned;
+    return (
+      parts[0]
+        .replace(/^تعديل على الأوردر المؤكد\s*:\s*/i, '')
+        .replace(/^تعديل على الاوردر المؤكد\s*:\s*/i, '')
+        .replace(/^تعديل على الأوردر\s*:\s*/i, '')
+        .replace(/^تعديل على الاوردر\s*:\s*/i, '')
+        .replace(/^تعديل\s*:\s*/i, '')
+        .trim() || cleaned
+    );
   }
   return cleaned;
 }
@@ -224,20 +245,23 @@ export function isCustomerCancellationComplaint(complaint?: {
 } | null): boolean {
   if (!complaint) return false;
   if (complaint.status && complaint.status !== 'open') return false;
-  const text = (complaint.issue_description || '').toLowerCase();
-  if (!text) return false;
+  const raw = (complaint.issue_description || '').trim();
+  if (!raw) return false;
+  if (raw.includes('[CANCEL_REQUEST]')) return true;
+  const norm = normalizeArabicText(raw);
   return (
-    text.includes('إلغاء الأوردر') ||
-    text.includes('الغاء الاوردر') ||
-    text.includes('إلغاء الاوردر') ||
-    text.includes('الغاء الأوردر') ||
-    text.includes('إلغاء الطلب') ||
-    text.includes('الغاء الطلب') ||
-    text.includes('طلب عاجل لإلغاء') ||
-    text.includes('يرغب في الإلغاء') ||
-    text.includes('يريد إلغاء') ||
-    text.includes('يريد الغاء') ||
-    text.includes('عايز يلغي') ||
-    text.includes('عايزة تلغي')
+    norm.includes('الغاء الاوردر') ||
+    norm.includes('الغاء اوردر') ||
+    norm.includes('الغاء الطلب') ||
+    norm.includes('الغاء طلب') ||
+    norm.includes('طلب عاجل لالغاء') ||
+    norm.includes('طلب الغاء') ||
+    norm.includes('يرغب في الالغاء') ||
+    norm.includes('يرغب في الغاء') ||
+    norm.includes('يريد الغاء') ||
+    norm.includes('عايز يلغي') ||
+    norm.includes('عايزه تلغي') ||
+    norm.includes('محتاج يلغي') ||
+    norm.includes('محتاجه تلغي')
   );
 }

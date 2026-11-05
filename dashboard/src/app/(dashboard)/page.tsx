@@ -27,6 +27,10 @@ import {
   getComplaintStatusBadge,
   isOrderCancelled,
 } from '@/lib/utils';
+import {
+  isMergedOrDeclinedModOrder,
+  isPendingModificationRequest,
+} from '@/lib/order-templates';
 import { OrderStatus } from '@/types/database.types';
 
 export const revalidate = 0; // Dynamic server component
@@ -51,7 +55,7 @@ export default async function OverviewDashboardPage() {
     // Today's Orders & revenue
     supabase
       .from('orders')
-      .select('id, total_amount, status, payment_method, created_at')
+      .select('id, total_amount, status, payment_method, customer_notes, internal_notes, created_at')
       .gte('created_at', todayISO),
 
     // Open complaints
@@ -75,9 +79,9 @@ export default async function OverviewDashboardPage() {
     // Latest 5 orders
     supabase
       .from('orders')
-      .select('id, order_number, customer_name, customer_phone, total_amount, status, payment_method, created_at')
+      .select('id, order_number, customer_name, customer_phone, total_amount, status, payment_method, customer_notes, internal_notes, created_at')
       .order('created_at', { ascending: false })
-      .limit(5),
+      .limit(10),
 
     // Latest 4 complaints
     supabase
@@ -87,7 +91,12 @@ export default async function OverviewDashboardPage() {
       .limit(4),
   ]);
 
-  const todayOrders = (todayOrdersRes.data || []).filter((o) => !isOrderCancelled(o));
+  const todayOrders = (todayOrdersRes.data || []).filter(
+    (o) =>
+      !isOrderCancelled(o) &&
+      !isMergedOrDeclinedModOrder(o) &&
+      !isPendingModificationRequest(o)
+  );
   const todayPendingCount = todayOrders.filter((o) => o.status === 'pending').length;
   const todayConfirmedCount = todayOrders.filter((o) => o.status === 'confirmed').length;
   const todaySales = todayOrders
@@ -98,7 +107,14 @@ export default async function OverviewDashboardPage() {
   const needsHumanCount = needsHumanRes.data ? needsHumanRes.data.length : 0;
   const commentsTodayCount = commentsTodayRes.data ? commentsTodayRes.data.length : 0;
 
-  const recentOrders = (recentOrdersRes.data || []).filter((o) => !isOrderCancelled(o));
+  const recentOrders = (recentOrdersRes.data || [])
+    .filter(
+      (o) =>
+        !isOrderCancelled(o) &&
+        !isMergedOrDeclinedModOrder(o) &&
+        !isPendingModificationRequest(o)
+    )
+    .slice(0, 5);
   const recentComplaints = recentComplaintsRes.data || [];
 
   // Arabic Date Formatter
@@ -130,14 +146,14 @@ export default async function OverviewDashboardPage() {
 
           <div className="flex flex-wrap items-center gap-3">
             <Link
-              href="/dashboard/orders"
+              href="/orders"
               className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 px-5 py-2.5 text-xs sm:text-sm font-bold text-slate-950 shadow-md shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500 transition active:scale-98"
             >
               <ShoppingBag className="h-4 w-4" />
               <span>لوحة الطلبات (Kanban)</span>
             </Link>
             <Link
-              href="/dashboard/chat"
+              href="/chat"
               className="inline-flex items-center gap-2 rounded-xl bg-white dark:bg-slate-900/90 px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700/80 hover:bg-slate-100 dark:hover:bg-slate-800 transition shadow-xs"
             >
               <MessageSquare className="h-4 w-4 text-amber-500" />
@@ -245,7 +261,7 @@ export default async function OverviewDashboardPage() {
         </div>
 
         <Link
-          href="/dashboard/orders"
+          href="/orders"
           className="inline-flex items-center gap-2 text-xs font-bold text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 transition"
         >
           <span>تفاصيل الطلبات والمبالغ</span>
@@ -261,7 +277,7 @@ export default async function OverviewDashboardPage() {
         </h2>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <Link
-            href="/dashboard/orders"
+            href="/orders"
             className="flex flex-col items-center justify-center rounded-2xl border border-slate-200/90 dark:border-slate-700/80 bg-slate-50/80 dark:bg-slate-950/60 p-5 text-center hover:border-amber-400 dark:hover:border-amber-500/40 hover:bg-amber-50/40 dark:hover:bg-slate-900 hover:shadow-md transition-all group"
           >
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 group-hover:scale-110 transition shadow-xs">
@@ -272,7 +288,7 @@ export default async function OverviewDashboardPage() {
           </Link>
 
           <Link
-            href="/dashboard/menu"
+            href="/menu"
             className="flex flex-col items-center justify-center rounded-2xl border border-slate-200/90 dark:border-slate-700/80 bg-slate-50/80 dark:bg-slate-950/60 p-5 text-center hover:border-emerald-400 dark:hover:border-emerald-500/40 hover:bg-emerald-50/40 dark:hover:bg-slate-900 hover:shadow-md transition-all group"
           >
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition shadow-xs">
@@ -283,7 +299,7 @@ export default async function OverviewDashboardPage() {
           </Link>
 
           <Link
-            href="/dashboard/offers"
+            href="/offers"
             className="flex flex-col items-center justify-center rounded-2xl border border-slate-200/90 dark:border-slate-700/80 bg-slate-50/80 dark:bg-slate-950/60 p-5 text-center hover:border-purple-400 dark:hover:border-purple-500/40 hover:bg-purple-50/40 dark:hover:bg-slate-900 hover:shadow-md transition-all group"
           >
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition shadow-xs">
@@ -294,7 +310,7 @@ export default async function OverviewDashboardPage() {
           </Link>
 
           <Link
-            href="/dashboard/chat"
+            href="/chat"
             className="flex flex-col items-center justify-center rounded-2xl border border-slate-200/90 dark:border-slate-700/80 bg-slate-50/80 dark:bg-slate-950/60 p-5 text-center hover:border-sky-400 dark:hover:border-sky-500/40 hover:bg-sky-50/40 dark:hover:bg-slate-900 hover:shadow-md transition-all group"
           >
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-500/10 border border-sky-500/20 text-sky-600 dark:text-sky-400 group-hover:scale-110 transition shadow-xs">
@@ -316,7 +332,7 @@ export default async function OverviewDashboardPage() {
               <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base">أحدث الطلبات الواردة</h3>
             </div>
             <Link
-              href="/dashboard/orders"
+              href="/orders"
               className="text-xs font-bold text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 transition"
             >
               عرض الكل ({todayOrders.length})
@@ -375,7 +391,7 @@ export default async function OverviewDashboardPage() {
               <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base">أحدث البلاغات والشكاوى</h3>
             </div>
             <Link
-              href="/dashboard/complaints"
+              href="/complaints"
               className="text-xs font-bold text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 transition"
             >
               عرض الكل ({openComplaintsCount})

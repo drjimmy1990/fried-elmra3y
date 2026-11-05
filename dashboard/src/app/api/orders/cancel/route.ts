@@ -31,6 +31,18 @@ export async function POST(request: NextRequest) {
         return jsonError('الطلب غير موجود', 404);
       }
 
+      // Idempotency guard: if order is already cancelled, do not send a duplicate cancellation message
+      const pm = order.payment_method || '';
+      if (pm === 'cancelled' || pm.startsWith('cancelled|')) {
+        return NextResponse.json({
+          success: true,
+          alreadyProcessed: true,
+          order,
+          notificationSent: false,
+          warning: null,
+        });
+      }
+
       const nowIso = new Date().toISOString();
       const updatedInternalNotes = [
         order.internal_notes,

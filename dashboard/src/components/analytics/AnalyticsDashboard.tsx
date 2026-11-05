@@ -36,6 +36,10 @@ import {
   normalizeOrderPricing,
 } from '@/lib/utils';
 import { isScheduledPaymentMethod } from '@/lib/scheduled-orders';
+import {
+  isMergedOrDeclinedModOrder,
+  isPendingModificationRequest,
+} from '@/lib/order-templates';
 import { OrderWithItems } from '@/components/orders/types';
 
 interface BranchInfo {
@@ -243,6 +247,8 @@ export function AnalyticsDashboard({
   // 1. Filter Orders by Date, Branch, Offer, Source
   const periodOrders = useMemo(() => {
     return initialOrders.filter((order) => {
+      if (isMergedOrDeclinedModOrder(order)) return false;
+      if (isPendingModificationRequest(order)) return false;
       if (!matchesDateFilter(order.created_at)) return false;
 
       if (selectedBranchId !== 'all' && order.branch_id !== selectedBranchId) {

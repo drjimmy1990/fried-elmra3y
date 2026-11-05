@@ -57,9 +57,42 @@ export async function POST(request: NextRequest) {
           return jsonError('طلب التعديل غير موجود', 404);
         }
 
-        const modItems = Array.isArray((modOrder as any).order_items)
+        // Idempotency guard: prevent double-merge or duplicate Messenger messages on concurrent clicks
+        const modInotes = modOrder.internal_notes || '';
+        if (
+          modOrder.payment_method === 'mod_merged' ||
+          modOrder.payment_method === 'mod_declined' ||
+          modInotes.includes('[MOD_APPROVED]') ||
+          modInotes.includes('[MOD_DECLINED]') ||
+          modInotes.includes('[MOD_MERGED]')
+        ) {
+          return NextResponse.json({
+            success: true,
+            alreadyProcessed: true,
+            action,
+            requestType: 'modification',
+            updatedOrder: modOrder,
+            notificationSent: false,
+            warning: null,
+          });
+        }
+
+        let modItems = Array.isArray((modOrder as any).order_items)
           ? (modOrder as any).order_items
           : [];
+
+        // Race-condition guard: if n8n is still inserting order_items (Create a row6), wait 1.2s and re-fetch
+        if (action === 'approve' && modItems.length === 0) {
+          await new Promise((resolve) => setTimeout(resolve, 1200));
+          const { data: retryItems } = await adminDb
+            .from('order_items')
+            .select('*')
+            .eq('order_id', modOrderId);
+          if (retryItems && retryItems.length > 0) {
+            modItems = retryItems;
+          }
+        }
+
         const modSummary = extractModificationSummary(modOrder.customer_notes);
 
         if (action === 'approve') {
@@ -69,17 +102,16 @@ export async function POST(request: NextRequest) {
           if (originalOrderId && originalOrderId !== modOrderId) {
             const { data: origOrder } = await adminDb
               .from('orders')
-              .select('*')
+              .select('*, order_items(id)')
               .eq('id', originalOrderId)
               .maybeSingle();
 
             if (origOrder) {
-              // 1. Replace order_items on the original order with the new items
+              // 1. Safe insert-before-delete replacement of order_items on the original order
               if (modItems.length > 0) {
-                await adminDb
-                  .from('order_items')
-                  .delete()
-                  .eq('order_id', origOrder.id);
+                const existingItemIds: string[] = Array.isArray((origOrder as any).order_items)
+                  ? (origOrder as any).order_items.map((it: any) => it.id).filter(Boolean)
+                  : [];
 
                 const newItemsPayload = modItems.map((it: any) => ({
                   order_id: origOrder.id,
@@ -90,7 +122,21 @@ export async function POST(request: NextRequest) {
                   notes: it.notes || null,
                 }));
 
-                await adminDb.from('order_items').insert(newItemsPayload);
+                const { error: insertErr } = await adminDb
+                  .from('order_items')
+                  .insert(newItemsPayload);
+
+                if (insertErr) {
+                  console.error('Failed to insert modified order_items:', insertErr);
+                  return jsonError('فشل تحديث أصناف الأوردر الأصلي', 500);
+                }
+
+                if (existingItemIds.length > 0) {
+                  await adminDb
+                    .from('order_items')
+                    .delete()
+                    .in('id', existingItemIds);
+                }
               }
 
               // 2. Update original order totals, notes, and confirm it
@@ -267,6 +313,19 @@ export async function POST(request: NextRequest) {
 
       if (compErr || !complaint) {
         return jsonError('طلب الإلغاء غير موجود', 404);
+      }
+
+      // Idempotency guard: if this cancellation ticket was already resolved by another staff member/tab
+      if (complaint.status === 'resolved') {
+        return NextResponse.json({
+          success: true,
+          alreadyProcessed: true,
+          action,
+          requestType: 'cancellation',
+          complaintId: complaint.id,
+          notificationSent: false,
+          warning: null,
+        });
       }
 
       const targetOrderId = orderId || complaint.order_id || null;

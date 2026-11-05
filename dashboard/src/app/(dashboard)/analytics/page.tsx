@@ -27,7 +27,7 @@ export default async function AnalyticsPage() {
   ] = await Promise.all([
     supabase
       .from('orders')
-      .select('*')
+      .select('*, order_items(*)')
       .order('created_at', { ascending: false })
       .limit(5000),
     supabase
@@ -67,43 +67,16 @@ export default async function AnalyticsPage() {
       .limit(2000),
   ]);
 
-  const rawOrders: OrderRow[] = ordersRes.data || [];
-  const orderIds = rawOrders.map((o) => o.id);
-
-  let rawItems: OrderItemRow[] = [];
-  if (orderIds.length > 0) {
-    // Fetch in chunks of 500 if large
-    const chunks: string[][] = [];
-    for (let i = 0; i < orderIds.length; i += 500) {
-      chunks.push(orderIds.slice(i, i + 500));
-    }
-    const chunkResults = await Promise.all(
-      chunks.map((chunk) =>
-        supabase.from('order_items').select('*').in('order_id', chunk)
-      )
-    );
-    for (const r of chunkResults) {
-      if (r.data) {
-        rawItems.push(...r.data);
-      }
-    }
-  }
+  const rawOrders = (ordersRes.data || []) as (OrderRow & { order_items?: OrderItemRow[] })[];
 
   const branches = branchesRes.data || [];
   const offers = offersRes.data || [];
   const branchMap = new Map(branches.map((b) => [b.id, b]));
   const offerMap = new Map(offers.map((o) => [o.id, o]));
 
-  const itemsByOrder = new Map<string, OrderItemRow[]>();
-  for (const item of rawItems) {
-    const existing = itemsByOrder.get(item.order_id) || [];
-    existing.push(item);
-    itemsByOrder.set(item.order_id, existing);
-  }
-
   const initialOrders: OrderWithItems[] = rawOrders.map((order) => ({
     ...order,
-    order_items: itemsByOrder.get(order.id) || [],
+    order_items: Array.isArray(order.order_items) ? order.order_items : [],
     branch: order.branch_id ? branchMap.get(order.branch_id) || null : null,
     offer: order.offer_id ? offerMap.get(order.offer_id) || null : null,
   }));

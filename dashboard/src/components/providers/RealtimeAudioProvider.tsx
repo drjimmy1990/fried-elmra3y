@@ -304,7 +304,7 @@ export function RealtimeAudioProvider({
         type: 'order',
         title: `طلب جديد رقم #${orderNum} 🍗`,
         message: `طلب جديد بقيمة ${amount} ج.م للعميل ${customer}`,
-        href: '/dashboard/orders',
+        href: '/orders',
         timestamp: new Date(),
       };
 
@@ -349,7 +349,7 @@ export function RealtimeAudioProvider({
         type: 'complaint',
         title: `شكوى جديدة ${ticketNum ? `(#${ticketNum})` : ''} ⚠️`,
         message: `شكوى جديدة من العميل ${customer}!`,
-        href: '/dashboard/complaints',
+        href: '/complaints',
         timestamp: new Date(),
       };
 
@@ -533,7 +533,7 @@ export function RealtimeAudioProvider({
             type: 'scheduled_order',
             title: `⏰ حان موعد تحضير طلب مجدول #${ord.order_number}`,
             message: `العميل: ${ord.customer_name} — موعد التوصيل الفعلي: ${deliveryTimeFormatted}`,
-            href: '/dashboard/scheduled-orders',
+            href: '/scheduled-orders',
             timestamp: now,
           };
 
