@@ -22,25 +22,35 @@ export default async function OrdersPage() {
 
   // Fetch orders WITH embedded order_items in a single query to avoid URL header overflow
   // when hundreds of order UUIDs would otherwise be passed to .in('order_id', orderIds)
-  const [{ data: orders, error: ordersError }, { data: branches }, { data: offers }] =
-    await Promise.all([
-      supabase
-        .from('orders')
-        .select('*, order_items(*)')
-        .gte('created_at', since.toISOString())
-        .order('created_at', { ascending: false })
-        .limit(2000),
-      supabase
-        .from('branches')
-        .select('id, name')
-        .eq('is_active', true)
-        .order('name'),
-      supabase
-        .from('offers')
-        .select('id, title')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false }),
-    ]);
+  const [
+    { data: orders, error: ordersError },
+    { data: branches },
+    { data: offers },
+    { data: openComplaints },
+  ] = await Promise.all([
+    supabase
+      .from('orders')
+      .select('*, order_items(*)')
+      .gte('created_at', since.toISOString())
+      .order('created_at', { ascending: false })
+      .limit(2000),
+    supabase
+      .from('branches')
+      .select('id, name')
+      .eq('is_active', true)
+      .order('name'),
+    supabase
+      .from('offers')
+      .select('id, title')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('complaints')
+      .select('id, ticket_number, contact_id, customer_name, customer_phone, issue_description, status, order_id, created_at')
+      .eq('status', 'open')
+      .order('created_at', { ascending: false })
+      .limit(500),
+  ]);
 
   if (ordersError) {
     console.error('Failed to fetch initial orders:', ordersError);
@@ -64,6 +74,7 @@ export default async function OrdersPage() {
         initialOrders={initialOrders}
         branches={activeBranches}
         offers={activeOffers}
+        initialOpenComplaints={openComplaints || []}
       />
     </div>
   );

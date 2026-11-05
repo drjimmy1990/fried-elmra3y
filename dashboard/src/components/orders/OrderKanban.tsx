@@ -62,6 +62,7 @@ interface OrderKanbanProps {
   initialOrders: OrderWithItems[];
   branches?: { id: string; name: string }[];
   offers?: { id: string; title: string }[];
+  initialOpenComplaints?: any[];
 }
 
 const KANBAN_COLUMNS: KanbanColumnDef[] = [
@@ -87,7 +88,12 @@ const KANBAN_COLUMNS: KanbanColumnDef[] = [
   },
 ];
 
-export function OrderKanban({ initialOrders, branches = [], offers = [] }: OrderKanbanProps) {
+export function OrderKanban({
+  initialOrders,
+  branches = [],
+  offers = [],
+  initialOpenComplaints = [],
+}: OrderKanbanProps) {
   const [orders, setOrders] = useState<OrderWithItems[]>(initialOrders);
   const [searchQuery, setSearchQuery] = useState('');
   const [dateFilter, setDateFilter] = useState<DateFilterType>('all');
@@ -218,7 +224,7 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
 
   // Complaint tracking for orders & open customer cancellation requests
   const [complaintsMap, setComplaintsMap] = useState<Record<string, any[]>>({});
-  const [openComplaints, setOpenComplaints] = useState<any[]>([]);
+  const [openComplaints, setOpenComplaints] = useState<any[]>(initialOpenComplaints);
   const [orderTemplates, setOrderTemplates] = useState<OrderMessageTemplates>(
     DEFAULT_ORDER_MESSAGE_TEMPLATES
   );
@@ -251,7 +257,7 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
           .select('id, ticket_number, contact_id, customer_name, customer_phone, issue_description, status, order_id, created_at')
           .eq('status', 'open')
           .order('created_at', { ascending: false })
-          .limit(100),
+          .limit(500),
       ]);
 
       if (linkedData) {
@@ -435,7 +441,7 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
           .select('id, ticket_number, contact_id, customer_name, customer_phone, issue_description, status, order_id, created_at')
           .eq('status', 'open')
           .order('created_at', { ascending: false })
-          .limit(50);
+          .limit(500);
 
         if (openComps && isMounted) {
           setOpenComplaints(openComps);
