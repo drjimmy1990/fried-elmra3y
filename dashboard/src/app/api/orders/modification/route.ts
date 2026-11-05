@@ -140,9 +140,13 @@ export async function POST(request: NextRequest) {
               }
 
               // 2. Update original order totals, notes, and confirm it
+              const modRefSuffix =
+                modOrder.order_number && modOrder.order_number !== origOrder.order_number
+                  ? ` من طلب #${modOrder.order_number}`
+                  : '';
               const mergedInternalNotes = [
                 origOrder.internal_notes,
-                `[MOD_APPROVED] تم اعتماد ودمج التعديل من طلب #${modOrder.order_number}: ${modSummary}`,
+                `[MOD_APPROVED] تم اعتماد ودمج التعديل${modRefSuffix}: ${modSummary}`,
               ]
                 .filter(Boolean)
                 .join(' | ');
