@@ -6,3 +6,4 @@ node_modules/
 !.env.example
 cre.txt
 .DS_Store
+supabase-backup/
