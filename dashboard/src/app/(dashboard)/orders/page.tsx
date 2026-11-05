@@ -14,14 +14,11 @@ export const revalidate = 0; // Dynamic server component
 export default async function OrdersPage() {
   const supabase = await createClient();
 
-  // Last 8 days covers the board's date filters (today / yesterday / last 7 days).
-  // Older orders are opened on demand via ?orderId= deep links.
-  const since = new Date();
-  since.setHours(0, 0, 0, 0);
-  since.setDate(since.getDate() - 8);
+  // Fast initial load: fetch only Today's operational window (last 30 hours to cover late-night Cairo shifts).
+  // Historical orders (Yesterday / Last 7 Days / All) are lazy-loaded on demand when staff switches the filter tab.
+  const since = new Date(Date.now() - 30 * 60 * 60 * 1000);
 
-  // Fetch orders WITH embedded order_items in a single query to avoid URL header overflow
-  // when hundreds of order UUIDs would otherwise be passed to .in('order_id', orderIds)
+  // Fetch today's orders WITH embedded order_items in a single query
   const [
     { data: orders, error: ordersError },
     { data: branches },
@@ -33,7 +30,7 @@ export default async function OrdersPage() {
       .select('*, order_items(*)')
       .gte('created_at', since.toISOString())
       .order('created_at', { ascending: false })
-      .limit(2000),
+      .limit(300),
     supabase
       .from('branches')
       .select('id, name')
@@ -48,8 +45,9 @@ export default async function OrdersPage() {
       .from('complaints')
       .select('id, ticket_number, contact_id, customer_name, customer_phone, issue_description, status, order_id, created_at')
       .eq('status', 'open')
+      .gte('created_at', since.toISOString())
       .order('created_at', { ascending: false })
-      .limit(500),
+      .limit(200),
   ]);
 
   if (ordersError) {

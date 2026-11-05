@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   Search,
   LayoutGrid,
@@ -96,7 +96,9 @@ export function OrderKanban({
 }: OrderKanbanProps) {
   const [orders, setOrders] = useState<OrderWithItems[]>(initialOrders);
   const [searchQuery, setSearchQuery] = useState('');
-  const [dateFilter, setDateFilter] = useState<DateFilterType>('all');
+  const [dateFilter, setDateFilter] = useState<DateFilterType>('today');
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const hasLoadedHistoryRef = useRef(false);
   const [selectedBranchId, setSelectedBranchId] = useState<string>('all');
   const [selectedOfferId, setSelectedOfferId] = useState<string>('all');
   const [viewMode, setViewMode] = useState<ViewMode>('kanban');
@@ -245,19 +247,22 @@ export function OrderKanban({
 
   useEffect(() => {
     const fetchComplaints = async () => {
+      const since30h = new Date(Date.now() - 30 * 60 * 60 * 1000).toISOString();
       const [{ data: linkedData }, { data: openData }] = await Promise.all([
         supabase
           .from('complaints')
           .select('id, ticket_number, order_id, status')
           .not('order_id', 'is', null)
+          .gte('created_at', since30h)
           .order('created_at', { ascending: false })
-          .limit(1000),
+          .limit(300),
         supabase
           .from('complaints')
           .select('id, ticket_number, contact_id, customer_name, customer_phone, issue_description, status, order_id, created_at')
           .eq('status', 'open')
+          .gte('created_at', since30h)
           .order('created_at', { ascending: false })
-          .limit(500),
+          .limit(200),
       ]);
 
       if (linkedData) {
@@ -272,11 +277,95 @@ export function OrderKanban({
       }
 
       if (openData) {
-        setOpenComplaints(openData);
+        setOpenComplaints((prev) => {
+          const byId = new Map(prev.map((c) => [c.id, c]));
+          for (const item of openData) {
+            byId.set(item.id, item);
+          }
+          return Array.from(byId.values()).sort(
+            (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          );
+        });
       }
     };
     fetchComplaints();
   }, [supabase]);
+
+  // Lazy-load 8-day historical orders & complaints on demand when user switches away from 'today' or searches
+  useEffect(() => {
+    if (dateFilter === 'today' && !searchQuery.trim()) return;
+    if (hasLoadedHistoryRef.current) return;
+    hasLoadedHistoryRef.current = true;
+
+    let active = true;
+    const loadHistory = async () => {
+      setIsLoadingHistory(true);
+      try {
+        const since8d = new Date();
+        since8d.setHours(0, 0, 0, 0);
+        since8d.setDate(since8d.getDate() - 8);
+        const sinceIso = since8d.toISOString();
+
+        const [{ data: histOrders }, { data: histOpenComps }] = await Promise.all([
+          supabase
+            .from('orders')
+            .select('*, order_items(*)')
+            .gte('created_at', sinceIso)
+            .order('created_at', { ascending: false })
+            .limit(1500),
+          supabase
+            .from('complaints')
+            .select('id, ticket_number, contact_id, customer_name, customer_phone, issue_description, status, order_id, created_at')
+            .eq('status', 'open')
+            .gte('created_at', sinceIso)
+            .order('created_at', { ascending: false })
+            .limit(500),
+        ]);
+
+        if (!active) return;
+
+        if (histOrders && histOrders.length > 0) {
+          setOrders((prev) => {
+            const byId = new Map(prev.map((o) => [o.id, o]));
+            for (const row of histOrders as any[]) {
+              if (!byId.has(row.id)) {
+                byId.set(row.id, {
+                  ...row,
+                  order_items: Array.isArray(row.order_items) ? row.order_items : [],
+                  branch: branchesList.find((b) => b.id === row.branch_id) || null,
+                  offer: offersList.find((of) => of.id === row.offer_id) || null,
+                });
+              }
+            }
+            return Array.from(byId.values()).sort(
+              (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            );
+          });
+        }
+
+        if (histOpenComps && histOpenComps.length > 0) {
+          setOpenComplaints((prev) => {
+            const byId = new Map(prev.map((c) => [c.id, c]));
+            for (const c of histOpenComps) {
+              byId.set(c.id, c);
+            }
+            return Array.from(byId.values()).sort(
+              (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            );
+          });
+        }
+      } catch (err) {
+        console.warn('Historical orders lazy-load warning:', err);
+      } finally {
+        if (active) setIsLoadingHistory(false);
+      }
+    };
+
+    loadHistory();
+    return () => {
+      active = false;
+    };
+  }, [dateFilter, searchQuery, supabase, branchesList, offersList]);
 
   // Restaurant name for thermal receipt
   const [restaurantName, setRestaurantName] = useState('المطعم');
@@ -435,16 +524,30 @@ export function OrderKanban({
           };
         });
 
-        // Also sync open complaints for customer cancellation requests
+        // Also sync recent open complaints for customer cancellation requests (merge without dropping older loaded rows)
         const { data: openComps } = await supabase
           .from('complaints')
           .select('id, ticket_number, contact_id, customer_name, customer_phone, issue_description, status, order_id, created_at')
           .eq('status', 'open')
           .order('created_at', { ascending: false })
-          .limit(500);
+          .limit(50);
 
         if (openComps && isMounted) {
-          setOpenComplaints(openComps);
+          setOpenComplaints((prev) => {
+            const byId = new Map(prev.map((c) => [c.id, c]));
+            let compChanged = false;
+            for (const c of openComps) {
+              const existing = byId.get(c.id);
+              if (!existing || existing.status !== c.status || existing.issue_description !== c.issue_description) {
+                byId.set(c.id, c);
+                compChanged = true;
+              }
+            }
+            if (!compChanged) return prev;
+            return Array.from(byId.values())
+              .filter((c) => c.status === 'open')
+              .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+          });
         }
       } catch (err) {
         console.warn('Background orders sync warning:', err);
@@ -611,9 +714,40 @@ export function OrderKanban({
     return isNaN(d.getTime()) ? new Date(dateStr) : d;
   };
 
+  const matchesDateRange = useCallback(
+    (dateStr: string): boolean => {
+      if (dateFilter === 'all') return true;
+      const itemDate = parseOrderDate(dateStr);
+      const now = new Date();
+      const isVeryRecent = Math.abs(now.getTime() - itemDate.getTime()) < 3 * 60 * 60 * 1000;
+
+      if (dateFilter === 'today') {
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+        const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+        return isVeryRecent || (itemDate >= startOfToday && itemDate <= endOfToday);
+      }
+      if (dateFilter === 'yesterday') {
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+        const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
+        return itemDate >= startOfYesterday && itemDate < startOfToday;
+      }
+      if (dateFilter === 'last_7_days') {
+        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        return itemDate >= sevenDaysAgo;
+      }
+      return true;
+    },
+    [dateFilter]
+  );
+
   // Pair pending modification orders with their original orders
   const modificationRequests = useMemo<ModificationRequestPair[]>(() => {
-    const pendingMods = orders.filter((o) => isPendingModificationRequest(o));
+    const pendingMods = orders.filter(
+      (o) =>
+        isPendingModificationRequest(o) &&
+        matchesDateRange(o.created_at) &&
+        (selectedBranchId === 'all' || o.branch_id === selectedBranchId)
+    );
     return pendingMods.map((modOrder) => {
       const modTime = new Date(modOrder.created_at).getTime();
       const cleanModPhone = (modOrder.customer_phone || '').replace(/\D/g, '').slice(-9);
@@ -644,11 +778,13 @@ export function OrderKanban({
         originalOrder: candidates[0] || null,
       };
     });
-  }, [orders]);
+  }, [orders, matchesDateRange, selectedBranchId]);
 
   // Pair open customer cancellation requests from complaints with their active orders
   const cancellationRequests = useMemo<CancellationRequestItem[]>(() => {
-    const cancelComplaints = openComplaints.filter((c) => isCustomerCancellationComplaint(c));
+    const cancelComplaints = openComplaints.filter(
+      (c) => isCustomerCancellationComplaint(c) && matchesDateRange(c.created_at)
+    );
     const items: CancellationRequestItem[] = [];
 
     for (const complaint of cancelComplaints) {
@@ -683,6 +819,10 @@ export function OrderKanban({
         continue;
       }
 
+      if (selectedBranchId !== 'all' && linkedOrder && linkedOrder.branch_id !== selectedBranchId) {
+        continue;
+      }
+
       items.push({
         complaint,
         linkedOrder,
@@ -690,7 +830,7 @@ export function OrderKanban({
     }
 
     return items;
-  }, [openComplaints, orders]);
+  }, [openComplaints, orders, matchesDateRange, selectedBranchId]);
 
   // Filtered orders based on Search, Date, Branch, Offer, and optional Customer Filter
   const filteredOrders = useMemo(() => {
@@ -742,25 +882,8 @@ export function OrderKanban({
       }
 
       // 2. Date filter
-      if (dateFilter !== 'all') {
-        const orderDate = parseOrderDate(order.created_at);
-        const now = new Date();
-
-        // Any order created within the last 3 hours is always considered "today" regardless of timezone drift
-        const isVeryRecent = Math.abs(now.getTime() - orderDate.getTime()) < 3 * 60 * 60 * 1000;
-
-        if (dateFilter === 'today') {
-          const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-          const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-          if (!isVeryRecent && (orderDate < startOfToday || orderDate > endOfToday)) return false;
-        } else if (dateFilter === 'yesterday') {
-          const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-          const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
-          if (orderDate < startOfYesterday || orderDate >= startOfToday) return false;
-        } else if (dateFilter === 'last_7_days') {
-          const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-          if (orderDate < sevenDaysAgo) return false;
-        }
+      if (!matchesDateRange(order.created_at)) {
+        return false;
       }
 
       // 3. Branch filter
@@ -1600,18 +1723,6 @@ export function OrderKanban({
 
             <button
               type="button"
-              onClick={() => setDateFilter('all')}
-              className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${
-                dateFilter === 'all'
-                  ? 'bg-amber-500 text-slate-950 font-bold shadow-xs'
-                  : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800'
-              }`}
-            >
-              الكل
-            </button>
-
-            <button
-              type="button"
               onClick={() => setDateFilter('today')}
               className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${
                 dateFilter === 'today'
@@ -1645,6 +1756,25 @@ export function OrderKanban({
             >
               آخر 7 أيام
             </button>
+
+            <button
+              type="button"
+              onClick={() => setDateFilter('all')}
+              className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${
+                dateFilter === 'all'
+                  ? 'bg-amber-500 text-slate-950 font-bold shadow-xs'
+                  : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800'
+              }`}
+            >
+              الكل
+            </button>
+
+            {isLoadingHistory && (
+              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-500/10 text-amber-500 text-[11px] font-bold whitespace-nowrap">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                <span>جاري التحميل...</span>
+              </span>
+            )}
           </div>
         </div>
       </div>
