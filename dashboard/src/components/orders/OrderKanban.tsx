@@ -1627,7 +1627,7 @@ export function OrderKanban({
       )}
 
       {/* Summary KPI Cards Bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <div className="rounded-2xl bg-white dark:bg-[#101726] border border-slate-200/90 dark:border-slate-700/80 p-3.5 shadow-xs flex flex-col justify-between">
           <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">إجمالي الطلبات</span>
           <div className="flex items-baseline justify-between mt-2">
@@ -1644,6 +1644,50 @@ export function OrderKanban({
           </div>
         </div>
 
+        <button
+          type="button"
+          onClick={() => setShowModificationSection((prev) => !prev)}
+          className={`rounded-2xl p-3.5 shadow-xs flex flex-col justify-between text-right transition-all cursor-pointer border ${
+            modificationRequests.length + cancellationRequests.length > 0
+              ? 'bg-rose-500/15 dark:bg-rose-500/10 border-rose-500/40 ring-2 ring-rose-500/20'
+              : 'bg-purple-500/5 dark:bg-[#101726] border-purple-500/20 hover:border-purple-500/40'
+          }`}
+          title="اضغط لعرض أو إخفاء طلبات التعديل والإلغاء"
+        >
+          <div className="flex items-center justify-between w-full">
+            <span
+              className={`text-xs font-bold ${
+                modificationRequests.length + cancellationRequests.length > 0
+                  ? 'text-rose-700 dark:text-rose-300'
+                  : 'text-purple-700 dark:text-purple-300'
+              }`}
+            >
+              طلبات تعديل أو إلغاء
+            </span>
+            {modificationRequests.length + cancellationRequests.length > 0 && (
+              <span className="h-2 w-2 rounded-full bg-rose-500 animate-ping" />
+            )}
+          </div>
+          <div className="flex items-baseline justify-between mt-2 w-full">
+            <span
+              className={`text-xl font-black ${
+                modificationRequests.length + cancellationRequests.length > 0
+                  ? 'text-rose-600 dark:text-rose-400'
+                  : 'text-purple-700 dark:text-purple-300'
+              }`}
+            >
+              {modificationRequests.length + cancellationRequests.length}
+            </span>
+            <ArrowLeftRight
+              className={`w-4 h-4 ${
+                modificationRequests.length + cancellationRequests.length > 0
+                  ? 'text-rose-500'
+                  : 'text-purple-500'
+              }`}
+            />
+          </div>
+        </button>
+
         <div className="rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/5 border border-emerald-500/20 p-3.5 shadow-xs flex flex-col justify-between">
           <span className="text-xs text-emerald-700 dark:text-emerald-400 font-medium">طلبات مؤكدة</span>
           <div className="flex items-baseline justify-between mt-2">
@@ -1652,7 +1696,7 @@ export function OrderKanban({
           </div>
         </div>
 
-        <div className="rounded-2xl bg-white dark:bg-[#101726] border border-slate-200/90 dark:border-slate-700/80 p-3.5 shadow-xs flex flex-col justify-between">
+        <div className="col-span-2 sm:col-span-1 rounded-2xl bg-white dark:bg-[#101726] border border-slate-200/90 dark:border-slate-700/80 p-3.5 shadow-xs flex flex-col justify-between">
           <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">إجمالي المبيعات المؤكدة</span>
           <div className="flex items-baseline justify-between mt-2">
             <span className="text-lg font-black text-amber-600 dark:text-amber-400 font-mono">
