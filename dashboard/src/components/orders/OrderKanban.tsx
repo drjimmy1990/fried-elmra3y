@@ -96,7 +96,7 @@ export function OrderKanban({
 }: OrderKanbanProps) {
   const [orders, setOrders] = useState<OrderWithItems[]>(initialOrders);
   const [searchQuery, setSearchQuery] = useState('');
-  const [dateFilter, setDateFilter] = useState<DateFilterType>('today');
+  const [dateFilter, setDateFilter] = useState<DateFilterType>('today_yesterday');
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const hasLoadedHistoryRef = useRef(false);
   const [selectedBranchId, setSelectedBranchId] = useState<string>('all');
@@ -247,22 +247,22 @@ export function OrderKanban({
 
   useEffect(() => {
     const fetchComplaints = async () => {
-      const since30h = new Date(Date.now() - 30 * 60 * 60 * 1000).toISOString();
+      const since52h = new Date(Date.now() - 52 * 60 * 60 * 1000).toISOString();
       const [{ data: linkedData }, { data: openData }] = await Promise.all([
         supabase
           .from('complaints')
           .select('id, ticket_number, order_id, status')
           .not('order_id', 'is', null)
-          .gte('created_at', since30h)
+          .gte('created_at', since52h)
           .order('created_at', { ascending: false })
-          .limit(300),
+          .limit(400),
         supabase
           .from('complaints')
           .select('id, ticket_number, contact_id, customer_name, customer_phone, issue_description, status, order_id, created_at')
           .eq('status', 'open')
-          .gte('created_at', since30h)
+          .gte('created_at', since52h)
           .order('created_at', { ascending: false })
-          .limit(200),
+          .limit(300),
       ]);
 
       if (linkedData) {
@@ -291,9 +291,11 @@ export function OrderKanban({
     fetchComplaints();
   }, [supabase]);
 
-  // Lazy-load 8-day historical orders & complaints on demand when user switches away from 'today' or searches
+  // Lazy-load 8-day historical orders & complaints on demand when user switches to 'last_7_days' / 'all' or searches
   useEffect(() => {
-    if (dateFilter === 'today' && !searchQuery.trim()) return;
+    const isCoveredByInitial =
+      dateFilter === 'today_yesterday' || dateFilter === 'today' || dateFilter === 'yesterday';
+    if (isCoveredByInitial && !searchQuery.trim()) return;
     if (hasLoadedHistoryRef.current) return;
     hasLoadedHistoryRef.current = true;
 
@@ -721,6 +723,11 @@ export function OrderKanban({
       const now = new Date();
       const isVeryRecent = Math.abs(now.getTime() - itemDate.getTime()) < 3 * 60 * 60 * 1000;
 
+      if (dateFilter === 'today_yesterday') {
+        const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
+        const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+        return isVeryRecent || (itemDate >= startOfYesterday && itemDate <= endOfToday);
+      }
       if (dateFilter === 'today') {
         const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
         const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
@@ -1723,6 +1730,18 @@ export function OrderKanban({
 
             <button
               type="button"
+              onClick={() => setDateFilter('today_yesterday')}
+              className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${
+                dateFilter === 'today_yesterday'
+                  ? 'bg-amber-500 text-slate-950 font-bold shadow-xs'
+                  : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800'
+              }`}
+            >
+              اليوم وأمس
+            </button>
+
+            <button
+              type="button"
               onClick={() => setDateFilter('today')}
               className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${
                 dateFilter === 'today'
@@ -1730,7 +1749,7 @@ export function OrderKanban({
                   : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800'
               }`}
             >
-              اليوم
+              اليوم فقط
             </button>
 
             <button

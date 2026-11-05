@@ -13,7 +13,7 @@ export type OrderWithItems = OrderRow & {
   offer?: { id: string; title: string } | null;
 };
 
-export type DateFilterType = 'today' | 'yesterday' | 'last_7_days' | 'all';
+export type DateFilterType = 'today_yesterday' | 'today' | 'yesterday' | 'last_7_days' | 'all';
 export type ViewMode = 'kanban' | 'table';
 
 export interface KanbanColumnDef {

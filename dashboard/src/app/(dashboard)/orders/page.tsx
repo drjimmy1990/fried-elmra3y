@@ -14,11 +14,11 @@ export const revalidate = 0; // Dynamic server component
 export default async function OrdersPage() {
   const supabase = await createClient();
 
-  // Fast initial load: fetch only Today's operational window (last 30 hours to cover late-night Cairo shifts).
-  // Historical orders (Yesterday / Last 7 Days / All) are lazy-loaded on demand when staff switches the filter tab.
-  const since = new Date(Date.now() - 30 * 60 * 60 * 1000);
+  // Fast initial load: fetch Today + Yesterday operational window (last 52 hours to cover midnight/late-night Cairo shifts).
+  // Older historical orders (Last 7 Days / All) are lazy-loaded on demand when staff switches the filter tab.
+  const since = new Date(Date.now() - 52 * 60 * 60 * 1000);
 
-  // Fetch today's orders WITH embedded order_items in a single query
+  // Fetch today & yesterday's orders WITH embedded order_items in a single query
   const [
     { data: orders, error: ordersError },
     { data: branches },
@@ -30,7 +30,7 @@ export default async function OrdersPage() {
       .select('*, order_items(*)')
       .gte('created_at', since.toISOString())
       .order('created_at', { ascending: false })
-      .limit(300),
+      .limit(500),
     supabase
       .from('branches')
       .select('id, name')
@@ -47,7 +47,7 @@ export default async function OrdersPage() {
       .eq('status', 'open')
       .gte('created_at', since.toISOString())
       .order('created_at', { ascending: false })
-      .limit(200),
+      .limit(300),
   ]);
 
   if (ordersError) {
