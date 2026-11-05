@@ -68,7 +68,31 @@ export function OrderModificationRequestsSection({
 }: OrderModificationRequestsSectionProps) {
   const totalRequests = modificationRequests.length + cancellationRequests.length;
 
-  if (totalRequests === 0) return null;
+  if (totalRequests === 0) {
+    return (
+      <div
+        dir="rtl"
+        className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/60 px-4 py-3 flex flex-wrap items-center justify-between gap-3"
+      >
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-500 flex items-center justify-center">
+            <ArrowLeftRight className="w-4 h-4" />
+          </div>
+          <div>
+            <span className="text-xs sm:text-sm font-black text-slate-800 dark:text-slate-200">
+              قسم طلبات تعديل وإلغاء الأوردرات من العملاء
+            </span>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              لا توجد طلبات تعديل أو إلغاء معلقة حالياً — سيظهر أي طلب تعديل أو إلغاء جديد هنا تلقائياً مع مقارنة الأوردر الأصلي والمعدل وأزرار الموافقة والرفض.
+            </p>
+          </div>
+        </div>
+        <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+          0 طلبات معلقة ✅
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div

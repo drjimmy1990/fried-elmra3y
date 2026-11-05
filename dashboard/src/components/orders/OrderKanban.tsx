@@ -232,7 +232,7 @@ export function OrderKanban({
   );
   const [isTemplatesModalOpen, setIsTemplatesModalOpen] = useState(false);
   const [actionModalConfig, setActionModalConfig] = useState<OrderActionModalConfig | null>(null);
-  const [showModificationSection, setShowModificationSection] = useState(true);
+  const [showModificationSection, setShowModificationSection] = useState(false);
 
   useEffect(() => {
     fetch('/api/orders/templates')
@@ -838,6 +838,12 @@ export function OrderKanban({
 
     return items;
   }, [openComplaints, orders, matchesDateRange, selectedBranchId]);
+
+  useEffect(() => {
+    if (modificationRequests.length > 0 || cancellationRequests.length > 0) {
+      setShowModificationSection(true);
+    }
+  }, [modificationRequests.length, cancellationRequests.length]);
 
   // Filtered orders based on Search, Date, Branch, Offer, and optional Customer Filter
   const filteredOrders = useMemo(() => {
@@ -1540,22 +1546,25 @@ export function OrderKanban({
             <span>قوالب رسائل الأوردرات</span>
           </button>
 
-          {(modificationRequests.length > 0 || cancellationRequests.length > 0) && (
-            <button
-              type="button"
-              onClick={() => setShowModificationSection((prev) => !prev)}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black border transition-all cursor-pointer ${
-                showModificationSection
-                  ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-sm shadow-amber-500/20'
-                  : 'bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-500/35 hover:bg-amber-500/25'
-              }`}
-            >
-              <ArrowLeftRight className="w-3.5 h-3.5" />
-              <span>
-                طلبات التعديل والإلغاء ({modificationRequests.length + cancellationRequests.length})
-              </span>
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => setShowModificationSection((prev) => !prev)}
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black border transition-all cursor-pointer ${
+              showModificationSection &&
+              (modificationRequests.length > 0 || cancellationRequests.length > 0)
+                ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-sm shadow-amber-500/20'
+                : modificationRequests.length > 0 || cancellationRequests.length > 0
+                ? 'bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-500/35 hover:bg-amber-500/25 animate-pulse'
+                : showModificationSection
+                ? 'bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-white border-slate-300 dark:border-slate-700'
+                : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:border-amber-500/40'
+            }`}
+          >
+            <ArrowLeftRight className="w-3.5 h-3.5 text-amber-500" />
+            <span>
+              طلبات التعديل والإلغاء ({modificationRequests.length + cancellationRequests.length})
+            </span>
+          </button>
 
           <button
             type="button"
@@ -1604,19 +1613,18 @@ export function OrderKanban({
       </div>
 
       {/* Dedicated Modification & Customer Cancellation Requests Section */}
-      {showModificationSection &&
-        (modificationRequests.length > 0 || cancellationRequests.length > 0) && (
-          <OrderModificationRequestsSection
-            modificationRequests={modificationRequests}
-            cancellationRequests={cancellationRequests}
-            isUpdating={isUpdatingOrder}
-            onApproveModification={handleApproveModification}
-            onDeclineModification={handleDeclineModification}
-            onApproveCancellation={handleApproveCancellation}
-            onDeclineCancellation={handleDeclineCancellation}
-            onSelectOrder={(ord) => setSelectedOrder(ord)}
-          />
-        )}
+      {showModificationSection && (
+        <OrderModificationRequestsSection
+          modificationRequests={modificationRequests}
+          cancellationRequests={cancellationRequests}
+          isUpdating={isUpdatingOrder}
+          onApproveModification={handleApproveModification}
+          onDeclineModification={handleDeclineModification}
+          onApproveCancellation={handleApproveCancellation}
+          onDeclineCancellation={handleDeclineCancellation}
+          onSelectOrder={(ord) => setSelectedOrder(ord)}
+        />
+      )}
 
       {/* Summary KPI Cards Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
