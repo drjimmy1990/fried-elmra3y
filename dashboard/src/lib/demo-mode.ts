@@ -1,4 +1,4 @@
-export const DEMO_ACCOUNT_EMAIL = 'demo@khedewy.com';
+export const DEMO_ACCOUNT_EMAIL = 'test@pr-media.forum';
 export const DEMO_COOKIE_NAME = 'khedewy_demo_mode';
 
 export function isDemoUser(

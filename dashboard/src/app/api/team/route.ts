@@ -98,7 +98,7 @@ export async function GET() {
       const rawEmail = authUser?.email || null;
       const maskedEmail =
         isDemo && rawEmail && rawEmail.toLowerCase() !== DEMO_ACCOUNT_EMAIL
-          ? `${rawEmail.slice(0, 2)}••••@khedewy.com`
+          ? `${rawEmail.slice(0, 2)}••••@pr-media.forum`
           : rawEmail;
       return {
         ...p,
