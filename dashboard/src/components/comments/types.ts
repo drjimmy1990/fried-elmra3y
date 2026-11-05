@@ -63,7 +63,13 @@ export function parseActionAssets(value: Json): ActionAsset[] {
   if (!Array.isArray(value)) return [];
   return value
     .map((item) => (item && typeof item === 'object' && !Array.isArray(item) ? item : null))
-    .filter((item): item is { [k: string]: Json | undefined } => !!item && !item.is_config && item.id !== '__fixed_replies_config__')
+    .filter(
+      (item): item is { [k: string]: Json | undefined } =>
+        !!item &&
+        !item.is_config &&
+        item.id !== '__fixed_replies_config__' &&
+        item.id !== '__order_message_templates__'
+    )
     .map((item) => ({
       id: String(item.id || item.name || Math.random().toString(36).substring(2, 9)),
       name: String(item.name || '').trim().toLowerCase().replace(/\s+/g, '_'),

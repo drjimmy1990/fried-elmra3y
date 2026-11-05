@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Bot,
@@ -26,6 +26,11 @@ import {
 import { createClient } from '@/lib/supabase/client';
 import { BotSettings, BotSettingsFormData, DEFAULT_AI_PROMPT, DEFAULT_OFF_HOURS_MESSAGE } from './types';
 import { cn } from '@/lib/utils';
+import {
+  DEFAULT_ORDER_MESSAGE_TEMPLATES,
+  OrderMessageTemplates,
+} from '@/lib/order-templates';
+import { OrderTemplatesModal } from '@/components/orders/OrderTemplatesModal';
 
 interface BotSettingsFormProps {
   initialSettings: BotSettings;
@@ -235,6 +240,21 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
   const [showFacebookToken, setShowFacebookToken] = useState(false);
   const [isTestingTelegram, setIsTestingTelegram] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [orderTemplates, setOrderTemplates] = useState<OrderMessageTemplates>(
+    DEFAULT_ORDER_MESSAGE_TEMPLATES
+  );
+  const [isOrderTemplatesOpen, setIsOrderTemplatesOpen] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/orders/templates')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.success && data.templates) {
+          setOrderTemplates(data.templates);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const showToast = (type: 'success' | 'error', text: string) => {
     setToastMessage({ type, text });
@@ -945,8 +965,26 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
         )}
       </div>
 
-      {/* Link Card for Channels and Menu */}
-      <div className="bg-white dark:bg-[#101726] border border-slate-200/90 dark:border-slate-700/80 rounded-2xl p-6 shadow-xs grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Link Card for Channels, Menu & Order Message Templates */}
+      <div className="bg-white dark:bg-[#101726] border border-slate-200/90 dark:border-slate-700/80 rounded-2xl p-6 shadow-xs grid grid-cols-1 md:grid-cols-3 gap-4">
+        <button
+          type="button"
+          onClick={() => setIsOrderTemplatesOpen(true)}
+          className="flex items-center gap-4 p-4 rounded-xl border border-amber-500/30 hover:border-amber-500 bg-amber-500/5 hover:bg-amber-500/10 transition group text-right cursor-pointer"
+        >
+          <div className="w-12 h-12 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center group-hover:bg-amber-500/25 transition shrink-0">
+            <MessageSquare className="w-6 h-6" />
+          </div>
+          <div>
+            <h4 className="font-bold text-slate-900 dark:text-white text-sm mb-1 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition">
+              قوالب رسائل الأوردرات والتعديلات
+            </h4>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              تخصيص رسائل الموافقة أو رفض التعديل وإلغاء الأوردر
+            </p>
+          </div>
+        </button>
+
         <a href="/dashboard/channels" className="flex items-center gap-4 p-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-blue-500/50 bg-slate-50/50 dark:bg-slate-950/50 transition group">
           <div className="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center group-hover:bg-blue-500/20 transition">
             <Facebook className="w-6 h-6" />
@@ -967,6 +1005,13 @@ export function BotSettingsForm({ initialSettings }: BotSettingsFormProps) {
           </div>
         </a>
       </div>
+
+      <OrderTemplatesModal
+        isOpen={isOrderTemplatesOpen}
+        onClose={() => setIsOrderTemplatesOpen(false)}
+        initialTemplates={orderTemplates}
+        onSaved={(updated) => setOrderTemplates(updated)}
+      />
 
       {/* Save Action Sticky Footer */}
       <div className="sticky bottom-4 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200 dark:border-slate-700/80 rounded-2xl p-4 shadow-xl flex items-center justify-between gap-4">

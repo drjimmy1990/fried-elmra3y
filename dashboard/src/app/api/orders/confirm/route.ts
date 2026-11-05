@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireStaff, jsonError, withAdminClient } from '@/lib/auth/api-guard';
-import { loadChannelCredentials } from '@/lib/meta/channels';
-import { sendMessengerMessage } from '@/lib/meta/messenger';
+import {
+  fetchOrderMessageTemplates,
+  sendOrderCustomerNotification,
+} from '@/lib/meta/order-messenger';
+import { interpolateOrderTemplate } from '@/lib/order-templates';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,7 +16,7 @@ export async function POST(request: NextRequest) {
 
     // 2. Parse request payload
     const body = await request.json();
-    const { orderId } = body;
+    const { orderId, messageText } = body;
 
     if (!orderId || typeof orderId !== 'string') {
       return jsonError('معرف الطلب (orderId) مطلوب', 400);
@@ -46,72 +49,30 @@ export async function POST(request: NextRequest) {
         return jsonError('فشل تحديث حالة الطلب', 500);
       }
 
-      // 5. Send confirmation message to customer if contact_id exists
-      let confirmationSent = false;
-      let sendErrorMessage: string | null = null;
-
-      if (order.contact_id) {
-        const { data: contact } = await adminDb
-          .from('contacts')
-          .select('*')
-          .eq('id', order.contact_id)
-          .single();
-
-        let channelId = contact?.channel_id || order.channel_id || null;
-        if (contact && !channelId) {
-          const { data: defaultChannel } = await adminDb
-            .from('channels')
-            .select('id')
-            .eq('platform', 'facebook')
-            .eq('status', 'connected')
-            .order('connected_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          if (defaultChannel?.id) {
-            channelId = defaultChannel.id;
-            await adminDb
-              .from('contacts')
-              .update({ channel_id: channelId })
-              .eq('id', contact.id);
-          }
-        }
-
-        if (contact && contact.platform_user_id && channelId) {
-          try {
-            const creds = await loadChannelCredentials(adminDb, channelId);
-            const confirmText = `ألف هنا يا ${order.customer_name || 'فندم'}! 🍗🔥\nتم تأكيد أوردرك رقم #${order.order_number} بنجاح!\nجاري تجهيزه في المطعم وتسليمه لمندوب التوصيل فوراً 🛵`;
-
-            const messageId = await sendMessengerMessage(
-              contact.platform_user_id,
-              confirmText,
-              creds.channel.external_id,
-              creds.token,
-              creds.appSecret || null
-            );
-
-            // Log bot confirmation message to messages table
-            await adminDb.from('messages').insert({
-              contact_id: contact.id,
-              sender_type: 'bot',
-              content: confirmText,
-              platform_message_id: messageId,
-              is_read: true,
+      // 5. Send confirmation message to customer using saved template or custom message
+      const templates = await fetchOrderMessageTemplates(adminDb);
+      const confirmText =
+        typeof messageText === 'string' && messageText.trim()
+          ? messageText.trim()
+          : interpolateOrderTemplate(templates.confirm_order, {
+              customer_name: order.customer_name,
+              order_number: order.order_number,
+              total_amount: order.total_amount,
             });
 
-            confirmationSent = true;
-          } catch (err: unknown) {
-            console.error('Failed to send order confirmation messenger message:', err);
-            sendErrorMessage = err instanceof Error ? err.message : String(err);
-          }
-        }
-      }
+      const sendResult = await sendOrderCustomerNotification(adminDb, {
+        contactId: order.contact_id,
+        customerPhone: order.customer_phone,
+        channelId: order.channel_id,
+        messageText: confirmText,
+        sentByStaffId: staff.user.id,
+      });
 
       return NextResponse.json({
         success: true,
         order: updatedOrder,
-        confirmationSent,
-        warning: sendErrorMessage,
+        confirmationSent: sendResult.sent,
+        warning: sendResult.error,
       });
     });
   } catch (err: unknown) {

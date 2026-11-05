@@ -6,6 +6,7 @@ import { DashboardShell } from '@/components/layout/DashboardShell';
 import { extractStaffAuth } from '@/lib/role-guard';
 import { isOrderCancelled } from '@/lib/utils';
 import { isScheduledPaymentMethod } from '@/lib/scheduled-orders';
+import { isMergedOrDeclinedModOrder } from '@/lib/order-templates';
 
 const DEFAULT_RESTAURANT_NAME = 'تشيكن مراعي';
 
@@ -62,7 +63,7 @@ export default async function DashboardLayout({
   ] = await Promise.all([
     supabase
       .from('orders')
-      .select('id, status, payment_method')
+      .select('id, status, payment_method, internal_notes')
       .eq('status', 'pending')
       .gte('created_at', since.toISOString()),
     supabase
@@ -82,7 +83,10 @@ export default async function DashboardLayout({
   ]);
 
   const issueOrdersCount = (pendingOrdersRows || []).filter(
-    (o) => !isOrderCancelled(o) && !isScheduledPaymentMethod(o.payment_method)
+    (o) =>
+      !isOrderCancelled(o) &&
+      !isScheduledPaymentMethod(o.payment_method) &&
+      !isMergedOrDeclinedModOrder(o)
   ).length;
 
   const userProfile = {

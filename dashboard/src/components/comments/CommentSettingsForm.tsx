@@ -134,6 +134,13 @@ export function CommentSettingsForm({ settings, canEdit, onSave }: Props) {
       const menuImg = actionAssets.find((a) => a.name === 'menu')?.image_url || null;
       const offersImg = actionAssets.find((a) => a.name === 'offers')?.image_url || null;
 
+      const existingOrderTemplatesConfig = Array.isArray(s.action_assets)
+        ? s.action_assets.filter(
+            (item: any) =>
+              item && typeof item === 'object' && !Array.isArray(item) && item.id === '__order_message_templates__'
+          )
+        : [];
+
       const combinedAssetsPayload = [
         ...actionAssets,
         {
@@ -142,6 +149,7 @@ export function CommentSettingsForm({ settings, canEdit, onSave }: Props) {
           enabled: fixedRepliesEnabled,
           normal_replies: cleanedFixedReplies.length > 0 ? cleanedFixedReplies : DEFAULT_NORMAL_FIXED_REPLIES,
         },
+        ...existingOrderTemplatesConfig,
       ];
 
       await onSave({

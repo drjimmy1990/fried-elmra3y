@@ -19,15 +19,36 @@ import {
   CalendarClock,
   Ban,
   RotateCcw,
+  MessageSquareText,
+  ArrowLeftRight,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { formatCurrency, formatDateTime, getOrderStatusBadge, isOrderCancelled } from '@/lib/utils';
 import { encodeScheduleMeta, isScheduledPaymentMethod } from '@/lib/scheduled-orders';
+import {
+  DEFAULT_ORDER_MESSAGE_TEMPLATES,
+  OrderMessageTemplates,
+  extractModificationSummary,
+  interpolateOrderTemplate,
+  isCustomerCancellationComplaint,
+  isMergedOrDeclinedModOrder,
+  isPendingModificationRequest,
+} from '@/lib/order-templates';
 import { OrderCard } from './OrderCard';
 import { OrderDetailsModal } from './OrderDetailsModal';
 import { ScheduleOrderModal } from './ScheduleOrderModal';
 import { ThermalReceipt } from './ThermalReceipt';
+import {
+  OrderActionMessageModal,
+  OrderActionModalConfig,
+} from './OrderActionMessageModal';
+import { OrderTemplatesModal } from './OrderTemplatesModal';
+import {
+  OrderModificationRequestsSection,
+  ModificationRequestPair,
+  CancellationRequestItem,
+} from './OrderModificationRequestsSection';
 import {
   OrderWithItems,
   OrderRow,
@@ -195,27 +216,57 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
     }
   }, [searchParams, supabase, branchesList, offersList]);
 
-  // Complaint tracking for orders (avoid .in('order_id', ids) which overflows URL headers when >300 orders)
+  // Complaint tracking for orders & open customer cancellation requests
   const [complaintsMap, setComplaintsMap] = useState<Record<string, any[]>>({});
+  const [openComplaints, setOpenComplaints] = useState<any[]>([]);
+  const [orderTemplates, setOrderTemplates] = useState<OrderMessageTemplates>(
+    DEFAULT_ORDER_MESSAGE_TEMPLATES
+  );
+  const [isTemplatesModalOpen, setIsTemplatesModalOpen] = useState(false);
+  const [actionModalConfig, setActionModalConfig] = useState<OrderActionModalConfig | null>(null);
+  const [showModificationSection, setShowModificationSection] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/orders/templates')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.success && data.templates) {
+          setOrderTemplates(data.templates);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const fetchComplaints = async () => {
-      const { data } = await supabase
-        .from('complaints')
-        .select('id, ticket_number, order_id, status')
-        .not('order_id', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(1000);
+      const [{ data: linkedData }, { data: openData }] = await Promise.all([
+        supabase
+          .from('complaints')
+          .select('id, ticket_number, order_id, status')
+          .not('order_id', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(1000),
+        supabase
+          .from('complaints')
+          .select('id, ticket_number, contact_id, customer_name, customer_phone, issue_description, status, order_id, created_at')
+          .eq('status', 'open')
+          .order('created_at', { ascending: false })
+          .limit(100),
+      ]);
 
-      if (data) {
+      if (linkedData) {
         const map: Record<string, any[]> = {};
-        data.forEach((c) => {
+        linkedData.forEach((c) => {
           if (c.order_id) {
             if (!map[c.order_id]) map[c.order_id] = [];
             map[c.order_id].push(c);
           }
         });
         setComplaintsMap(map);
+      }
+
+      if (openData) {
+        setOpenComplaints(openData);
       }
     };
     fetchComplaints();
@@ -356,6 +407,18 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
             order_items: incomingItems.length > 0 ? incomingItems : prevSelected.order_items || [],
           };
         });
+
+        // Also sync open complaints for customer cancellation requests
+        const { data: openComps } = await supabase
+          .from('complaints')
+          .select('id, ticket_number, contact_id, customer_name, customer_phone, issue_description, status, order_id, created_at')
+          .eq('status', 'open')
+          .order('created_at', { ascending: false })
+          .limit(50);
+
+        if (openComps && isMounted) {
+          setOpenComplaints(openComps);
+        }
       } catch (err) {
         console.warn('Background orders sync warning:', err);
       }
@@ -439,6 +502,16 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
             if (!isMounted) return;
             if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
               const c = payload.new as any;
+              if (c.status === 'open') {
+                setOpenComplaints((prev) => {
+                  const exists = prev.some((x) => x.id === c.id);
+                  if (exists) return prev.map((x) => (x.id === c.id ? c : x));
+                  return [c, ...prev];
+                });
+              } else {
+                setOpenComplaints((prev) => prev.filter((x) => x.id !== c.id));
+              }
+
               if (!c.order_id) return;
               setComplaintsMap((prev) => {
                 const orderComplaints = prev[c.order_id] || [];
@@ -511,9 +584,95 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
     return isNaN(d.getTime()) ? new Date(dateStr) : d;
   };
 
+  // Pair pending modification orders with their original orders
+  const modificationRequests = useMemo<ModificationRequestPair[]>(() => {
+    const pendingMods = orders.filter((o) => isPendingModificationRequest(o));
+    return pendingMods.map((modOrder) => {
+      const modTime = new Date(modOrder.created_at).getTime();
+      const cleanModPhone = (modOrder.customer_phone || '').replace(/\D/g, '').slice(-9);
+
+      const candidates = orders.filter((cand) => {
+        if (cand.id === modOrder.id) return false;
+        if (isOrderCancelled(cand) || isMergedOrDeclinedModOrder(cand) || isPendingModificationRequest(cand)) {
+          return false;
+        }
+        const candTime = new Date(cand.created_at).getTime();
+        if (candTime > modTime) return false;
+        // Within 18 hours before the modification request
+        if (modTime - candTime > 18 * 60 * 60 * 1000) return false;
+
+        const sameContact = Boolean(modOrder.contact_id && cand.contact_id === modOrder.contact_id);
+        const cleanCandPhone = (cand.customer_phone || '').replace(/\D/g, '').slice(-9);
+        const samePhone = Boolean(cleanModPhone.length >= 8 && cleanModPhone === cleanCandPhone);
+
+        return sameContact || samePhone;
+      });
+
+      candidates.sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+
+      return {
+        modOrder,
+        originalOrder: candidates[0] || null,
+      };
+    });
+  }, [orders]);
+
+  // Pair open customer cancellation requests from complaints with their active orders
+  const cancellationRequests = useMemo<CancellationRequestItem[]>(() => {
+    const cancelComplaints = openComplaints.filter((c) => isCustomerCancellationComplaint(c));
+    const items: CancellationRequestItem[] = [];
+
+    for (const complaint of cancelComplaints) {
+      const cleanCompPhone = (complaint.customer_phone || '').replace(/\D/g, '').slice(-9);
+      let linkedOrder: OrderWithItems | null = null;
+
+      if (complaint.order_id) {
+        linkedOrder = orders.find((o) => o.id === complaint.order_id) || null;
+      }
+
+      if (!linkedOrder) {
+        const candidates = orders.filter((cand) => {
+          if (isOrderCancelled(cand) || isMergedOrDeclinedModOrder(cand)) return false;
+          const sameContact = Boolean(
+            complaint.contact_id && cand.contact_id === complaint.contact_id
+          );
+          const cleanCandPhone = (cand.customer_phone || '').replace(/\D/g, '').slice(-9);
+          const samePhone = Boolean(
+            cleanCompPhone.length >= 8 && cleanCompPhone === cleanCandPhone
+          );
+          return sameContact || samePhone;
+        });
+
+        candidates.sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+        linkedOrder = candidates[0] || null;
+      }
+
+      // If the linked order is already cancelled, hide from pending cancellation requests
+      if (linkedOrder && isOrderCancelled(linkedOrder)) {
+        continue;
+      }
+
+      items.push({
+        complaint,
+        linkedOrder,
+      });
+    }
+
+    return items;
+  }, [openComplaints, orders]);
+
   // Filtered orders based on Search, Date, Branch, Offer, and optional Customer Filter
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
+      // Hide merged or declined modification rows from the board
+      if (isMergedOrDeclinedModOrder(order)) {
+        return false;
+      }
+
       // If viewing a specific customer's orders (from Complaints), match only their orders
       if (customerFilter) {
         const matchContact =
@@ -534,6 +693,11 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
           return false;
         }
         return true;
+      }
+
+      // Pending modification requests are shown in the dedicated Modification Requests section
+      if (isPendingModificationRequest(order)) {
+        return false;
       }
 
       if (isScheduledPaymentMethod(order.payment_method)) {
@@ -717,43 +881,332 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
     const targetOrder = orders.find((o) => o.id === orderId);
     if (!targetOrder) return;
 
-    const confirmed = window.confirm(
-      `هل أنت متأكد من إلغاء الطلب #${targetOrder.order_number} (${targetOrder.customer_name || 'العميل'})؟`
-    );
-    if (!confirmed) return;
+    const defaultMsg = interpolateOrderTemplate(orderTemplates.staff_cancel_order, {
+      customer_name: targetOrder.customer_name,
+      order_number: targetOrder.order_number,
+      total_amount: targetOrder.total_amount,
+    });
 
-    const prevPaymentMethod = targetOrder.payment_method;
-    setIsUpdatingOrder((prev) => ({ ...prev, [orderId]: true }));
+    setActionModalConfig({
+      type: 'staff_cancel_order',
+      title: `إلغاء الأوردر #${targetOrder.order_number} وإبلاغ العميل`,
+      subtitle: 'اختر سبب الإلغاء أو عدّل نص الرسالة التي ستصل للعميل على ماسنجر',
+      confirmButtonLabel: 'تأكيد إلغاء الطلب وإرسال الرسالة',
+      confirmButtonVariant: 'rose',
+      customerName: targetOrder.customer_name || 'العميل',
+      orderNumber: targetOrder.order_number,
+      totalAmount: targetOrder.total_amount,
+      defaultMessage: defaultMsg,
+      presets: orderTemplates.staff_cancel_presets,
+      onConfirm: async ({ messageText, sendNotification, reasonNote }) => {
+        const prevPaymentMethod = targetOrder.payment_method;
+        setIsUpdatingOrder((prev) => ({ ...prev, [orderId]: true }));
 
-    setOrders((prev) =>
-      prev.map((o) => (o.id === orderId ? { ...o, payment_method: 'cancelled' } : o))
-    );
-    if (selectedOrder?.id === orderId) {
-      setSelectedOrder((prev) => (prev ? { ...prev, payment_method: 'cancelled' } : null));
-    }
+        setOrders((prev) =>
+          prev.map((o) => (o.id === orderId ? { ...o, payment_method: 'cancelled' } : o))
+        );
+        if (selectedOrder?.id === orderId) {
+          setSelectedOrder((prev) => (prev ? { ...prev, payment_method: 'cancelled' } : null));
+        }
 
-    try {
-      const { error } = await supabase
-        .from('orders')
-        .update({
-          payment_method: 'cancelled',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', orderId);
+        try {
+          const res = await fetch('/api/orders/cancel', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              orderId,
+              messageText,
+              sendNotification,
+              reasonNote,
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok || !data.success) {
+            throw new Error(data.error || 'Failed to cancel order');
+          }
+        } catch (err) {
+          console.error('Error cancelling order:', err);
+          setOrders((prev) =>
+            prev.map((o) => (o.id === orderId ? { ...o, payment_method: prevPaymentMethod } : o))
+          );
+          if (selectedOrder?.id === orderId) {
+            setSelectedOrder((prev) => (prev ? { ...prev, payment_method: prevPaymentMethod } : null));
+          }
+          alert('تعذر إلغاء الطلب. يرجى المحاولة مرة أخرى.');
+        } finally {
+          setIsUpdatingOrder((prev) => ({ ...prev, [orderId]: false }));
+        }
+      },
+    });
+  };
 
-      if (error) throw error;
-    } catch (err) {
-      console.error('Error cancelling order:', err);
-      setOrders((prev) =>
-        prev.map((o) => (o.id === orderId ? { ...o, payment_method: prevPaymentMethod } : o))
-      );
-      if (selectedOrder?.id === orderId) {
-        setSelectedOrder((prev) => (prev ? { ...prev, payment_method: prevPaymentMethod } : null));
-      }
-      alert('تعذر إلغاء الطلب. يرجى المحاولة مرة أخرى.');
-    } finally {
-      setIsUpdatingOrder((prev) => ({ ...prev, [orderId]: false }));
-    }
+  const handleApproveModification = (pair: ModificationRequestPair) => {
+    const { modOrder, originalOrder } = pair;
+    const displayOrderNum = originalOrder ? originalOrder.order_number : modOrder.order_number;
+    const modSummary = extractModificationSummary(modOrder.customer_notes);
+
+    const defaultMsg = interpolateOrderTemplate(orderTemplates.modification_approve, {
+      customer_name: modOrder.customer_name,
+      order_number: displayOrderNum,
+      total_amount: modOrder.total_amount,
+      modification_details: modSummary,
+    });
+
+    setActionModalConfig({
+      type: 'modification_approve',
+      title: `الموافقة على تعديل الأوردر #${displayOrderNum}`,
+      subtitle: 'سيتم تحديث الأوردر الأصلي بالأصناف والإجمالي الجديد وإبلاغ العميل فوراً',
+      confirmButtonLabel: 'موافقة وتحديث الأوردر وإرسال الرسالة',
+      confirmButtonVariant: 'emerald',
+      customerName: modOrder.customer_name || 'العميل',
+      orderNumber: displayOrderNum,
+      totalAmount: modOrder.total_amount,
+      modificationDetails: modSummary,
+      defaultMessage: defaultMsg,
+      onConfirm: async ({ messageText, sendNotification }) => {
+        setIsUpdatingOrder((prev) => ({
+          ...prev,
+          [modOrder.id]: true,
+          ...(originalOrder ? { [originalOrder.id]: true } : {}),
+        }));
+
+        try {
+          const res = await fetch('/api/orders/modification', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              requestType: 'modification',
+              action: 'approve',
+              modOrderId: modOrder.id,
+              originalOrderId: originalOrder?.id || null,
+              messageText,
+              sendNotification,
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok || !data.success) {
+            throw new Error(data.error || 'Failed to approve modification');
+          }
+
+          setOrders((prev) =>
+            prev.map((o) => {
+              if (originalOrder && o.id === originalOrder.id) {
+                return {
+                  ...o,
+                  ...(data.updatedOrder || {}),
+                  order_items:
+                    modOrder.order_items && modOrder.order_items.length > 0
+                      ? modOrder.order_items
+                      : o.order_items,
+                  status: 'confirmed',
+                };
+              }
+              if (o.id === modOrder.id) {
+                return originalOrder
+                  ? { ...o, payment_method: 'mod_merged' }
+                  : {
+                      ...o,
+                      status: 'confirmed',
+                      internal_notes: `${o.internal_notes || ''} | [MOD_APPROVED]`,
+                    };
+              }
+              return o;
+            })
+          );
+        } catch (err) {
+          console.error('Error approving modification:', err);
+          alert('تعذر اعتماد تعديل الأوردر. يرجى المحاولة مرة أخرى.');
+        } finally {
+          setIsUpdatingOrder((prev) => ({
+            ...prev,
+            [modOrder.id]: false,
+            ...(originalOrder ? { [originalOrder.id]: false } : {}),
+          }));
+        }
+      },
+    });
+  };
+
+  const handleDeclineModification = (pair: ModificationRequestPair) => {
+    const { modOrder, originalOrder } = pair;
+    const displayOrderNum = originalOrder ? originalOrder.order_number : modOrder.order_number;
+    const modSummary = extractModificationSummary(modOrder.customer_notes);
+
+    const defaultMsg = interpolateOrderTemplate(orderTemplates.modification_decline, {
+      customer_name: modOrder.customer_name,
+      order_number: displayOrderNum,
+      total_amount: modOrder.total_amount,
+      modification_details: modSummary,
+    });
+
+    setActionModalConfig({
+      type: 'modification_decline',
+      title: `رفض تعديل الأوردر #${displayOrderNum}`,
+      subtitle: 'سيبقى الأوردر الأصلي كما هو بدون تغيير وسيتم إبلاغ العميل بسبب الرفض',
+      confirmButtonLabel: 'تأكيد رفض التعديل وإرسال الرسالة',
+      confirmButtonVariant: 'rose',
+      customerName: modOrder.customer_name || 'العميل',
+      orderNumber: displayOrderNum,
+      totalAmount: modOrder.total_amount,
+      modificationDetails: modSummary,
+      defaultMessage: defaultMsg,
+      presets: orderTemplates.modification_decline_presets,
+      onConfirm: async ({ messageText, sendNotification }) => {
+        setIsUpdatingOrder((prev) => ({ ...prev, [modOrder.id]: true }));
+        try {
+          const res = await fetch('/api/orders/modification', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              requestType: 'modification',
+              action: 'decline',
+              modOrderId: modOrder.id,
+              originalOrderId: originalOrder?.id || null,
+              messageText,
+              sendNotification,
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok || !data.success) {
+            throw new Error(data.error || 'Failed to decline modification');
+          }
+
+          setOrders((prev) =>
+            prev.map((o) =>
+              o.id === modOrder.id
+                ? { ...o, payment_method: 'mod_declined', internal_notes: '[MOD_DECLINED]' }
+                : o
+            )
+          );
+        } catch (err) {
+          console.error('Error declining modification:', err);
+          alert('تعذر رفض التعديل. يرجى المحاولة مرة أخرى.');
+        } finally {
+          setIsUpdatingOrder((prev) => ({ ...prev, [modOrder.id]: false }));
+        }
+      },
+    });
+  };
+
+  const handleApproveCancellation = (item: CancellationRequestItem) => {
+    const { complaint, linkedOrder } = item;
+    const displayOrderNum = linkedOrder ? linkedOrder.order_number : complaint.ticket_number;
+    const custName = complaint.customer_name || linkedOrder?.customer_name || 'العميل';
+
+    const defaultMsg = interpolateOrderTemplate(orderTemplates.cancellation_approve, {
+      customer_name: custName,
+      order_number: displayOrderNum,
+      total_amount: linkedOrder?.total_amount || 0,
+    });
+
+    setActionModalConfig({
+      type: 'cancellation_approve',
+      title: `الموافقة على إلغاء الأوردر #${displayOrderNum}`,
+      subtitle: 'سيتم تحويل الأوردر إلى ملغي وإغلاق تذكرة الإلغاء وإبلاغ العميل',
+      confirmButtonLabel: 'موافقة وإلغاء الأوردر وإرسال الرسالة',
+      confirmButtonVariant: 'emerald',
+      customerName: custName,
+      orderNumber: displayOrderNum,
+      totalAmount: linkedOrder?.total_amount || 0,
+      defaultMessage: defaultMsg,
+      onConfirm: async ({ messageText, sendNotification }) => {
+        setIsUpdatingOrder((prev) => ({
+          ...prev,
+          [complaint.id]: true,
+          ...(linkedOrder ? { [linkedOrder.id]: true } : {}),
+        }));
+
+        try {
+          const res = await fetch('/api/orders/modification', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              requestType: 'cancellation',
+              action: 'approve',
+              complaintId: complaint.id,
+              orderId: linkedOrder?.id || null,
+              messageText,
+              sendNotification,
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok || !data.success) {
+            throw new Error(data.error || 'Failed to approve cancellation');
+          }
+
+          setOpenComplaints((prev) => prev.filter((c) => c.id !== complaint.id));
+          if (linkedOrder) {
+            setOrders((prev) =>
+              prev.map((o) =>
+                o.id === linkedOrder.id ? { ...o, payment_method: 'cancelled' } : o
+              )
+            );
+          }
+        } catch (err) {
+          console.error('Error approving cancellation:', err);
+          alert('تعذر تنفيذ إلغاء الطلب. يرجى المحاولة مرة أخرى.');
+        } finally {
+          setIsUpdatingOrder((prev) => ({
+            ...prev,
+            [complaint.id]: false,
+            ...(linkedOrder ? { [linkedOrder.id]: false } : {}),
+          }));
+        }
+      },
+    });
+  };
+
+  const handleDeclineCancellation = (item: CancellationRequestItem) => {
+    const { complaint, linkedOrder } = item;
+    const displayOrderNum = linkedOrder ? linkedOrder.order_number : complaint.ticket_number;
+    const custName = complaint.customer_name || linkedOrder?.customer_name || 'العميل';
+
+    const defaultMsg = interpolateOrderTemplate(orderTemplates.cancellation_decline, {
+      customer_name: custName,
+      order_number: displayOrderNum,
+      total_amount: linkedOrder?.total_amount || 0,
+    });
+
+    setActionModalConfig({
+      type: 'cancellation_decline',
+      title: `رفض طلب إلغاء الأوردر #${displayOrderNum}`,
+      subtitle: 'سيبقى الأوردر فعالاً كما هو وسيتم إبلاغ العميل بسبب عدم إمكانية الإلغاء',
+      confirmButtonLabel: 'رفض الإلغاء وإرسال الرسالة للعميل',
+      confirmButtonVariant: 'rose',
+      customerName: custName,
+      orderNumber: displayOrderNum,
+      totalAmount: linkedOrder?.total_amount || 0,
+      defaultMessage: defaultMsg,
+      presets: orderTemplates.cancellation_decline_presets,
+      onConfirm: async ({ messageText, sendNotification }) => {
+        setIsUpdatingOrder((prev) => ({ ...prev, [complaint.id]: true }));
+        try {
+          const res = await fetch('/api/orders/modification', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              requestType: 'cancellation',
+              action: 'decline',
+              complaintId: complaint.id,
+              orderId: linkedOrder?.id || null,
+              messageText,
+              sendNotification,
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok || !data.success) {
+            throw new Error(data.error || 'Failed to decline cancellation');
+          }
+
+          setOpenComplaints((prev) => prev.filter((c) => c.id !== complaint.id));
+        } catch (err) {
+          console.error('Error declining cancellation:', err);
+          alert('تعذر رفض طلب الإلغاء. يرجى المحاولة مرة أخرى.');
+        } finally {
+          setIsUpdatingOrder((prev) => ({ ...prev, [complaint.id]: false }));
+        }
+      },
+    });
   };
 
   const handleRestoreOrder = async (orderId: string) => {
@@ -911,8 +1364,34 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
           </p>
         </div>
 
-        {/* View Mode Toggle & Show Cancelled Orders Button */}
+        {/* View Mode Toggle, Modification Requests, Message Templates & Show Cancelled Orders Button */}
         <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+          <button
+            type="button"
+            onClick={() => setIsTemplatesModalOpen(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:border-amber-500/40 hover:text-amber-600 dark:hover:text-amber-400 transition-all cursor-pointer shadow-2xs"
+          >
+            <MessageSquareText className="w-3.5 h-3.5 text-amber-500" />
+            <span>قوالب رسائل الأوردرات</span>
+          </button>
+
+          {(modificationRequests.length > 0 || cancellationRequests.length > 0) && (
+            <button
+              type="button"
+              onClick={() => setShowModificationSection((prev) => !prev)}
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black border transition-all cursor-pointer ${
+                showModificationSection
+                  ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-sm shadow-amber-500/20'
+                  : 'bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-500/35 hover:bg-amber-500/25'
+              }`}
+            >
+              <ArrowLeftRight className="w-3.5 h-3.5" />
+              <span>
+                طلبات التعديل والإلغاء ({modificationRequests.length + cancellationRequests.length})
+              </span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => setShowCancelled((prev) => !prev)}
@@ -958,6 +1437,21 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
           </div>
         </div>
       </div>
+
+      {/* Dedicated Modification & Customer Cancellation Requests Section */}
+      {showModificationSection &&
+        (modificationRequests.length > 0 || cancellationRequests.length > 0) && (
+          <OrderModificationRequestsSection
+            modificationRequests={modificationRequests}
+            cancellationRequests={cancellationRequests}
+            isUpdating={isUpdatingOrder}
+            onApproveModification={handleApproveModification}
+            onDeclineModification={handleDeclineModification}
+            onApproveCancellation={handleApproveCancellation}
+            onDeclineCancellation={handleDeclineCancellation}
+            onSelectOrder={(ord) => setSelectedOrder(ord)}
+          />
+        )}
 
       {/* Summary KPI Cards Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -1445,6 +1939,20 @@ export function OrderKanban({ initialOrders, branches = [], offers = [] }: Order
         isOpen={Boolean(schedulingOrder)}
         onClose={() => setSchedulingOrder(null)}
         onConfirmSchedule={handleConfirmSchedule}
+      />
+
+      {/* Action Message Preview Modal (Approve/Decline Modification, Approve/Decline Cancellation, Staff Cancel) */}
+      <OrderActionMessageModal
+        config={actionModalConfig}
+        onClose={() => setActionModalConfig(null)}
+      />
+
+      {/* Editable Order Message Templates Modal */}
+      <OrderTemplatesModal
+        isOpen={isTemplatesModalOpen}
+        onClose={() => setIsTemplatesModalOpen(false)}
+        initialTemplates={orderTemplates}
+        onSaved={(updated) => setOrderTemplates(updated)}
       />
 
       {/* Thermal Receipt Print Component */}

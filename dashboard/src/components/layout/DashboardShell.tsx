@@ -8,6 +8,7 @@ import { StaffPermission } from '@/lib/role-guard';
 import { createClient } from '@/lib/supabase/client';
 import { isOrderCancelled } from '@/lib/utils';
 import { isScheduledPaymentMethod } from '@/lib/scheduled-orders';
+import { isMergedOrDeclinedModOrder } from '@/lib/order-templates';
 
 interface DashboardShellProps {
   user: {
@@ -69,7 +70,7 @@ export function DashboardShell({
     const [{ data: pendingRows }, { count: schedCount }] = await Promise.all([
       supabase
         .from('orders')
-        .select('id, status, payment_method')
+        .select('id, status, payment_method, internal_notes')
         .eq('status', 'pending')
         .gte('created_at', since.toISOString()),
       supabase
@@ -80,7 +81,10 @@ export function DashboardShell({
 
     if (pendingRows) {
       const activePending = pendingRows.filter(
-        (o) => !isOrderCancelled(o) && !isScheduledPaymentMethod(o.payment_method)
+        (o) =>
+          !isOrderCancelled(o) &&
+          !isScheduledPaymentMethod(o.payment_method) &&
+          !isMergedOrDeclinedModOrder(o)
       ).length;
       setLivePendingOrdersCount(activePending);
     }
